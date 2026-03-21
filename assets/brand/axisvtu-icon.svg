@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AxisVTU app icon (vector source).
+  Note: This is a clean, scalable approximation of the provided AV gradient icon for use across web + PWA.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="960" x2="960" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0ea5a6"/>
+      <stop offset="0.55" stop-color="#f2a353"/>
+      <stop offset="1" stop-color="#f06a7a"/>
+    </linearGradient>
+    <linearGradient id="tileShade" x1="128" y1="896" x2="896" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b7f82" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#1b1b1b" stop-opacity="0.12"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="38" stdDeviation="34" flood-color="#0b1220" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="80" fill="url(#bg)"/>
+
+  <!-- icon tile -->
+  <g filter="url(#shadow)">
+    <rect x="170" y="170" width="684" height="684" rx="150" fill="url(#bg)"/>
+    <rect x="170" y="170" width="684" height="684" rx="150" fill="url(#tileShade)"/>
+  </g>
+
+  <!-- AV monogram (stylized, geometric) -->
+  <g fill="#ffffff">
+    <!-- A -->
+    <path d="M332 690 L442 378 Q456 338 496 338 Q536 338 550 378 L658 690
+             L606 690 L571 600 L422 600 L387 690 Z
+             M440 552 L553 552 L496 404 Z"/>
+    <!-- V (diagonal cut) -->
+    <path d="M558 690 L676 358 L730 358 L612 690 Z"/>
+    <path d="M612 690 L730 358 L786 358 L666 690 Z" opacity="0.96"/>
+  </g>
+
+  <!-- swoosh -->
+  <path
+    d="M265 646
+       C 315 760, 475 835, 640 805
+       C 782 779, 872 704, 888 632
+       C 900 580, 858 546, 792 551
+       C 708 557, 610 596, 530 618
+       C 440 644, 345 660, 265 646 Z"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="22"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.95"
+  />
+
+  <!-- star -->
+  <path
+    d="M700 308
+       L714 340
+       L748 345
+       L723 367
+       L730 400
+       L700 384
+       L670 400
+       L677 367
+       L652 345
+       L686 340 Z"
+    fill="#ffffff"
+    opacity="0.98"
+  />
+</svg>
+
