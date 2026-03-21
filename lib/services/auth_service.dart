@@ -19,6 +19,10 @@ class AuthService {
     return data;
   }
 
+  Future<Map<String, dynamic>> lookupUser(String identifier) async {
+    return _client.post('/auth/lookup', {'identifier': identifier});
+  }
+
   Future<Map<String, dynamic>> register({
     required String fullName,
     required String email,
