@@ -5,7 +5,7 @@ import '../state/session.dart';
 import '../widgets/app_header.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/primary_button.dart';
-import 'login_screen.dart';
+import 'welcome_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -80,7 +80,7 @@ class ProfileScreen extends StatelessWidget {
               await session.logout();
               if (!context.mounted) return;
               Navigator.of(context).pushNamedAndRemoveUntil(
-                LoginScreen.route,
+                WelcomeScreen.route,
                 (route) => false,
               );
             },
