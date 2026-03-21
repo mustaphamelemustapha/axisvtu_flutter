@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/password_service.dart';
 import '../widgets/auth_backdrop.dart';
+import '../widgets/auth_route.dart';
 import '../widgets/theme_toggle_button.dart';
 import 'reset_password_screen.dart';
 
@@ -101,9 +102,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ResetPasswordScreen(token: _tokenFull),
-      ),
+      AuthRoute(page: ResetPasswordScreen(token: _tokenFull)),
     );
   }
 

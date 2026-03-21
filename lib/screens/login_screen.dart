@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/session.dart';
 import '../widgets/app_header.dart';
+import '../widgets/auth_route.dart';
 import '../widgets/primary_button.dart';
 import 'register_screen.dart';
 import 'shell_screen.dart';
@@ -100,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 16),
             Center(
               child: TextButton(
-                onPressed: () => Navigator.of(context).pushNamed(RegisterScreen.route),
+                onPressed: () => Navigator.of(context).push(AuthRoute(page: const RegisterScreen())),
                 child: const Text('Create an account'),
               ),
             ),

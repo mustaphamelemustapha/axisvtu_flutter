@@ -5,6 +5,7 @@ import '../services/user_lookup_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_backdrop.dart';
+import '../widgets/auth_route.dart';
 import '../widgets/theme_toggle_button.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
@@ -174,9 +175,7 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
               child: TextButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ForgotPasswordScreen(identifier: widget.identifier),
-                    ),
+                    AuthRoute(page: ForgotPasswordScreen(identifier: widget.identifier)),
                   );
                 },
                 child: const Text('Forgot password?'),
@@ -198,8 +197,8 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
             OutlinedButton(
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => RegisterScreen(
+                  AuthRoute(
+                    page: RegisterScreen(
                       initialPhone: widget.identifier.contains('@') ? null : widget.identifier,
                       initialEmail: widget.identifier.contains('@') ? widget.identifier : null,
                     ),

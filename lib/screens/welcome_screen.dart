@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/auth_backdrop.dart';
+import '../widgets/auth_route.dart';
 import '../widgets/theme_toggle_button.dart';
 import 'auth_password_screen.dart';
 
@@ -26,9 +27,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final identifier = _idCtrl.text.trim();
     if (identifier.isEmpty) return;
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AuthPasswordScreen(identifier: identifier),
-      ),
+      AuthRoute(page: AuthPasswordScreen(identifier: identifier)),
     );
   }
 
