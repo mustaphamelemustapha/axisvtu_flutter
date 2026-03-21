@@ -5,6 +5,7 @@ import '../services/user_lookup_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_backdrop.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'shell_screen.dart';
 
@@ -155,8 +156,10 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Password reset coming soon.')),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ForgotPasswordScreen(identifier: widget.identifier),
+                    ),
                   );
                 },
                 child: const Text('Forgot password?'),

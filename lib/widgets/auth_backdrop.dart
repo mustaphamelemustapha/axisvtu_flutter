@@ -6,9 +6,16 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_theme.dart';
 
 class AuthBackdrop extends StatefulWidget {
-  const AuthBackdrop({super.key, required this.child});
+  const AuthBackdrop({
+    super.key,
+    required this.child,
+    this.overlay,
+    this.showBrandText = true,
+  });
 
   final Widget child;
+  final Widget? overlay;
+  final bool showBrandText;
 
   @override
   State<AuthBackdrop> createState() => _AuthBackdropState();
@@ -166,15 +173,18 @@ class _AuthBackdropState extends State<AuthBackdrop> with SingleTickerProviderSt
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      'AxisVTU',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white),
-                    ),
+                    if (widget.showBrandText) ...[
+                      const SizedBox(height: 18),
+                      const Text(
+                        'AxisVTU',
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
+            if (widget.overlay != null) widget.overlay!,
             Align(
               alignment: Alignment.bottomCenter,
               child: SingleChildScrollView(
