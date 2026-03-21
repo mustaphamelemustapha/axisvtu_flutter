@@ -27,6 +27,13 @@ class AppTheme {
         headlineSmall: baseText.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
         titleMedium: baseText.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+      }),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -54,6 +61,7 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           textStyle: baseText.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          animationDuration: const Duration(milliseconds: 160),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -62,6 +70,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           side: BorderSide(color: scheme.outline.withValues(alpha: 0.4)),
           textStyle: baseText.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          animationDuration: const Duration(milliseconds: 160),
         ),
       ),
       chipTheme: ChipThemeData(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'home_screen.dart';
 import 'wallet_screen.dart';
@@ -30,7 +31,10 @@ class _ShellScreenState extends State<ShellScreen> {
       body: IndexedStack(index: _index, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
+        onDestinationSelected: (value) {
+          HapticFeedback.selectionClick();
+          setState(() => _index = value);
+        },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Wallet'),

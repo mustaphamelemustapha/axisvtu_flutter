@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../state/theme_controller.dart';
@@ -17,7 +18,10 @@ class ThemeToggleButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => context.read<ThemeController>().toggle(),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          context.read<ThemeController>().toggle();
+        },
         borderRadius: BorderRadius.circular(16),
         child: Ink(
           width: size,
