@@ -41,14 +41,22 @@ class _AuthBackdropState extends State<AuthBackdrop> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brandColor = isDark ? Colors.white : const Color(0xFF0F172A);
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF0B1118),
-            Color(0xFF101826),
-            Color(0xFF0B1118),
-          ],
+          colors: isDark
+              ? const [
+                  Color(0xFF0B1118),
+                  Color(0xFF101826),
+                  Color(0xFF0B1118),
+                ]
+              : const [
+                  Color(0xFFF7F9FC),
+                  Color(0xFFE9EEF6),
+                  Color(0xFFF7F9FC),
+                ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -119,31 +127,6 @@ class _AuthBackdropState extends State<AuthBackdrop> with SingleTickerProviderSt
                 child: _Pill(label: 'Airtime → Cash', color: Color(0xFF3B82F6)),
               ),
             ),
-            _Floating(
-              controller: _floatController,
-              offset: const Offset(0, 5),
-              phase: 0.8,
-              child: Positioned(
-                top: 210,
-                right: 14,
-                child: Container(
-                  height: 44,
-                  width: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1F2937),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.nightlight_round, color: Colors.white),
-                ),
-              ),
-            ),
             Align(
               alignment: Alignment.topCenter,
               child: Padding(
@@ -175,9 +158,9 @@ class _AuthBackdropState extends State<AuthBackdrop> with SingleTickerProviderSt
                     ),
                     if (widget.showBrandText) ...[
                       const SizedBox(height: 18),
-                      const Text(
+                      Text(
                         'AxisVTU',
-                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white),
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: brandColor),
                       ),
                     ],
                   ],
@@ -242,18 +225,24 @@ class _MiniPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = highlight
+        ? const Color(0xFFFFB020)
+        : (isDark ? const Color(0xFF2F3947) : Theme.of(context).colorScheme.outline.withValues(alpha: 0.4));
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textMuted = isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF475569);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F2937),
+        color: isDark ? const Color(0xFF1F2937) : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: highlight ? const Color(0xFFFFB020) : const Color(0xFF2F3947),
+          color: borderColor,
           width: 1.4,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
             blurRadius: 18,
             offset: const Offset(0, 12),
           ),
@@ -262,11 +251,11 @@ class _MiniPlanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+          Text(label, style: TextStyle(color: textMuted)),
           const SizedBox(height: 6),
-          Text(size, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+          Text(size, style: TextStyle(color: textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text(price, style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+          Text(price, style: TextStyle(color: textMuted)),
         ],
       ),
     );

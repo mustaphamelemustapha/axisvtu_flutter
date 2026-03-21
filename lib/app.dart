@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'state/session.dart';
+import 'state/theme_controller.dart';
 import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -13,19 +14,28 @@ class AxisVTUApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => SessionController()..bootstrap(),
-      child: MaterialApp(
-        title: 'AxisVTU',
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        routes: {
-          WelcomeScreen.route: (_) => const WelcomeScreen(),
-          LoginScreen.route: (_) => const LoginScreen(),
-          RegisterScreen.route: (_) => const RegisterScreen(),
-          ShellScreen.route: (_) => const ShellScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SessionController()..bootstrap()),
+        ChangeNotifierProvider(create: (_) => ThemeController()),
+      ],
+      child: Builder(
+        builder: (context) {
+          final mode = context.watch<ThemeController>().mode;
+          return MaterialApp(
+            title: 'AxisVTU',
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: mode,
+            routes: {
+              WelcomeScreen.route: (_) => const WelcomeScreen(),
+              LoginScreen.route: (_) => const LoginScreen(),
+              RegisterScreen.route: (_) => const RegisterScreen(),
+              ShellScreen.route: (_) => const ShellScreen(),
+            },
+            home: const AuthGate(),
+          );
         },
-        home: const AuthGate(),
       ),
     );
   }

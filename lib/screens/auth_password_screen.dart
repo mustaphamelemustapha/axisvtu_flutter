@@ -5,6 +5,7 @@ import '../services/user_lookup_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_backdrop.dart';
+import '../widgets/theme_toggle_button.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'shell_screen.dart';
@@ -78,24 +79,40 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final muted = onSurface.withValues(alpha: 0.7);
     return Scaffold(
       body: AuthBackdrop(
+        overlay: Positioned(
+          top: 16,
+          left: 16,
+          right: 16,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _CircleIconButton(
+                icon: Icons.arrow_back,
+                onTap: () => Navigator.of(context).pop(),
+              ),
+              const ThemeToggleButton(),
+            ],
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 520),
             Text(
               'Welcome ${_displayName.isNotEmpty ? _displayName : 'back'}',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: onSurface),
             ),
             const SizedBox(height: 8),
             if (_lookupLoading)
-              Text('Fetching your profile...',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.6)))
+              Text('Fetching your profile...', style: TextStyle(color: muted))
             else
               Text(
                 'Enter your password to continue.',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                style: TextStyle(color: muted),
               ),
             const SizedBox(height: 16),
             Row(
@@ -104,18 +121,18 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.person_outline, color: Colors.white70, size: 18),
+                        Icon(Icons.person_outline, color: muted, size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             widget.identifier,
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(color: onSurface),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -134,20 +151,20 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
             TextField(
               controller: _passwordCtrl,
               obscureText: _obscure,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: onSurface),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70),
+                prefixIcon: Icon(Icons.lock_outline, color: muted),
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => _obscure = !_obscure),
-                  icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off, color: Colors.white70),
+                  icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off, color: muted),
                 ),
                 hintText: 'Password',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                hintStyle: TextStyle(color: onSurface.withValues(alpha: 0.4)),
                 filled: true,
-                fillColor: const Color(0xFF111827),
+                fillColor: Theme.of(context).colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
                 ),
               ),
             ),
@@ -232,6 +249,34 @@ class _GradientButton extends StatelessWidget {
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+          ),
+          child: Icon(icon, color: Theme.of(context).colorScheme.onSurface),
         ),
       ),
     );

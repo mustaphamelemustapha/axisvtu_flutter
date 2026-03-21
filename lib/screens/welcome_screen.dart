@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../widgets/auth_backdrop.dart';
+import '../widgets/theme_toggle_button.dart';
 import 'auth_password_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -33,35 +34,44 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final muted = onSurface.withValues(alpha: 0.7);
+    final hint = onSurface.withValues(alpha: 0.5);
+    final fill = Theme.of(context).colorScheme.surface;
     return Scaffold(
       body: AuthBackdrop(
+        overlay: const Positioned(
+          top: 16,
+          right: 16,
+          child: ThemeToggleButton(),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 520),
-            const Text(
+            Text(
               'Enter email or phone',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: onSurface),
             ),
             const SizedBox(height: 8),
             Text(
               'Continue to sign in or create an account automatically.',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              style: TextStyle(color: muted),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _idCtrl,
               keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: onSurface),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.person_outline, color: Colors.white70),
+                prefixIcon: Icon(Icons.person_outline, color: muted),
                 hintText: 'you@email.com or 08012345678',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                hintStyle: TextStyle(color: hint),
                 filled: true,
-                fillColor: const Color(0xFF111827),
+                fillColor: fill,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
                 ),
               ),
             ),
@@ -70,7 +80,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             const SizedBox(height: 10),
             Text(
               'By continuing, you agree to use AxisVTU responsibly.',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
+              style: TextStyle(color: onSurface.withValues(alpha: 0.5), fontSize: 12),
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -134,14 +144,15 @@ class _GhostChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
       ),
-      child: Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+      child: Text(label, style: TextStyle(color: onSurface.withValues(alpha: 0.7))),
     );
   }
 }

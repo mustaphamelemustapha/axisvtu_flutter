@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/password_service.dart';
 import '../widgets/auth_backdrop.dart';
+import '../widgets/theme_toggle_button.dart';
 import 'reset_password_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -133,6 +134,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final muted = onSurface.withValues(alpha: 0.7);
     return Scaffold(
       body: AuthBackdrop(
         showBrandText: false,
@@ -147,10 +150,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 icon: Icons.arrow_back,
                 onTap: () => Navigator.of(context).pop(),
               ),
-              _CircleIconButton(
-                icon: Icons.nightlight_round,
-                onTap: () {},
-              ),
+              const ThemeToggleButton(),
             ],
           ),
         ),
@@ -158,30 +158,30 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 460),
-            const Text(
+            Text(
               'Forgot Password',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: onSurface),
             ),
             const SizedBox(height: 8),
             Text(
               'Verify with OTP and set a new password.',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              style: TextStyle(color: muted),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: onSurface),
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.email_outlined, color: Colors.white70),
+                prefixIcon: Icon(Icons.email_outlined, color: muted),
                 hintText: 'you@email.com',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                hintStyle: TextStyle(color: onSurface.withValues(alpha: 0.5)),
                 filled: true,
-                fillColor: const Color(0xFF111827),
+                fillColor: Theme.of(context).colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
                 ),
               ),
             ),
@@ -189,9 +189,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.45),
@@ -205,7 +205,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 children: [
                   Text(
                     'We sent a 6-digit code to ${_emailCtrl.text.isEmpty ? 'your email' : _emailCtrl.text}.',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                    style: TextStyle(color: muted),
                   ),
                   const SizedBox(height: 12),
                   _OtpRow(controller: _codeCtrl, focusNode: _otpFocus),
@@ -232,7 +232,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       const SizedBox(width: 8),
                       Text(
                         _secondsLeft == 0 ? '' : _formatTimer(),
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                        style: TextStyle(color: muted),
                       ),
                     ],
                   ),
@@ -263,6 +263,7 @@ class _OtpRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = controller.text;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return GestureDetector(
       onTap: () => focusNode.requestFocus(),
       child: Column(
@@ -290,14 +291,14 @@ class _OtpRow extends StatelessWidget {
                 width: 44,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF111827),
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   char,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: onSurface, fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               );
             }),
@@ -325,11 +326,11 @@ class _CircleIconButton extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: const Color(0xFF111827),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
           ),
-          child: Icon(icon, color: Colors.white),
+          child: Icon(icon, color: Theme.of(context).colorScheme.onSurface),
         ),
       ),
     );

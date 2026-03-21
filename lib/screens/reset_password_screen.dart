@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/password_service.dart';
 import '../widgets/auth_backdrop.dart';
+import '../widgets/theme_toggle_button.dart';
 import 'login_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -57,35 +58,53 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final muted = onSurface.withValues(alpha: 0.7);
     return Scaffold(
       body: AuthBackdrop(
+        showBrandText: false,
+        overlay: Positioned(
+          top: 16,
+          left: 16,
+          right: 16,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _CircleIconButton(
+                icon: Icons.arrow_back,
+                onTap: () => Navigator.of(context).pop(),
+              ),
+              const ThemeToggleButton(),
+            ],
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 520),
-            const Text(
+            const SizedBox(height: 460),
+            Text(
               'Set New Password',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: onSurface),
             ),
             const SizedBox(height: 8),
             Text(
               'Create a strong password you can remember.',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              style: TextStyle(color: muted),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _passwordCtrl,
               obscureText: _obscure,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: onSurface),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70),
+                prefixIcon: Icon(Icons.lock_outline, color: muted),
                 hintText: 'New password',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                hintStyle: TextStyle(color: onSurface.withValues(alpha: 0.4)),
                 filled: true,
-                fillColor: const Color(0xFF111827),
+                fillColor: Theme.of(context).colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
                 ),
               ),
             ),
@@ -93,16 +112,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             TextField(
               controller: _confirmCtrl,
               obscureText: _obscure,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: onSurface),
               decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70),
+                prefixIcon: Icon(Icons.lock_outline, color: muted),
                 hintText: 'Confirm password',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                hintStyle: TextStyle(color: onSurface.withValues(alpha: 0.4)),
                 filled: true,
-                fillColor: const Color(0xFF111827),
+                fillColor: Theme.of(context).colorScheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
                 ),
               ),
             ),
@@ -113,7 +132,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   value: !_obscure,
                   onChanged: (_) => setState(() => _obscure = !_obscure),
                 ),
-                const Text('Show password', style: TextStyle(color: Colors.white70)),
+                Text('Show password', style: TextStyle(color: muted)),
               ],
             ),
             if (_error != null)
@@ -130,6 +149,34 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: Text(_loading ? 'Resetting...' : 'Reset Password'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+          ),
+          child: Icon(icon, color: Theme.of(context).colorScheme.onSurface),
         ),
       ),
     );
