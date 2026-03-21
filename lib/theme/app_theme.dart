@@ -16,7 +16,8 @@ class AppTheme {
       brightness: brightness,
       secondary: _secondary,
     );
-    final baseText = GoogleFonts.plusJakartaSansTextTheme();
+    final baseText = GoogleFonts.plusJakartaSansTextTheme()
+        .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
 
     return ThemeData(
       useMaterial3: true,
