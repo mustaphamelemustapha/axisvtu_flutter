@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 class AuthRoute<T> extends PageRouteBuilder<T> {
@@ -11,13 +13,25 @@ class AuthRoute<T> extends PageRouteBuilder<T> {
             final fade = Tween<double>(begin: 0, end: 1).animate(curved);
             final slide = Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(curved);
             final scale = Tween<double>(begin: 0.98, end: 1).animate(curved);
+            final blur = Tween<double>(begin: 8, end: 0).animate(curved);
 
-            return FadeTransition(
-              opacity: fade,
-              child: SlideTransition(
-                position: slide,
-                child: ScaleTransition(scale: scale, child: child),
-              ),
+            return AnimatedBuilder(
+              animation: blur,
+              builder: (context, _) {
+                return FadeTransition(
+                  opacity: fade,
+                  child: SlideTransition(
+                    position: slide,
+                    child: ScaleTransition(
+                      scale: scale,
+                      child: ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: blur.value, sigmaY: blur.value),
+                        child: child,
+                      ),
+                    ),
+                  ),
+                );
+              },
             );
           },
         );

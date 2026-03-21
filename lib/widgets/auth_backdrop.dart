@@ -148,11 +148,14 @@ class _AuthBackdropState extends State<AuthBackdrop> with SingleTickerProviderSt
                         ],
                       ),
                       child: Center(
-                        child: SvgPicture.asset(
-                          'assets/brand/axisvtu-icon.svg',
-                          width: 44,
-                          height: 44,
-                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                        child: Hero(
+                          tag: 'axis-logo',
+                          child: SvgPicture.asset(
+                            'assets/brand/axisvtu-icon.svg',
+                            width: 44,
+                            height: 44,
+                            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                          ),
                         ),
                       ),
                     ),
