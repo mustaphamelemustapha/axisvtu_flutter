@@ -107,7 +107,8 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   String _planCapacity(dynamic plan) {
-    return (plan['data_capacity'] ?? plan['size'] ?? plan['capacity'] ?? '').toString();
+    final raw = plan['data_capacity'] ?? plan['size'] ?? plan['capacity'] ?? plan['name'] ?? plan['plan_name'] ?? '';
+    return _formatCapacity(raw);
   }
 
   String _planPrice(dynamic plan) {
@@ -120,6 +121,24 @@ class _DataScreenState extends State<DataScreen> {
 
   String _planNetwork(dynamic plan) {
     return (plan['network'] ?? '').toString().toUpperCase();
+  }
+
+  String _formatCapacity(dynamic raw) {
+    if (raw == null) return '';
+    final value = raw.toString().trim();
+    if (value.isEmpty) return '';
+    final upper = value.toUpperCase();
+    if (upper.contains('GB') || upper.contains('MB')) {
+      return upper.replaceAll(' ', '');
+    }
+    final parsed = double.tryParse(value);
+    if (parsed == null) return value;
+    if (parsed < 1) {
+      final mb = (parsed * 1000).round();
+      return '${mb}MB';
+    }
+    final gb = parsed % 1 == 0 ? parsed.toInt().toString() : parsed.toStringAsFixed(1);
+    return '${gb}GB';
   }
 
   Future<void> _buy() async {
@@ -248,6 +267,7 @@ class _DataScreenState extends State<DataScreen> {
                                     capacity: _planCapacity(plan),
                                     price: _planPrice(plan),
                                     validity: _planValidity(plan),
+                                    network: _planNetwork(plan),
                                     selected: isSelected,
                                     onTap: () => setSheetState(
                                       () => selectedCode = plan['plan_code']?.toString(),
@@ -393,10 +413,33 @@ class _DataScreenState extends State<DataScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                if (selected != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.wifi, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_planCapacity(selected)} • ₦${_planPrice(selected)}',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const Spacer(),
+                        Text('${_planValidity(selected)} days', style: Theme.of(context).textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Align(
                   alignment: Alignment.centerRight,
                   child: SizedBox(
-                    width: 140,
+                    width: 160,
                     child: FilledButton.icon(
                       onPressed: _openPlansSheet,
                       icon: const Icon(Icons.arrow_forward),
@@ -519,6 +562,7 @@ class _PlanTile extends StatelessWidget {
     required this.capacity,
     required this.price,
     required this.validity,
+    this.network,
     required this.selected,
     required this.onTap,
   });
@@ -526,6 +570,7 @@ class _PlanTile extends StatelessWidget {
   final String capacity;
   final String price;
   final String validity;
+  final String? network;
   final bool selected;
   final VoidCallback onTap;
 
@@ -548,9 +593,9 @@ class _PlanTile extends StatelessWidget {
             : [],
       ),
       child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Ink(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
         decoration: BoxDecoration(
           color: selected
               ? color.withValues(alpha: 0.08)
@@ -565,9 +610,11 @@ class _PlanTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(capacity, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 6),
-            Text('₦$price', style: Theme.of(context).textTheme.bodyLarge),
+            Text(capacity.isEmpty ? '—' : capacity, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 4),
+            Text('Data', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 8),
+            Text('₦$price', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -577,6 +624,10 @@ class _PlanTile extends StatelessWidget {
               ),
               child: Text('$validity days', style: Theme.of(context).textTheme.bodySmall),
             ),
+            if (network != null && network!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(network!, style: Theme.of(context).textTheme.bodySmall),
+            ],
             if (selected) ...[
               const SizedBox(height: 8),
               Container(
@@ -593,7 +644,7 @@ class _PlanTile extends StatelessWidget {
             ],
           ],
         ),
-      ),
+        ),
       ),
     );
   }
