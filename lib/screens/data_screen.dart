@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../services/data_service.dart';
 import '../state/session.dart';
-import '../widgets/app_header.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/primary_button.dart';
 
@@ -193,13 +192,45 @@ class _DataScreenState extends State<DataScreen> {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          AppHeader(
-            title: 'Buy Data',
-            subtitle: 'Fast top-up with instant receipt.',
-            action: _CircleAction(
-              icon: _refreshing ? Icons.sync : Icons.refresh_rounded,
-              onTap: () => _loadPlans(forceRefresh: true),
-            ),
+          Row(
+            children: [
+              _CircleAction(
+                icon: Icons.arrow_back,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.wifi, size: 18),
+                        const SizedBox(width: 6),
+                        Text('Data', style: Theme.of(context).textTheme.titleMedium),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _CircleAction(
+                icon: _refreshing ? Icons.sync : Icons.refresh_rounded,
+                onTap: () => _loadPlans(forceRefresh: true),
+              ),
+              const SizedBox(width: 10),
+              _CircleAction(
+                icon: Icons.history,
+                onTap: () {},
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           GlassCard(
