@@ -69,6 +69,10 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/brand/axisvtu-icon.svg
+    - assets/networks/mtn.svg
+    - assets/networks/airtel.svg
+    - assets/networks/glo.svg
+    - assets/networks/9mobile.svg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
