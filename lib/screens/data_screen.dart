@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../services/data_service.dart';
 import '../state/session.dart';
 import '../widgets/glass_card.dart';
-import '../widgets/primary_button.dart';
 
 class DataScreen extends StatefulWidget {
   const DataScreen({super.key});
@@ -15,14 +14,14 @@ class DataScreen extends StatefulWidget {
 
 class _DataScreenState extends State<DataScreen> {
   final _phoneCtrl = TextEditingController();
-  bool _ported = false;
+  final bool _ported = false;
   String _network = 'all';
   String? _selectedPlanCode;
   List<dynamic> _plans = [];
   bool _loadingPlans = true;
-  bool _loadingPurchase = false;
   String? _error;
   bool _refreshing = false;
+  Future<List<dynamic>>? _plansFuture;
 
   @override
   void initState() {
@@ -30,11 +29,7 @@ class _DataScreenState extends State<DataScreen> {
     if (DataService.hasCache) {
       _plans = DataService.cachedPlans;
       _loadingPlans = false;
-      if (_filteredPlans.isNotEmpty) {
-        _selectedPlanCode = _filteredPlans.first['plan_code']?.toString();
-      }
     }
-    _loadPlans();
   }
 
   @override
@@ -55,13 +50,12 @@ class _DataScreenState extends State<DataScreen> {
       final data = await DataService(token: token).getPlans(forceRefresh: forceRefresh);
       setState(() {
         _plans = data;
-        if (_filteredPlans.isNotEmpty) {
-          final current = _selectedPlanCode;
-          final exists = _filteredPlans.any((p) => p['plan_code']?.toString() == current);
-          _selectedPlanCode = exists ? current : _filteredPlans.first['plan_code']?.toString();
-        } else {
-          _selectedPlanCode = null;
-        }
+        final current = _selectedPlanCode;
+        _selectedPlanCode = _filteredPlans.isEmpty
+            ? null
+            : (_filteredPlans.any((p) => p['plan_code']?.toString() == current)
+                ? current
+                : _filteredPlans.first['plan_code']?.toString());
       });
     } catch (e) {
       setState(() => _error = e.toString());
@@ -134,10 +128,7 @@ class _DataScreenState extends State<DataScreen> {
     }
     final token = context.read<SessionController>().token;
     if (token == null || token.isEmpty) return;
-    setState(() {
-      _loadingPurchase = true;
-      _error = null;
-    });
+    setState(() => _error = null);
     try {
       final res = await DataService(token: token).purchase(
         planCode: _selectedPlanCode!,
@@ -148,9 +139,7 @@ class _DataScreenState extends State<DataScreen> {
       _showResult(res);
     } catch (e) {
       setState(() => _error = e.toString());
-    } finally {
-      setState(() => _loadingPurchase = false);
-    }
+    } finally {}
   }
 
   void _showResult(Map<String, dynamic> res) {
@@ -177,6 +166,130 @@ class _DataScreenState extends State<DataScreen> {
         timeLabel: _formatDate(DateTime.now()),
         amount: selected == null ? '' : _planPrice(selected),
       ),
+    );
+  }
+
+  void _openPlansSheet() {
+    if (_phoneCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'Enter a phone number to continue.');
+      return;
+    }
+    final token = context.read<SessionController>().token;
+    if (token == null || token.isEmpty) return;
+    setState(() => _error = null);
+    setState(() => _loadingPlans = true);
+    _plansFuture = DataService(token: token).getPlans().whenComplete(() {
+      if (mounted) {
+        setState(() => _loadingPlans = false);
+      }
+    });
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String? selectedCode = _selectedPlanCode;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      height: 5,
+                      width: 52,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text('Available Plans', style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 12),
+                    FutureBuilder<List<dynamic>>(
+                      future: _plansFuture,
+                      builder: (context, snapshot) {
+                        if (_loadingPlans || snapshot.connectionState == ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: LinearProgressIndicator(minHeight: 2),
+                          );
+                        }
+                        final data = snapshot.data ?? [];
+                        _plans = data;
+                        final plans = _filteredPlans;
+                        if (plans.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Text('No plans available.', style: Theme.of(context).textTheme.bodySmall),
+                          );
+                        }
+                        selectedCode ??= plans.first['plan_code']?.toString();
+                        return Flexible(
+                          child: GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: plans.length,
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 0.9,
+                            ),
+                            itemBuilder: (context, index) {
+                              final plan = plans[index];
+                              final isSelected = plan['plan_code']?.toString() == selectedCode;
+                              return _PlanTile(
+                                capacity: _planCapacity(plan),
+                                price: _planPrice(plan),
+                                validity: _planValidity(plan),
+                                selected: isSelected,
+                                onTap: () => setSheetState(
+                                  () => selectedCode = plan['plan_code']?.toString(),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              if (selectedCode == null) return;
+                              setState(() => _selectedPlanCode = selectedCode);
+                              Navigator.of(context).pop();
+                              _buy();
+                            },
+                            child: const Text('Confirm'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -238,31 +351,35 @@ class _DataScreenState extends State<DataScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Choose Network', style: Theme.of(context).textTheme.titleMedium),
+                Text('Send to:', style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: 10),
+                TextField(
+                  controller: _phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number (080...)',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
                   children: [
-                    _NetworkChip(
-                      label: 'All',
-                      selected: _network == 'all',
-                      onTap: () => _selectNetwork('all'),
-                    ),
                     _NetworkChip(
                       label: 'MTN',
                       selected: _network == 'mtn',
                       onTap: () => _selectNetwork('mtn'),
                     ),
                     _NetworkChip(
-                      label: 'GLO',
-                      selected: _network == 'glo',
-                      onTap: () => _selectNetwork('glo'),
-                    ),
-                    _NetworkChip(
                       label: 'Airtel',
                       selected: _network == 'airtel',
                       onTap: () => _selectNetwork('airtel'),
+                    ),
+                    _NetworkChip(
+                      label: 'Glo',
+                      selected: _network == 'glo',
+                      onTap: () => _selectNetwork('glo'),
                     ),
                     _NetworkChip(
                       label: '9mobile',
@@ -272,52 +389,16 @@ class _DataScreenState extends State<DataScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text('Select Plan', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 10),
-                if (_loadingPlans)
-                  const LinearProgressIndicator(minHeight: 2)
-                else if (plans.isEmpty)
-                  Text('No plans available.', style: Theme.of(context).textTheme.bodySmall)
-                else
-                  Column(
-                    children: plans
-                        .map(
-                          (plan) => _PlanCard(
-                            label: _planCapacity(plan),
-                            validity: _planValidity(plan),
-                            price: _planPrice(plan),
-                            network: _planNetwork(plan),
-                            selected: plan['plan_code']?.toString() == _selectedPlanCode,
-                            onTap: () => setState(() => _selectedPlanCode = plan['plan_code']?.toString()),
-                          ),
-                        )
-                        .toList(),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: 140,
+                    child: FilledButton.icon(
+                      onPressed: _openPlansSheet,
+                      icon: const Icon(Icons.arrow_forward),
+                      label: const Text('Next'),
+                    ),
                   ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Receiver', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Receiver phone',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SwitchListTile.adaptive(
-                  value: _ported,
-                  onChanged: (value) => setState(() => _ported = value),
-                  title: const Text('Ported number'),
-                  contentPadding: EdgeInsets.zero,
                 ),
                 if (_error != null)
                   Padding(
@@ -327,17 +408,9 @@ class _DataScreenState extends State<DataScreen> {
                       style: TextStyle(color: Theme.of(context).colorScheme.error),
                     ),
                   ),
-                PrimaryButton(
-                  label: _loadingPurchase ? 'Processing...' : 'Buy now',
-                  loading: _loadingPurchase,
-                  onPressed: _loadingPurchase ? null : _buy,
-                ),
                 if (selected != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'Selected: ${_planLabel(selected)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  const SizedBox(height: 8),
+                  Text('Selected: ${_planLabel(selected)}', style: Theme.of(context).textTheme.bodySmall),
                 ],
               ],
             ),
@@ -410,66 +483,52 @@ class _CircleAction extends StatelessWidget {
   }
 }
 
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({
-    required this.label,
-    required this.validity,
+class _PlanTile extends StatelessWidget {
+  const _PlanTile({
+    required this.capacity,
     required this.price,
-    required this.network,
+    required this.validity,
     required this.selected,
     required this.onTap,
   });
 
-  final String label;
-  final String validity;
+  final String capacity;
   final String price;
-  final String network;
+  final String validity;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Ink(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: selected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-              width: selected ? 1.6 : 1,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Ink(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          ),
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(capacity, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text('₦$price', style: Theme.of(context).textTheme.bodyLarge),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)),
+              ),
+              child: Text('$validity days', style: Theme.of(context).textTheme.bodySmall),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                height: 44,
-                width: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.wifi, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('$label Data', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text('$validity days • $network', style: Theme.of(context).textTheme.bodySmall),
-                  ],
-                ),
-              ),
-              Text('₦$price', style: Theme.of(context).textTheme.titleMedium),
-            ],
-          ),
+          ],
         ),
       ),
     );
