@@ -38,9 +38,21 @@ class ThemeToggleButton extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(
-            isDark ? Icons.light_mode : Icons.nightlight_round,
-            color: isDark ? Colors.white : colorScheme.onSurface,
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              transitionBuilder: (child, animation) {
+                return ScaleTransition(
+                  scale: Tween<double>(begin: 0.8, end: 1).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
+              child: Icon(
+                isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                key: ValueKey(isDark),
+                color: isDark ? Colors.white : colorScheme.onSurface,
+              ),
+            ),
           ),
         ),
       ),
