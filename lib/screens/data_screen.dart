@@ -23,10 +23,18 @@ class _DataScreenState extends State<DataScreen> {
   bool _loadingPlans = true;
   bool _loadingPurchase = false;
   String? _error;
+  bool _refreshing = false;
 
   @override
   void initState() {
     super.initState();
+    if (DataService.hasCache) {
+      _plans = DataService.cachedPlans;
+      _loadingPlans = false;
+      if (_filteredPlans.isNotEmpty) {
+        _selectedPlanCode = _filteredPlans.first['plan_code']?.toString();
+      }
+    }
     _loadPlans();
   }
 
@@ -36,23 +44,33 @@ class _DataScreenState extends State<DataScreen> {
     super.dispose();
   }
 
-  Future<void> _loadPlans() async {
+  Future<void> _loadPlans({bool forceRefresh = false}) async {
     final token = context.read<SessionController>().token;
     if (token == null || token.isEmpty) return;
     setState(() {
       _loadingPlans = true;
+      _refreshing = forceRefresh;
       _error = null;
     });
     try {
-      final data = await DataService(token: token).getPlans();
+      final data = await DataService(token: token).getPlans(forceRefresh: forceRefresh);
       setState(() {
         _plans = data;
-        _selectedPlanCode = _filteredPlans.isNotEmpty ? _filteredPlans.first['plan_code']?.toString() : null;
+        if (_filteredPlans.isNotEmpty) {
+          final current = _selectedPlanCode;
+          final exists = _filteredPlans.any((p) => p['plan_code']?.toString() == current);
+          _selectedPlanCode = exists ? current : _filteredPlans.first['plan_code']?.toString();
+        } else {
+          _selectedPlanCode = null;
+        }
       });
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
-      setState(() => _loadingPlans = false);
+      setState(() {
+        _loadingPlans = false;
+        _refreshing = false;
+      });
     }
   }
 
@@ -175,9 +193,13 @@ class _DataScreenState extends State<DataScreen> {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const AppHeader(
+          AppHeader(
             title: 'Buy Data',
             subtitle: 'Fast top-up with instant receipt.',
+            action: _CircleAction(
+              icon: _refreshing ? Icons.sync : Icons.refresh_rounded,
+              onTap: () => _loadPlans(forceRefresh: true),
+            ),
           ),
           const SizedBox(height: 16),
           GlassCard(
@@ -327,6 +349,31 @@ class _NetworkChip extends StatelessWidget {
           label,
           style: TextStyle(color: selected ? Colors.white : color, fontWeight: FontWeight.w600),
         ),
+      ),
+    );
+  }
+}
+
+class _CircleAction extends StatelessWidget {
+  const _CircleAction({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+        ),
+        child: Icon(icon),
       ),
     );
   }
