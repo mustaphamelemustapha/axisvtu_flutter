@@ -6,6 +6,7 @@ import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/quick_action_tile.dart';
+import '../widgets/theme_toggle_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -73,10 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              _CircleAction(
-                icon: Icons.settings_outlined,
-                onTap: () {},
-              ),
+              const ThemeToggleButton(size: 44),
               const SizedBox(width: 10),
               _CircleAction(
                 icon: Icons.notifications_none_outlined,
