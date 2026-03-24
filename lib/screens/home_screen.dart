@@ -29,11 +29,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<SessionController>().user ?? {};
-    final name = user['full_name'] ?? user['name'] ?? 'AxisVTU User';
-    final role = user['role'] ?? 'AxisVTU Member';
+    final name = (user['full_name'] ?? user['name'] ?? 'AxisVTU User').toString();
+    final role = (user['role'] ?? 'AxisVTU Member').toString();
     final initials = name
         .split(' ')
-        .where((part) => part.isNotEmpty)
+        .where((String part) => part.isNotEmpty)
         .take(2)
         .map((part) => part[0])
         .join()
