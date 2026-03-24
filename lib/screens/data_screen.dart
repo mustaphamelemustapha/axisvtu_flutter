@@ -197,91 +197,92 @@ class _DataScreenState extends State<DataScreen> {
               minChildSize: 0.55,
               maxChildSize: 0.92,
               builder: (context, scrollController) {
-                return Container(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
-                  decoration: BoxDecoration(
+                return ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
                     color: Theme.of(context).scaffoldBackgroundColor,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 5,
-                        width: 52,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(999),
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 5,
+                          width: 52,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text('Available Plans', style: Theme.of(context).textTheme.titleLarge),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: FutureBuilder<List<dynamic>>(
-                          future: _plansFuture,
-                          builder: (context, snapshot) {
-                            if (_loadingPlans || snapshot.connectionState == ConnectionState.waiting) {
-                              return const Center(child: LinearProgressIndicator(minHeight: 2));
-                            }
-                            final data = snapshot.data ?? [];
-                            _plans = data;
-                            final plans = _filteredPlans;
-                            if (plans.isEmpty) {
-                              return Center(
-                                child: Text('No plans available.', style: Theme.of(context).textTheme.bodySmall),
-                              );
-                            }
-                            selectedCode ??= plans.first['plan_code']?.toString();
-                            return GridView.builder(
-                              controller: scrollController,
-                              itemCount: plans.length,
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: 0.9,
-                              ),
-                              itemBuilder: (context, index) {
-                                final plan = plans[index];
-                                final isSelected = plan['plan_code']?.toString() == selectedCode;
-                                return _PlanTile(
-                                  capacity: _planCapacity(plan),
-                                  price: _planPrice(plan),
-                                  validity: _planValidity(plan),
-                                  selected: isSelected,
-                                  onTap: () => setSheetState(
-                                    () => selectedCode = plan['plan_code']?.toString(),
-                                  ),
+                        const SizedBox(height: 14),
+                        Text('Available Plans', style: Theme.of(context).textTheme.titleLarge),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: FutureBuilder<List<dynamic>>(
+                            future: _plansFuture,
+                            builder: (context, snapshot) {
+                              if (_loadingPlans || snapshot.connectionState == ConnectionState.waiting) {
+                                return const Center(child: LinearProgressIndicator(minHeight: 2));
+                              }
+                              final data = snapshot.data ?? [];
+                              _plans = data;
+                              final plans = _filteredPlans;
+                              if (plans.isEmpty) {
+                                return Center(
+                                  child: Text('No plans available.', style: Theme.of(context).textTheme.bodySmall),
                                 );
-                              },
-                            );
-                          },
+                              }
+                              selectedCode ??= plans.first['plan_code']?.toString();
+                              return GridView.builder(
+                                controller: scrollController,
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: plans.length,
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 0.88,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final plan = plans[index];
+                                  final isSelected = plan['plan_code']?.toString() == selectedCode;
+                                  return _PlanTile(
+                                    capacity: _planCapacity(plan),
+                                    price: _planPrice(plan),
+                                    validity: _planValidity(plan),
+                                    selected: isSelected,
+                                    onTap: () => setSheetState(
+                                      () => selectedCode = plan['plan_code']?.toString(),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancel'),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Cancel'),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: () {
-                                if (selectedCode == null) return;
-                                setState(() => _selectedPlanCode = selectedCode);
-                                Navigator.of(context).pop();
-                                _buy();
-                              },
-                              child: const Text('Confirm'),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: () {
+                                  if (selectedCode == null) return;
+                                  setState(() => _selectedPlanCode = selectedCode);
+                                  Navigator.of(context).pop();
+                                  _buy();
+                                },
+                                child: const Text('Confirm'),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -462,7 +463,19 @@ class _NetworkChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (assetPath != null) ...[
-              SvgPicture.asset(assetPath!, height: 20, width: 20),
+              SvgPicture.asset(
+                assetPath!,
+                height: 22,
+                width: 22,
+                placeholderBuilder: (_) => Container(
+                  height: 22,
+                  width: 22,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
               const SizedBox(width: 6),
             ],
             Text(
@@ -519,15 +532,33 @@ class _PlanTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
-    return InkWell(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
+                ),
+              ]
+            : [],
+      ),
+      child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: selected
+              ? color.withValues(alpha: 0.08)
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            width: selected ? 1.6 : 1,
           ),
         ),
         padding: const EdgeInsets.all(14),
@@ -546,8 +577,23 @@ class _PlanTile extends StatelessWidget {
               ),
               child: Text('$validity days', style: Theme.of(context).textTheme.bodySmall),
             ),
+            if (selected) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  'Selected',
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ],
         ),
+      ),
       ),
     );
   }
