@@ -17,6 +17,6 @@ class WalletService {
   }
 
   Future<Map<String, dynamic>> createBankAccounts() async {
-    return _client.post('/wallet/bank-transfer-accounts', body: {});
+    return _client.post('/wallet/bank-transfer-accounts', {});
   }
 }
