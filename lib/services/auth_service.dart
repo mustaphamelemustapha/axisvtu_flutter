@@ -41,4 +41,15 @@ class AuthService {
   Future<Map<String, dynamic>> me() async {
     return _client.get('/auth/me');
   }
+
+  Future<Map<String, dynamic>> updateProfile({String? fullName, String? phoneNumber}) async {
+    final body = <String, dynamic>{};
+    if (fullName != null) {
+      body['full_name'] = fullName.trim();
+    }
+    if (phoneNumber != null) {
+      body['phone_number'] = phoneNumber.trim();
+    }
+    return _client.patch('/auth/me', body);
+  }
 }

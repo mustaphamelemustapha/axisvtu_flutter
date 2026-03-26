@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/wallet_service.dart';
+import '../services/auth_service.dart';
+import '../services/api_client.dart';
 import '../state/session.dart';
 import '../widgets/app_header.dart';
 import '../widgets/glass_card.dart';
@@ -41,6 +43,15 @@ class _WalletScreenState extends State<WalletScreen> {
         _accountsFuture = service.createBankAccounts();
       });
       await _accountsFuture;
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.message.toLowerCase().contains('phone')) {
+        await _promptPhoneNumber();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to generate account: ${e.message}')),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,6 +61,47 @@ class _WalletScreenState extends State<WalletScreen> {
       if (mounted) {
         setState(() => _generating = false);
       }
+    }
+  }
+
+  Future<void> _promptPhoneNumber() async {
+    final session = context.read<SessionController>();
+    final controller = TextEditingController(text: session.user?['phone_number'] ?? '');
+    final phone = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add phone number'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(hintText: 'e.g. 08123456789'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (phone == null || phone.trim().isEmpty) return;
+    final token = session.token;
+    if (token == null || token.isEmpty) return;
+    try {
+      final service = AuthService(token: token);
+      final updated = await service.updateProfile(phoneNumber: phone.trim());
+      session.updateUser(updated);
+      final walletService = WalletService(token: token);
+      setState(() {
+        _accountsFuture = walletService.createBankAccounts();
+      });
+      await _accountsFuture;
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to save phone number: $e')),
+      );
     }
   }
 

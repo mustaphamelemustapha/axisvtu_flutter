@@ -91,6 +91,11 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateUser(Map<String, dynamic> user) {
+    _user = user;
+    notifyListeners();
+  }
+
   void _setLoading(bool value) {
     _loading = value;
     notifyListeners();
