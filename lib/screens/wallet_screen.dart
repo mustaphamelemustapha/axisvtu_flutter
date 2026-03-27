@@ -150,6 +150,20 @@ class _WalletScreenState extends State<WalletScreen> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Text('Loading accounts...');
                     }
+                    if (snapshot.hasError) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Could not load accounts. Please try again.',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      );
+                    }
                     final accounts = (snapshot.data?['accounts'] as List?) ?? [];
                     final requiresKyc = snapshot.data?['requires_kyc'] == true;
                     if (accounts.isEmpty) {
@@ -188,6 +202,15 @@ class _WalletScreenState extends State<WalletScreen> {
                           .toList(),
                     );
                   },
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _generating ? null : _generateAccount,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(_generating ? 'Generating...' : 'Generate / refresh account'),
+                  ),
                 ),
               ],
             ),
