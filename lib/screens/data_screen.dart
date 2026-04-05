@@ -71,6 +71,7 @@ class _DataScreenState extends State<DataScreen> {
   List<String> _recentNumbers = [];
   List<String> _suggestions = [];
   String? _error;
+  Future<void>? _plansLoadFuture;
 
   @override
   void initState() {
@@ -82,7 +83,7 @@ class _DataScreenState extends State<DataScreen> {
     }
     _loadRecentNumbers();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadPlans();
+      _loadPlans(silent: DataService.hasCache);
     });
   }
 
@@ -93,39 +94,67 @@ class _DataScreenState extends State<DataScreen> {
     super.dispose();
   }
 
-  Future<void> _loadPlans({bool forceRefresh = false}) async {
+  Future<void> _loadPlans({
+    bool forceRefresh = false,
+    bool silent = false,
+  }) async {
+    if (_plansLoadFuture != null) {
+      return _plansLoadFuture!;
+    }
+
     final token = context.read<SessionController>().token;
     if (token == null || token.isEmpty) return;
 
-    setState(() {
-      _loadingPlans = true;
-      _refreshing = forceRefresh;
-      _error = null;
-    });
-
-    try {
-      final data = await DataService(
-        token: token,
-      ).getPlans(forceRefresh: forceRefresh);
-
-      setState(() {
-        _plans = data;
-        final plans = _sortedFilteredPlans;
-        final current = _selectedPlanCode;
-        _selectedPlanCode = plans.isEmpty
-            ? null
-            : (plans.any((p) => p['plan_code']?.toString() == current)
-                  ? current
-                  : plans.first['plan_code']?.toString());
-      });
-    } catch (e) {
-      setState(() => _error = e is ApiException ? e.message : e.toString());
-    } finally {
+    final future = () async {
       if (mounted) {
+        if (silent) {
+          if (_error != null) {
+            setState(() => _error = null);
+          }
+        } else {
+          setState(() {
+            _loadingPlans = true;
+            _refreshing = forceRefresh;
+            _error = null;
+          });
+        }
+      }
+
+      try {
+        final data = await DataService(
+          token: token,
+        ).getPlans(forceRefresh: forceRefresh);
+
+        if (!mounted) return;
         setState(() {
-          _loadingPlans = false;
-          _refreshing = false;
+          _plans = data;
+          final plans = _sortedFilteredPlans;
+          final current = _selectedPlanCode;
+          _selectedPlanCode = plans.isEmpty
+              ? null
+              : (plans.any((p) => p['plan_code']?.toString() == current)
+                    ? current
+                    : plans.first['plan_code']?.toString());
         });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _error = e is ApiException ? e.message : e.toString());
+      } finally {
+        if (mounted && (_loadingPlans || _refreshing)) {
+          setState(() {
+            _loadingPlans = false;
+            _refreshing = false;
+          });
+        }
+      }
+    }();
+
+    _plansLoadFuture = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_plansLoadFuture, future)) {
+        _plansLoadFuture = null;
       }
     }
   }
@@ -316,19 +345,6 @@ class _DataScreenState extends State<DataScreen> {
     return value ?? double.infinity;
   }
 
-  double _planUnitCost(dynamic plan) {
-    final price = _planPriceValue(plan);
-    final gb = _capacityToGb(_planCapacity(plan));
-    if (price.isInfinite || gb <= 0) return double.infinity;
-    return price / gb;
-  }
-
-  String _planUnitCostLabel(dynamic plan) {
-    final unit = _planUnitCost(plan);
-    if (!unit.isFinite) return '';
-    return '₦${_formatMoney(unit)} / GB';
-  }
-
   String _formatMoney(dynamic value) {
     final number = _toDouble(value);
     if (number == null) return value.toString();
@@ -446,13 +462,10 @@ class _DataScreenState extends State<DataScreen> {
                               final code = plan['plan_code']?.toString();
                               final selected = selectedCode == code;
                               final bestValue = code == bestValueCode;
-                              final unitCost = _planUnitCostLabel(plan);
-
                               return _PlanSheetTile(
                                 capacity: _planCapacity(plan),
                                 price: _planPrice(plan),
                                 validity: _planValidity(plan),
-                                unitCost: unitCost,
                                 selected: selected,
                                 bestValue: bestValue,
                                 onTap: () {
@@ -837,7 +850,6 @@ class _DataScreenState extends State<DataScreen> {
                     capacity: _planCapacity(selected),
                     price: _planPrice(selected),
                     validity: _planValidity(selected),
-                    unitCost: _planUnitCostLabel(selected),
                   ),
                 const SizedBox(height: 12),
                 Row(
@@ -1046,14 +1058,12 @@ class _SelectedPlanCard extends StatelessWidget {
     required this.capacity,
     required this.price,
     required this.validity,
-    required this.unitCost,
   });
 
   final String network;
   final String capacity;
   final String price;
   final String validity;
-  final String unitCost;
 
   @override
   Widget build(BuildContext context) {
@@ -1119,10 +1129,6 @@ class _SelectedPlanCard extends StatelessWidget {
               ),
             ],
           ),
-          if (unitCost.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(unitCost, style: Theme.of(context).textTheme.bodySmall),
-          ],
         ],
       ),
     );
@@ -1134,7 +1140,6 @@ class _PlanSheetTile extends StatelessWidget {
     required this.capacity,
     required this.price,
     required this.validity,
-    required this.unitCost,
     required this.selected,
     required this.bestValue,
     required this.onTap,
@@ -1143,7 +1148,6 @@ class _PlanSheetTile extends StatelessWidget {
   final String capacity;
   final String price;
   final String validity;
-  final String unitCost;
   final bool selected;
   final bool bestValue;
   final VoidCallback onTap;
@@ -1248,13 +1252,6 @@ class _PlanSheetTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                if (unitCost.isNotEmpty)
-                  Text(
-                    unitCost,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
                 const Spacer(),
                 Wrap(
                   spacing: 6,
