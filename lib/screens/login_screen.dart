@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../state/session.dart';
-import '../theme/app_theme.dart';
 import '../widgets/auth_route.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/theme_toggle_button.dart';
@@ -111,23 +110,29 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: 86,
                           height: 86,
                           decoration: BoxDecoration(
-                            gradient: AxisPalette.warmGradient,
                             borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: isDark
+                                  ? const Color(0x2D60A5FA)
+                                  : const Color(0x1F2563EB),
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.22),
-                                blurRadius: 28,
-                                offset: const Offset(0, 16),
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.26 : 0.16,
+                                ),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
                               ),
                             ],
                           ),
                           child: Center(
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(22),
                               child: Image.asset(
                                 'assets/brand/axisvtu-icon.png',
-                                width: 64,
-                                height: 64,
+                                width: 86,
+                                height: 86,
                                 fit: BoxFit.cover,
                               ),
                             ),
