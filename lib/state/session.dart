@@ -87,7 +87,7 @@ class SessionController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _setError(e.toString());
+      _setError(_friendlyError(e));
       return false;
     } finally {
       _setLoading(false);
@@ -102,16 +102,30 @@ class SessionController extends ChangeNotifier {
   ) async {
     _setLoading(true);
     try {
+      final normalizedEmail = email.trim();
       final data = await AuthService().register(
         fullName: name,
-        email: email,
+        email: normalizedEmail,
         phone: phone,
         password: password,
       );
       _token = _extractToken(data);
       _user = _extractUser(data);
+
+      // Some backend builds create the account but do not return auth tokens.
+      // Fallback: immediately sign in with submitted credentials.
       if (_token == null || _token!.isEmpty) {
-        throw Exception('Registration failed. Missing token.');
+        final loginData = await AuthService().login(
+          email: normalizedEmail,
+          password: password,
+        );
+        _token = _extractToken(loginData);
+        _user = _extractUser(loginData) ?? _user;
+      }
+      if (_token == null || _token!.isEmpty) {
+        throw Exception(
+          'Registration completed, but automatic sign-in failed. Please login now.',
+        );
       }
       if (!_hasMeaningfulProfile(_user)) {
         final fresh = await _fetchMe(_token!);
@@ -123,7 +137,7 @@ class SessionController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _setError(e.toString());
+      _setError(_friendlyError(e));
       return false;
     } finally {
       _setLoading(false);
@@ -151,5 +165,19 @@ class SessionController extends ChangeNotifier {
   void _setError(String? message) {
     _error = message;
     notifyListeners();
+  }
+
+  String _friendlyError(Object error) {
+    final raw = error.toString().trim();
+    if (raw.startsWith('Exception: ')) {
+      return raw.substring('Exception: '.length);
+    }
+    if (raw.startsWith('ApiException(')) {
+      final idx = raw.indexOf(':');
+      if (idx != -1 && idx + 1 < raw.length) {
+        return raw.substring(idx + 1).trim();
+      }
+    }
+    return raw;
   }
 }
