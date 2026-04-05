@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
-
 class AuthBackdrop extends StatelessWidget {
   const AuthBackdrop({
     super.key,
@@ -96,13 +94,17 @@ class AuthBackdrop extends StatelessWidget {
                       height: 90,
                       width: 90,
                       decoration: BoxDecoration(
-                        gradient: AxisPalette.warmGradient,
                         borderRadius: BorderRadius.circular(26),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0x2D60A5FA)
+                              : const Color(0x1F2563EB),
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            blurRadius: 30,
-                            offset: const Offset(0, 16),
+                            color: Colors.black.withValues(alpha: 0.22),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12),
                           ),
                         ],
                       ),
@@ -110,11 +112,11 @@ class AuthBackdrop extends StatelessWidget {
                         child: Hero(
                           tag: 'axis-logo',
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(24),
                             child: Image.asset(
                               'assets/brand/axisvtu-icon.png',
-                              width: 66,
-                              height: 66,
+                              width: 90,
+                              height: 90,
                               fit: BoxFit.cover,
                             ),
                           ),
