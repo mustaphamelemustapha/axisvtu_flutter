@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../state/session.dart';
-import '../widgets/app_header.dart';
+import '../theme/app_theme.dart';
+import '../widgets/auth_route.dart';
 import '../widgets/primary_button.dart';
+import '../widgets/theme_toggle_button.dart';
+import 'login_screen.dart';
 import 'shell_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -45,6 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
     final session = context.read<SessionController>();
     final ok = await session.register(
       _nameCtrl.text,
@@ -61,71 +65,348 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF070B12) : const Color(0xFFF2F6FF);
+    final sheetColor = isDark ? const Color(0xFF0F1626) : Colors.white;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final muted = onSurface.withValues(alpha: 0.66);
 
     return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      backgroundColor: bgColor,
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Stack(
           children: [
-            const AppHeader(
-              title: 'Create account',
-              subtitle: 'Set up your AxisVTU profile in minutes.',
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Full name',
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _emailCtrl,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Phone number',
-                prefixIcon: Icon(Icons.phone_outlined),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passwordCtrl,
-              obscureText: _obscure,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                  icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: isDark
+                      ? const LinearGradient(
+                          colors: [Color(0xFF080D18), Color(0xFF111A31)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        )
+                      : const LinearGradient(
+                          colors: [Color(0xFFE8F0FF), Color(0xFFF8FAFF)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            if (session.error != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  session.error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+            SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _HeaderIconButton(
+                          icon: Icons.arrow_back_ios_new_rounded,
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
+                        const ThemeToggleButton(size: 46),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 14),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 82,
+                          height: 82,
+                          decoration: BoxDecoration(
+                            gradient: AxisPalette.gradient,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.22),
+                                blurRadius: 28,
+                                offset: const Offset(0, 16),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: Image.asset(
+                                'assets/brand/axisvtu-icon.png',
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Create Axis Account',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Open your VTU wallet and start transacting instantly.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.72)
+                                : const Color(0xFF475569),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                      decoration: BoxDecoration(
+                        color: sheetColor,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(34),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.36 : 0.12,
+                            ),
+                            blurRadius: 24,
+                            offset: const Offset(0, -6),
+                          ),
+                        ],
+                      ),
+                      child: ListView(
+                        children: [
+                          _SectionLabel(text: 'Personal details'),
+                          const SizedBox(height: 8),
+                          _AuthInput(
+                            controller: _nameCtrl,
+                            hint: 'Full name',
+                            icon: Icons.badge_outlined,
+                          ),
+                          const SizedBox(height: 10),
+                          _AuthInput(
+                            controller: _emailCtrl,
+                            hint: 'Email address',
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 10),
+                          _AuthInput(
+                            controller: _phoneCtrl,
+                            hint: 'Phone number',
+                            icon: Icons.phone_outlined,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: 10),
+                          _AuthInput(
+                            controller: _passwordCtrl,
+                            hint: 'Create password',
+                            icon: Icons.lock_outline_rounded,
+                            obscureText: _obscure,
+                            suffix: IconButton(
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                              icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          if (session.error != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              session.error!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          PrimaryButton(
+                            label: session.isLoading
+                                ? 'Creating...'
+                                : 'Create account',
+                            loading: session.isLoading,
+                            icon: Icons.person_add_alt_1_rounded,
+                            onPressed: session.isLoading ? null : _submit,
+                          ),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  'Already registered?',
+                                  style: TextStyle(color: muted),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pushReplacement(
+                                        AuthRoute(
+                                          page: LoginScreen(
+                                            initialIdentifier:
+                                                _emailCtrl.text.trim().isEmpty
+                                                ? null
+                                                : _emailCtrl.text.trim(),
+                                          ),
+                                        ),
+                                      ),
+                                  child: const Text('Sign in'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _ChipTag(label: 'Dedicated account'),
+                              _ChipTag(label: 'Auto receipts'),
+                              _ChipTag(label: 'Simple dashboard'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            const SizedBox(height: 12),
-            PrimaryButton(
-              label: session.isLoading ? 'Creating...' : 'Create account',
-              loading: session.isLoading,
-              onPressed: session.isLoading ? null : _submit,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF151F34)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.24),
+            ),
+          ),
+          child: Icon(icon, size: 18),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.2,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+      ),
+    );
+  }
+}
+
+class _AuthInput extends StatelessWidget {
+  const _AuthInput({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.keyboardType,
+    this.obscureText = false,
+    this.suffix,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final TextInputType? keyboardType;
+  final bool obscureText;
+  final Widget? suffix;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon, size: 20),
+        suffixIcon: suffix,
+        filled: true,
+        fillColor: isDark ? const Color(0xFF151E31) : const Color(0xFFF7FAFF),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChipTag extends StatelessWidget {
+  const _ChipTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurface.withValues(alpha: 0.72),
         ),
       ),
     );

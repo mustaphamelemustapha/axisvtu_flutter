@@ -68,7 +68,7 @@ flutter:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
   assets:
-    - assets/brand/axisvtu-icon.svg
+    - assets/brand/axisvtu-icon.png
     - assets/networks/mtn.svg
     - assets/networks/airtel.svg
     - assets/networks/glo.svg

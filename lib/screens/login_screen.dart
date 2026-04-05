@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../state/session.dart';
@@ -123,13 +122,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                           child: Center(
-                            child: SvgPicture.asset(
-                              'assets/brand/axisvtu-icon.svg',
-                              width: 42,
-                              height: 42,
-                              colorFilter: const ColorFilter.mode(
-                                Colors.white,
-                                BlendMode.srcIn,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: Image.asset(
+                                'assets/brand/axisvtu-icon.png',
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),

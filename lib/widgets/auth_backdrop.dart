@@ -1,11 +1,8 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/app_theme.dart';
 
-class AuthBackdrop extends StatefulWidget {
+class AuthBackdrop extends StatelessWidget {
   const AuthBackdrop({
     super.key,
     required this.child,
@@ -18,130 +15,92 @@ class AuthBackdrop extends StatefulWidget {
   final bool showBrandText;
 
   @override
-  State<AuthBackdrop> createState() => _AuthBackdropState();
-}
-
-class _AuthBackdropState extends State<AuthBackdrop> with SingleTickerProviderStateMixin {
-  late final AnimationController _floatController;
-
-  @override
-  void initState() {
-    super.initState();
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _floatController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final brandColor = isDark ? Colors.white : const Color(0xFF0F172A);
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? const [
-                  Color(0xFF0B1118),
-                  Color(0xFF101826),
-                  Color(0xFF0B1118),
-                ]
-              : const [
-                  Color(0xFFF7F9FC),
-                  Color(0xFFE9EEF6),
-                  Color(0xFFF7F9FC),
-                ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF0A1020), Color(0xFF111D37)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              )
+            : const LinearGradient(
+                colors: [Color(0xFFEAF2FF), Color(0xFFF6FAFF)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
       ),
       child: SafeArea(
         child: Stack(
           children: [
-            _Floating(
-              controller: _floatController,
-              offset: const Offset(0, 6),
-              phase: 0.0,
-              child: const Positioned(
-                top: 120,
-                left: 16,
-                child: _MiniPlanCard(
-                  label: 'MTN',
-                  size: '1GB',
-                  price: '₦409 • Monthly',
-                ),
+            Positioned(
+              top: -30,
+              left: 20,
+              child: _StaticBlob(
+                width: 120,
+                height: 56,
+                color: isDark
+                    ? const Color(0xFF1F3D79)
+                    : const Color(0xFFC9DCFF),
               ),
             ),
-            _Floating(
-              controller: _floatController,
-              offset: const Offset(0, -6),
-              phase: 1.2,
-              child: const Positioned(
-                top: 90,
-                right: 18,
-                child: _MiniPlanCard(
-                  label: 'MTN',
-                  size: '2GB',
-                  price: '₦849 • Monthly',
-                ),
+            Positioned(
+              top: -12,
+              right: 26,
+              child: _StaticBlob(
+                width: 86,
+                height: 40,
+                color: isDark
+                    ? const Color(0xFF3154A2)
+                    : const Color(0xFFDEE9FF),
               ),
             ),
-            _Floating(
-              controller: _floatController,
-              offset: const Offset(0, 8),
-              phase: 2.1,
-              child: const Positioned(
-                top: 170,
-                left: 150,
-                child: _MiniPlanCard(
-                  label: 'MTN',
-                  size: '5GB',
-                  price: '₦1,799 • Monthly',
-                  highlight: true,
-                ),
+            Positioned(
+              top: 112,
+              left: 20,
+              child: _CasualTag(
+                icon: Icons.wifi_rounded,
+                label: 'Data in seconds',
+                color: const Color(0xFF1E88E5),
               ),
             ),
-            _Floating(
-              controller: _floatController,
-              offset: const Offset(0, 4),
-              phase: 2.8,
-              child: const Positioned(
-                top: 230,
-                left: 24,
-                child: _Pill(label: 'Cashback on data', color: Color(0xFF13C26C)),
+            Positioned(
+              top: 112,
+              right: 20,
+              child: _CasualTag(
+                icon: Icons.bolt_rounded,
+                label: 'Airtime fast',
+                color: const Color(0xFFFF7A59),
               ),
             ),
-            _Floating(
-              controller: _floatController,
-              offset: const Offset(0, -4),
-              phase: 1.8,
-              child: const Positioned(
-                top: 240,
-                right: 24,
-                child: _Pill(label: 'Airtime → Cash', color: Color(0xFF3B82F6)),
+            Positioned(
+              top: 168,
+              left: 20,
+              right: 20,
+              child: _CasualTag(
+                icon: Icons.account_balance_wallet_rounded,
+                label: 'Wallet funding made easy',
+                color: const Color(0xFF0FB5AE),
+                fullWidth: true,
               ),
             ),
             Align(
               alignment: Alignment.topCenter,
               child: Padding(
-                padding: const EdgeInsets.only(top: 260),
+                padding: const EdgeInsets.only(top: 238),
                 child: Column(
                   children: [
                     Container(
-                      height: 92,
-                      width: 92,
+                      height: 90,
+                      width: 90,
                       decoration: BoxDecoration(
                         gradient: AxisPalette.warmGradient,
                         borderRadius: BorderRadius.circular(26),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.45),
+                            color: Colors.black.withValues(alpha: 0.25),
                             blurRadius: 30,
                             offset: const Offset(0, 16),
                           ),
@@ -150,32 +109,39 @@ class _AuthBackdropState extends State<AuthBackdrop> with SingleTickerProviderSt
                       child: Center(
                         child: Hero(
                           tag: 'axis-logo',
-                          child: SvgPicture.asset(
-                            'assets/brand/axisvtu-icon.svg',
-                            width: 44,
-                            height: 44,
-                            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.asset(
+                              'assets/brand/axisvtu-icon.png',
+                              width: 66,
+                              height: 66,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    if (widget.showBrandText) ...[
-                      const SizedBox(height: 18),
+                    if (showBrandText) ...[
+                      const SizedBox(height: 14),
                       Text(
                         'AxisVTU',
-                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: brandColor),
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: brandColor,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
             ),
-            if (widget.overlay != null) widget.overlay!,
+            if (overlay case final Widget overlayWidget) overlayWidget,
             Align(
               alignment: Alignment.bottomCenter,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                child: widget.child,
+                child: child,
               ),
             ),
           ],
@@ -185,108 +151,72 @@ class _AuthBackdropState extends State<AuthBackdrop> with SingleTickerProviderSt
   }
 }
 
-class _Floating extends StatelessWidget {
-  const _Floating({
-    required this.controller,
-    required this.child,
-    required this.offset,
-    required this.phase,
+class _StaticBlob extends StatelessWidget {
+  const _StaticBlob({
+    required this.width,
+    required this.height,
+    required this.color,
   });
 
-  final AnimationController controller;
-  final Widget child;
-  final Offset offset;
-  final double phase;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final value = sin((controller.value * 2 * pi) + phase);
-        return Transform.translate(
-          offset: Offset(offset.dx * value, offset.dy * value),
-          child: child,
-        );
-      },
-    );
-  }
-}
-
-class _MiniPlanCard extends StatelessWidget {
-  const _MiniPlanCard({
-    required this.label,
-    required this.size,
-    required this.price,
-    this.highlight = false,
-  });
-
-  final String label;
-  final String size;
-  final String price;
-  final bool highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = highlight
-        ? const Color(0xFFFFB020)
-        : (isDark ? const Color(0xFF2F3947) : Theme.of(context).colorScheme.outline.withValues(alpha: 0.4));
-    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textMuted = isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF475569);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1F2937) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: borderColor,
-          width: 1.4,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(color: textMuted)),
-          const SizedBox(height: 6),
-          Text(size, style: TextStyle(color: textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          Text(price, style: TextStyle(color: textMuted)),
-        ],
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.color});
-
-  final String label;
+  final double width;
+  final double height;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      width: width,
+      height: height,
       decoration: BoxDecoration(
-        color: color,
+        color: color.withValues(alpha: 0.58),
         borderRadius: BorderRadius.circular(999),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+      ),
+    );
+  }
+}
+
+class _CasualTag extends StatelessWidget {
+  const _CasualTag({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.fullWidth = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool fullWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: fullWidth ? double.infinity : null,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF16233D) : Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.92)
+                  : const Color(0xFF0F172A),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
     );
   }
 }
