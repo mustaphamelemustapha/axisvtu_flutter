@@ -17,30 +17,44 @@ class ShellScreen extends StatefulWidget {
 
 class _ShellScreenState extends State<ShellScreen> {
   int _index = 0;
-  final _screens = const [
-    HomeScreen(),
-    WalletScreen(),
-    DataScreen(),
-    HistoryScreen(),
-    ProfileScreen(),
-  ];
+
+  void _goToTab(int index) {
+    setState(() => _index = index);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      HomeScreen(onNavigateTab: _goToTab),
+      const WalletScreen(),
+      const DataScreen(),
+      const HistoryScreen(),
+      const ProfileScreen(),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: IndexedStack(index: _index, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) {
           HapticFeedback.selectionClick();
-          setState(() => _index = value);
+          _goToTab(value);
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Wallet'),
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            label: 'Wallet',
+          ),
           NavigationDestination(icon: Icon(Icons.wifi), label: 'Data'),
-          NavigationDestination(icon: Icon(Icons.receipt_long), label: 'History'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long),
+            label: 'History',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
         ],
       ),
     );

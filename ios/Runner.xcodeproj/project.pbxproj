@@ -107,7 +107,6 @@
 				6D173FB60B297AB6094C42E1 /* Pods-RunnerTests.release.xcconfig */,
 				EADB312DA7D39F75F418698F /* Pods-RunnerTests.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};

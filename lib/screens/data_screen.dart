@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/api_client.dart';
 import '../services/data_service.dart';
 import '../state/session.dart';
-import '../widgets/glass_card.dart';
+import '../theme/app_theme.dart';
+import '../widgets/primary_button.dart';
+import '../widgets/purchase_loading_overlay.dart';
+import '../widgets/purchase_result_sheet.dart';
+import '../widgets/service_shell.dart';
 
 class DataScreen extends StatefulWidget {
   const DataScreen({super.key});
@@ -14,27 +21,74 @@ class DataScreen extends StatefulWidget {
 }
 
 class _DataScreenState extends State<DataScreen> {
+  static const _recentNumbersKey = 'axis_airtime_recent_numbers_v1';
+  static const Map<String, List<String>> _networkPrefixes = {
+    'mtn': [
+      '07025',
+      '07026',
+      '0803',
+      '0806',
+      '0703',
+      '0706',
+      '0810',
+      '0813',
+      '0814',
+      '0816',
+      '0903',
+      '0906',
+      '0913',
+      '0916',
+      '0704',
+    ],
+    'airtel': [
+      '0802',
+      '0808',
+      '0708',
+      '0812',
+      '0701',
+      '0902',
+      '0907',
+      '0901',
+      '0912',
+    ],
+    'glo': ['0805', '0807', '0705', '0815', '0811', '0905', '0915'],
+    '9mobile': ['0809', '0817', '0818', '0908', '0909'],
+  };
+
   final _phoneCtrl = TextEditingController();
   final bool _ported = false;
-  String _network = 'all';
+
+  String _network = 'mtn';
   String? _selectedPlanCode;
   List<dynamic> _plans = [];
+
   bool _loadingPlans = true;
-  String? _error;
   bool _refreshing = false;
-  Future<List<dynamic>>? _plansFuture;
+  bool _submitting = false;
+  bool _beneficiariesEnabled = true;
+  bool _smartSuggestionEnabled = true;
+  bool _fastRouteEnabled = false;
+  List<String> _recentNumbers = [];
+  List<String> _suggestions = [];
+  String? _error;
 
   @override
   void initState() {
     super.initState();
+    _phoneCtrl.addListener(_onPhoneChanged);
     if (DataService.hasCache) {
       _plans = DataService.cachedPlans;
       _loadingPlans = false;
     }
+    _loadRecentNumbers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPlans();
+    });
   }
 
   @override
   void dispose() {
+    _phoneCtrl.removeListener(_onPhoneChanged);
     _phoneCtrl.dispose();
     super.dispose();
   }
@@ -42,38 +96,145 @@ class _DataScreenState extends State<DataScreen> {
   Future<void> _loadPlans({bool forceRefresh = false}) async {
     final token = context.read<SessionController>().token;
     if (token == null || token.isEmpty) return;
+
     setState(() {
       _loadingPlans = true;
       _refreshing = forceRefresh;
       _error = null;
     });
+
     try {
-      final data = await DataService(token: token).getPlans(forceRefresh: forceRefresh);
+      final data = await DataService(
+        token: token,
+      ).getPlans(forceRefresh: forceRefresh);
+
       setState(() {
         _plans = data;
+        final plans = _sortedFilteredPlans;
         final current = _selectedPlanCode;
-        _selectedPlanCode = _filteredPlans.isEmpty
+        _selectedPlanCode = plans.isEmpty
             ? null
-            : (_filteredPlans.any((p) => p['plan_code']?.toString() == current)
-                ? current
-                : _filteredPlans.first['plan_code']?.toString());
+            : (plans.any((p) => p['plan_code']?.toString() == current)
+                  ? current
+                  : plans.first['plan_code']?.toString());
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = e is ApiException ? e.message : e.toString());
     } finally {
-      setState(() {
-        _loadingPlans = false;
-        _refreshing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingPlans = false;
+          _refreshing = false;
+        });
+      }
     }
   }
 
+  Future<void> _loadRecentNumbers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final numbers = prefs.getStringList(_recentNumbersKey) ?? <String>[];
+    if (!mounted) return;
+    setState(() => _recentNumbers = numbers);
+    _onPhoneChanged();
+  }
+
+  Future<void> _saveRecentNumber(String number) async {
+    if (!_beneficiariesEnabled) return;
+    final normalized = _normalizePhone(number);
+    if (normalized.length < 10) return;
+    final next = [normalized, ..._recentNumbers.where((n) => n != normalized)];
+    final trimmed = next.take(8).toList();
+    setState(() => _recentNumbers = trimmed);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_recentNumbersKey, trimmed);
+    _onPhoneChanged();
+  }
+
+  void _onPhoneChanged() {
+    final normalized = _normalizePhone(_phoneCtrl.text);
+
+    final detected = _detectNetwork(normalized);
+    if (detected != null && detected != _network) {
+      setState(() {
+        _network = detected;
+        final plans = _sortedFilteredPlans;
+        _selectedPlanCode = plans.isNotEmpty
+            ? plans.first['plan_code']?.toString()
+            : null;
+      });
+    }
+
+    if (!_smartSuggestionEnabled || normalized.isEmpty) {
+      if (_suggestions.isNotEmpty) {
+        setState(() => _suggestions = []);
+      }
+      return;
+    }
+
+    final nextSuggestions = _recentNumbers
+        .where((n) => n.startsWith(normalized) && n != normalized)
+        .take(3)
+        .toList();
+    if (nextSuggestions.join('|') != _suggestions.join('|')) {
+      setState(() => _suggestions = nextSuggestions);
+    }
+  }
+
+  String _normalizePhone(String input) {
+    final digits = input.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('234') && digits.length >= 13) {
+      return '0${digits.substring(3)}';
+    }
+    if (!digits.startsWith('0') && digits.length == 10) {
+      return '0$digits';
+    }
+    return digits;
+  }
+
+  String? _detectNetwork(String normalizedPhone) {
+    if (normalizedPhone.length < 4) return null;
+    final prefixes = <MapEntry<String, String>>[];
+    _networkPrefixes.forEach((network, items) {
+      for (final prefix in items) {
+        prefixes.add(MapEntry(prefix, network));
+      }
+    });
+    prefixes.sort((a, b) => b.key.length.compareTo(a.key.length));
+    for (final entry in prefixes) {
+      if (normalizedPhone.startsWith(entry.key)) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
   List<dynamic> get _filteredPlans {
-    if (_network == 'all') return _plans;
     return _plans.where((plan) {
       final net = (plan['network'] ?? '').toString().toLowerCase();
       return net == _network;
     }).toList();
+  }
+
+  List<dynamic> get _sortedFilteredPlans {
+    final plans = List<dynamic>.from(_filteredPlans);
+    plans.sort((a, b) {
+      final aPrice = _planPriceValue(a);
+      final bPrice = _planPriceValue(b);
+      if (aPrice != bPrice) return aPrice.compareTo(bPrice);
+      return _capacityToGb(
+        _planCapacity(a),
+      ).compareTo(_capacityToGb(_planCapacity(b)));
+    });
+    return plans;
+  }
+
+  dynamic get _selectedPlan {
+    final code = _selectedPlanCode;
+    if (code == null) return null;
+    return _sortedFilteredPlans.firstWhere(
+      (p) => p['plan_code']?.toString() == code,
+      orElse: () => null,
+    );
   }
 
   String _formatDate(DateTime value) {
@@ -99,24 +260,26 @@ class _DataScreenState extends State<DataScreen> {
     return names[month - 1];
   }
 
-  String _planLabel(dynamic plan) {
-    final capacity = plan['data_capacity'] ?? plan['size'] ?? plan['capacity'] ?? '';
-    final validity = plan['validity'] ?? '';
-    final price = plan['price'] ?? plan['amount'] ?? '';
-    return '$capacity • $validity days • ₦$price';
-  }
-
   String _planCapacity(dynamic plan) {
-    final raw = plan['data_capacity'] ?? plan['size'] ?? plan['capacity'] ?? plan['name'] ?? plan['plan_name'] ?? '';
+    final raw =
+        plan['data_capacity'] ??
+        plan['size'] ??
+        plan['capacity'] ??
+        plan['name'] ??
+        plan['plan_name'] ??
+        '';
     return _formatCapacity(raw);
   }
 
   String _planPrice(dynamic plan) {
-    return (plan['price'] ?? plan['amount'] ?? '').toString();
+    return _formatMoney(plan['price'] ?? plan['amount'] ?? 0);
   }
 
   String _planValidity(dynamic plan) {
-    return (plan['validity'] ?? '').toString();
+    final validity = (plan['validity'] ?? '').toString().trim();
+    final days = _extractDays(validity);
+    if (days != null) return '$days day${days == 1 ? '' : 's'}';
+    return validity.isEmpty ? 'Flexible' : validity;
   }
 
   String _planNetwork(dynamic plan) {
@@ -125,154 +288,176 @@ class _DataScreenState extends State<DataScreen> {
 
   String _formatCapacity(dynamic raw) {
     if (raw == null) return '';
+    if (raw is Map || raw is List) return 'Plan';
     final value = raw.toString().trim();
     if (value.isEmpty) return '';
+
     final upper = value.toUpperCase();
     if (upper.contains('GB') || upper.contains('MB')) {
       return upper.replaceAll(' ', '');
     }
-    final parsed = double.tryParse(value);
+
+    final parsed = _toDouble(value);
     if (parsed == null) return value;
+
     if (parsed < 1) {
       final mb = (parsed * 1000).round();
       return '${mb}MB';
     }
-    final gb = parsed % 1 == 0 ? parsed.toInt().toString() : parsed.toStringAsFixed(1);
+
+    final gb = parsed % 1 == 0
+        ? parsed.toInt().toString()
+        : parsed.toStringAsFixed(1);
     return '${gb}GB';
   }
 
-  Future<void> _buy() async {
-    if (_selectedPlanCode == null || _phoneCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Enter a phone number and select a plan.');
-      return;
-    }
-    final token = context.read<SessionController>().token;
-    if (token == null || token.isEmpty) return;
-    setState(() => _error = null);
-    try {
-      final res = await DataService(token: token).purchase(
-        planCode: _selectedPlanCode!,
-        phoneNumber: _phoneCtrl.text.trim(),
-        ported: _ported,
-      );
-      if (!mounted) return;
-      _showResult(res);
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {}
+  double _planPriceValue(dynamic plan) {
+    final value = _toDouble(plan['price'] ?? plan['amount'] ?? 0);
+    return value ?? double.infinity;
   }
 
-  void _showResult(Map<String, dynamic> res) {
-    final bool ok = res['success'] == true ||
-        (res['status']?.toString().toLowerCase() == 'delivered') ||
-        (res['status']?.toString().toLowerCase() == 'success');
-    final plans = _filteredPlans;
-    final selected = plans.firstWhere(
-      (p) => p['plan_code']?.toString() == _selectedPlanCode,
-      orElse: () => null,
-    );
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _PurchaseResultSheet(
-        success: ok,
-        message: res['message']?.toString() ?? (ok ? 'Purchase successful.' : 'Purchase failed.'),
-        customerName: (context.read<SessionController>().user?['full_name'] ?? 'AxisVTU User').toString(),
-        provider: (res['provider'] ?? 'Amigo').toString(),
-        network: selected == null ? '' : _planNetwork(selected),
-        capacity: selected == null ? '' : _planCapacity(selected),
-        phone: _phoneCtrl.text.trim(),
-        timeLabel: _formatDate(DateTime.now()),
-        amount: selected == null ? '' : _planPrice(selected),
-      ),
-    );
+  double _planUnitCost(dynamic plan) {
+    final price = _planPriceValue(plan);
+    final gb = _capacityToGb(_planCapacity(plan));
+    if (price.isInfinite || gb <= 0) return double.infinity;
+    return price / gb;
   }
 
-  void _openPlansSheet() {
-    if (_phoneCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Enter a phone number to continue.');
+  String _planUnitCostLabel(dynamic plan) {
+    final unit = _planUnitCost(plan);
+    if (!unit.isFinite) return '';
+    return '₦${_formatMoney(unit)} / GB';
+  }
+
+  String _formatMoney(dynamic value) {
+    final number = _toDouble(value);
+    if (number == null) return value.toString();
+    if (number % 1 == 0) return number.toInt().toString();
+    return number.toStringAsFixed(2);
+  }
+
+  double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    final cleaned = value.toString().replaceAll(RegExp(r'[^0-9.]'), '');
+    if (cleaned.isEmpty) return null;
+    return double.tryParse(cleaned);
+  }
+
+  int? _extractDays(String text) {
+    final match = RegExp(r'(\d+)').firstMatch(text);
+    if (match == null) return null;
+    return int.tryParse(match.group(1)!);
+  }
+
+  double _capacityToGb(String capacity) {
+    final upper = capacity.toUpperCase();
+    final match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(upper);
+    if (match == null) return 0;
+    final number = double.tryParse(match.group(1)!);
+    if (number == null) return 0;
+    if (upper.contains('MB')) return number / 1000;
+    if (upper.contains('GB')) return number;
+    return 0;
+  }
+
+  Future<void> _openPlansSheet() async {
+    final normalizedPhone = _normalizePhone(_phoneCtrl.text);
+    if (normalizedPhone.isEmpty) {
+      setState(() => _error = 'Enter a phone number first.');
       return;
     }
-    final token = context.read<SessionController>().token;
-    if (token == null || token.isEmpty) return;
-    setState(() => _error = null);
-    setState(() => _loadingPlans = true);
-    _plansFuture = DataService(token: token).getPlans().whenComplete(() {
-      if (mounted) {
-        setState(() => _loadingPlans = false);
-      }
-    });
+
+    if (_plans.isEmpty) {
+      await _loadPlans();
+    }
+    if (!mounted) return;
+
+    final plans = _sortedFilteredPlans;
+    if (plans.isEmpty) {
+      setState(() {
+        _error = 'No plans available for ${_network.toUpperCase()} right now.';
+      });
+      return;
+    }
+
+    String? selectedCode =
+        _selectedPlanCode ?? plans.first['plan_code']?.toString();
+    final bestValueCode = plans.first['plan_code']?.toString();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        String? selectedCode = _selectedPlanCode;
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return DraggableScrollableSheet(
-              initialChildSize: 0.78,
-              minChildSize: 0.55,
-              maxChildSize: 0.92,
+              initialChildSize: 0.84,
+              minChildSize: 0.62,
+              maxChildSize: 0.94,
               builder: (context, scrollController) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
                 return ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
-                    color: Theme.of(context).scaffoldBackgroundColor,
+                    color: isDark ? const Color(0xFF0F1725) : Colors.white,
+                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
                     child: Column(
                       children: [
                         Container(
                           height: 5,
-                          width: 52,
+                          width: 56,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withValues(alpha: 0.35),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        Text('Available Plans', style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 12),
+                        Text(
+                          'Available Plans',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_network.toUpperCase()} • choose your best fit',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 14),
                         Expanded(
-                          child: FutureBuilder<List<dynamic>>(
-                            future: _plansFuture,
-                            builder: (context, snapshot) {
-                              if (_loadingPlans || snapshot.connectionState == ConnectionState.waiting) {
-                                return const Center(child: LinearProgressIndicator(minHeight: 2));
-                              }
-                              final data = snapshot.data ?? [];
-                              _plans = data;
-                              final plans = _filteredPlans;
-                              if (plans.isEmpty) {
-                                return Center(
-                                  child: Text('No plans available.', style: Theme.of(context).textTheme.bodySmall),
-                                );
-                              }
-                              selectedCode ??= plans.first['plan_code']?.toString();
-                              return GridView.builder(
-                                controller: scrollController,
-                                physics: const BouncingScrollPhysics(),
-                                itemCount: plans.length,
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          child: GridView.builder(
+                            controller: scrollController,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: plans.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
-                                  childAspectRatio: 0.88,
+                                  childAspectRatio: 0.82,
                                 ),
-                                itemBuilder: (context, index) {
-                                  final plan = plans[index];
-                                  final isSelected = plan['plan_code']?.toString() == selectedCode;
-                                  return _PlanTile(
-                                    capacity: _planCapacity(plan),
-                                    price: _planPrice(plan),
-                                    validity: _planValidity(plan),
-                                    network: _planNetwork(plan),
-                                    selected: isSelected,
-                                    onTap: () => setSheetState(
-                                      () => selectedCode = plan['plan_code']?.toString(),
-                                    ),
-                                  );
+                            itemBuilder: (context, index) {
+                              final plan = plans[index];
+                              final code = plan['plan_code']?.toString();
+                              final selected = selectedCode == code;
+                              final bestValue = code == bestValueCode;
+                              final unitCost = _planUnitCostLabel(plan);
+
+                              return _PlanSheetTile(
+                                capacity: _planCapacity(plan),
+                                price: _planPrice(plan),
+                                validity: _planValidity(plan),
+                                unitCost: unitCost,
+                                selected: selected,
+                                bestValue: bestValue,
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setSheetState(() => selectedCode = code);
                                 },
                               );
                             },
@@ -289,14 +474,19 @@ class _DataScreenState extends State<DataScreen> {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: FilledButton(
-                                onPressed: () {
-                                  if (selectedCode == null) return;
-                                  setState(() => _selectedPlanCode = selectedCode);
-                                  Navigator.of(context).pop();
-                                  _buy();
-                                },
-                                child: const Text('Confirm'),
+                              child: FilledButton.icon(
+                                onPressed: selectedCode == null
+                                    ? null
+                                    : () {
+                                        HapticFeedback.lightImpact();
+                                        setState(
+                                          () =>
+                                              _selectedPlanCode = selectedCode,
+                                        );
+                                        Navigator.of(context).pop();
+                                      },
+                                icon: const Icon(Icons.check_circle_outline),
+                                label: const Text('Confirm'),
                               ),
                             ),
                           ],
@@ -313,75 +503,252 @@ class _DataScreenState extends State<DataScreen> {
     );
   }
 
+  Future<void> _buy() async {
+    final normalizedPhone = _normalizePhone(_phoneCtrl.text);
+    if (_selectedPlanCode == null || normalizedPhone.isEmpty) {
+      setState(() => _error = 'Enter phone number and select a plan.');
+      return;
+    }
+
+    final token = context.read<SessionController>().token;
+    if (token == null || token.isEmpty) return;
+
+    setState(() {
+      _error = null;
+      _submitting = true;
+    });
+    PurchaseLoadingOverlay.show(context, title: 'Buying data');
+
+    try {
+      final response = await DataService(token: token).purchase(
+        planCode: _selectedPlanCode!,
+        phoneNumber: normalizedPhone,
+        ported: _ported,
+      );
+      if (!mounted) return;
+      await _saveRecentNumber(normalizedPhone);
+      PurchaseLoadingOverlay.hide();
+      _showResult(response);
+    } catch (e) {
+      if (!mounted) return;
+      final message = e is ApiException ? e.message : e.toString();
+      setState(() => _error = message);
+      PurchaseLoadingOverlay.hide();
+      _showResult({
+        'status': 'failed',
+        'message': message,
+        'provider': 'AxisVTU',
+      });
+    } finally {
+      PurchaseLoadingOverlay.hide();
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  void _showResult(Map<String, dynamic> res) {
+    final statusRaw = (res['status'] ?? '').toString().toLowerCase();
+    final ok =
+        res['success'] == true ||
+        statusRaw == 'delivered' ||
+        statusRaw == 'success' ||
+        statusRaw == 'successful';
+    final pending =
+        !ok &&
+        (statusRaw == 'pending' ||
+            statusRaw == 'processing' ||
+            statusRaw == 'queued');
+    final status = ok ? 'success' : (pending ? 'pending' : 'failed');
+
+    final selected = _selectedPlan;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => PurchaseResultSheet(
+        status: status,
+        title: ok
+            ? 'Purchase Successful'
+            : (pending ? 'Purchase Pending' : 'Purchase Failed'),
+        subtitle:
+            res['message']?.toString() ??
+            (ok ? 'Data purchase completed.' : 'Purchase was not completed.'),
+        fields: [
+          ReceiptField(label: 'Time', value: _formatDate(DateTime.now())),
+          ReceiptField(
+            label: 'Sender Name',
+            value:
+                (context.read<SessionController>().user?['full_name'] ??
+                        'AxisVTU User')
+                    .toString(),
+          ),
+          ReceiptField(
+            label: 'Provider',
+            value: (res['provider'] ?? 'AxisVTU').toString(),
+          ),
+          ReceiptField(
+            label: 'Data Capacity',
+            value: selected == null ? '—' : _planCapacity(selected),
+          ),
+          ReceiptField(
+            label: 'Network',
+            value: selected == null
+                ? _network.toUpperCase()
+                : _planNetwork(selected),
+          ),
+          ReceiptField(
+            label: 'Receiver Phone',
+            value: _normalizePhone(_phoneCtrl.text),
+          ),
+          if (selected != null)
+            ReceiptField(label: 'Amount', value: '₦${_planPrice(selected)}'),
+          if ((res['reference'] ?? '').toString().isNotEmpty)
+            ReceiptField(
+              label: 'Reference',
+              value: (res['reference'] ?? '').toString(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _selectNetwork(String value) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _network = value;
+      final plans = _sortedFilteredPlans;
+      _selectedPlanCode = plans.isNotEmpty
+          ? plans.first['plan_code']?.toString()
+          : null;
+    });
+  }
+
+  void _applySuggestedNumber(String phone) {
+    HapticFeedback.mediumImpact();
+    _phoneCtrl.value = TextEditingValue(
+      text: phone,
+      selection: TextSelection.collapsed(offset: phone.length),
+    );
+  }
+
+  Widget _networkLogoByName(String network) {
+    final asset = switch (network.toLowerCase()) {
+      'mtn' => 'assets/networks/mtn.svg',
+      'airtel' => 'assets/networks/airtel.svg',
+      'glo' => 'assets/networks/glo.svg',
+      '9mobile' => 'assets/networks/9mobile.svg',
+      _ => '',
+    };
+    if (asset.isEmpty) {
+      return const Icon(Icons.network_cell, size: 16);
+    }
+    return SvgPicture.asset(
+      asset,
+      height: 16,
+      width: 16,
+      placeholderBuilder: (_) => const Icon(Icons.network_cell, size: 16),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final plans = _filteredPlans;
-    final selected = plans.firstWhere(
-      (p) => p['plan_code']?.toString() == _selectedPlanCode,
-      orElse: () => null,
-    );
+    final selected = _selectedPlan;
 
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(20),
+    return ServiceShell(
+      title: 'Buy Data',
+      subtitle: 'Fast checkout, premium plan sheet, and instant receipt.',
+      icon: Icons.wifi_rounded,
+      child: Column(
         children: [
-          Row(
-            children: [
-              _CircleAction(
-                icon: Icons.arrow_back,
-                onTap: () => Navigator.of(context).maybePop(),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.wifi, size: 18),
-                        const SizedBox(width: 6),
-                        Text('Data', style: Theme.of(context).textTheme.titleMedium),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              _CircleAction(
-                icon: _refreshing ? Icons.sync : Icons.refresh_rounded,
-                onTap: () => _loadPlans(forceRefresh: true),
-              ),
-              const SizedBox(width: 10),
-              _CircleAction(
-                icon: Icons.history,
-                onTap: () {},
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          GlassCard(
-            padding: const EdgeInsets.all(16),
+          ServiceSectionCard(
+            title: 'Send To',
+            subtitle: 'Enter number, pick network, then continue.',
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Send to:', style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 10),
                 TextField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'Phone Number (080...)',
+                    labelText: 'Phone Number',
+                    hintText: '080...',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                 ),
-                const SizedBox(height: 14),
+                if (_suggestions.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Suggestions',
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Double tap to fill suggested number',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _suggestions.map((number) {
+                            final detected = _detectNetwork(number) ?? _network;
+                            return GestureDetector(
+                              onDoubleTap: () => _applySuggestedNumber(number),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.primary
+                                        .withValues(alpha: 0.25),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _networkLogoByName(detected),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      number,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelMedium,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
@@ -412,69 +779,94 @@ class _DataScreenState extends State<DataScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                if (selected != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.wifi, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_planCapacity(selected)} • ₦${_planPrice(selected)}',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _refreshing
+                            ? null
+                            : () => _loadPlans(forceRefresh: true),
+                        icon: Icon(
+                          _refreshing ? Icons.sync : Icons.refresh_rounded,
                         ),
-                        const Spacer(),
-                        Text('${_planValidity(selected)} days', style: Theme.of(context).textTheme.bodySmall),
-                      ],
+                        label: Text(
+                          _refreshing ? 'Refreshing...' : 'Refresh Plans',
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: SizedBox(
-                    width: 160,
-                    child: FilledButton.icon(
-                      onPressed: _openPlansSheet,
-                      icon: const Icon(Icons.arrow_forward),
-                      label: const Text('Next'),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _GradientActionButton(
+                        label: 'Next',
+                        icon: Icons.arrow_forward_rounded,
+                        onTap: _openPlansSheet,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      _error!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
-                    ),
-                  ),
-                if (selected != null) ...[
-                  const SizedBox(height: 8),
-                  Text('Selected: ${_planLabel(selected)}', style: Theme.of(context).textTheme.bodySmall),
+                if (_loadingPlans && _plans.isEmpty) ...[
+                  const SizedBox(height: 10),
+                  const LinearProgressIndicator(minHeight: 2),
                 ],
               ],
             ),
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Text('Beneficiaries', style: Theme.of(context).textTheme.titleMedium),
-              const Spacer(),
-              Icon(Icons.person_add_alt_1, color: Theme.of(context).colorScheme.primary),
-            ],
-          ),
-          const SizedBox(height: 10),
-          GlassCard(
-            padding: const EdgeInsets.all(16),
+          ServiceSectionCard(
+            title: 'Plan Checkout',
+            subtitle: 'Review selected plan, then buy.',
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (selected == null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                    ),
+                    child: Text(
+                      'No plan selected yet. Tap "Next" to open available plans.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  )
+                else
+                  _SelectedPlanCard(
+                    network: _planNetwork(selected),
+                    capacity: _planCapacity(selected),
+                    price: _planPrice(selected),
+                    validity: _planValidity(selected),
+                    unitCost: _planUnitCostLabel(selected),
+                  ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _openPlansSheet,
+                        icon: const Icon(Icons.grid_view_rounded),
+                        label: const Text('Change Plan'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: PrimaryButton(
+                        label: 'Buy Data',
+                        icon: Icons.send_rounded,
+                        loading: _submitting,
+                        onPressed: _selectedPlanCode == null ? null : _buy,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          ServiceSectionCard(
+            title: 'Beneficiaries',
+            subtitle: 'Keep quick buy smooth and organized.',
+            child: Column(
               children: [
                 TextField(
                   decoration: InputDecoration(
@@ -489,43 +881,130 @@ class _DataScreenState extends State<DataScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
+                const Row(
                   children: [
                     _TabChip(label: 'Recent', selected: true),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     _TabChip(label: 'Saved', selected: false),
                   ],
                 ),
                 const SizedBox(height: 14),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 28),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'No recent transfers yet.',
-                      style: Theme.of(context).textTheme.bodySmall,
+                if (_recentNumbers.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                    ),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _recentNumbers.take(6).map((number) {
+                        final detected = _detectNetwork(number) ?? _network;
+                        return GestureDetector(
+                          onDoubleTap: () => _applySuggestedNumber(number),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _networkLogoByName(detected),
+                                const SizedBox(width: 6),
+                                Text(
+                                  number,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  )
+                else
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'No recent transfers yet.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
                   ),
+                const SizedBox(height: 12),
+                _ToggleTile(
+                  icon: Icons.person_add_alt_1_rounded,
+                  label: 'Beneficiaries',
+                  subtitle: 'Auto-save recipients for quick buy',
+                  value: _beneficiariesEnabled,
+                  onChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _beneficiariesEnabled = v);
+                  },
+                ),
+                const SizedBox(height: 10),
+                _ToggleTile(
+                  icon: Icons.bolt_rounded,
+                  label: 'Smart Suggestions',
+                  subtitle: 'Show matching recent numbers while typing',
+                  value: _smartSuggestionEnabled,
+                  onChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _smartSuggestionEnabled = v);
+                    _onPhoneChanged();
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ToggleTile(
+                  icon: Icons.rocket_launch_rounded,
+                  label: 'Fast Route',
+                  subtitle: 'Fast route preference (coming soon)',
+                  value: _fastRouteEnabled,
+                  onChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _fastRouteEnabled = v);
+                  },
                 ),
               ],
             ),
           ),
+          if (_error != null)
+            ServiceSectionCard(
+              title: 'Notice',
+              child: Text(
+                _error!,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
         ],
       ),
     );
-  }
-
-  void _selectNetwork(String value) {
-    setState(() {
-      _network = value;
-      final plans = _filteredPlans;
-      _selectedPlanCode = plans.isNotEmpty ? plans.first['plan_code']?.toString() : null;
-    });
   }
 }
 
@@ -544,299 +1023,399 @@ class _NetworkChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
-    return InkWell(
+    return ServiceChoiceChip(
+      label: label,
+      selected: selected,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Ink(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? color : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (assetPath != null) ...[
-              SvgPicture.asset(
-                assetPath!,
-                height: 22,
-                width: 22,
-                placeholderBuilder: (_) => Container(
-                  height: 22,
-                  width: 22,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: TextStyle(color: selected ? Colors.white : color, fontWeight: FontWeight.w600),
+      leading: assetPath == null
+          ? const Icon(Icons.network_cell, size: 16)
+          : SvgPicture.asset(
+              assetPath!,
+              height: 18,
+              width: 18,
+              placeholderBuilder: (_) =>
+                  const Icon(Icons.network_cell, size: 16),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
 
-class _CircleAction extends StatelessWidget {
-  const _CircleAction({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Ink(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-        ),
-        child: Icon(icon),
-      ),
-    );
-  }
-}
-
-class _PlanTile extends StatelessWidget {
-  const _PlanTile({
+class _SelectedPlanCard extends StatelessWidget {
+  const _SelectedPlanCard({
+    required this.network,
     required this.capacity,
     required this.price,
     required this.validity,
-    this.network,
+    required this.unitCost,
+  });
+
+  final String network;
+  final String capacity;
+  final String price;
+  final String validity;
+  final String unitCost;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          colors: [
+            color.withValues(alpha: 0.14),
+            const Color(0xFF0FB5AE).withValues(alpha: 0.11),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: color.withValues(alpha: 0.32)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                network,
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  validity,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                capacity,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '₦$price',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          if (unitCost.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(unitCost, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanSheetTile extends StatelessWidget {
+  const _PlanSheetTile({
+    required this.capacity,
+    required this.price,
+    required this.validity,
+    required this.unitCost,
     required this.selected,
+    required this.bestValue,
     required this.onTap,
   });
 
   final String capacity;
   final String price;
   final String validity;
-  final String? network;
+  final String unitCost;
   final bool selected;
+  final bool bestValue;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: selected
             ? [
                 BoxShadow(
-                  color: color.withValues(alpha: 0.18),
-                  blurRadius: 18,
+                  color: color.withValues(alpha: 0.2),
+                  blurRadius: 22,
                   offset: const Offset(0, 10),
                 ),
               ]
-            : [],
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
-        decoration: BoxDecoration(
-          color: selected
-              ? color.withValues(alpha: 0.08)
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-            width: selected ? 1.6 : 1,
-          ),
-        ),
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(capacity.isEmpty ? '—' : capacity, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 4),
-            Text('Data', style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 8),
-            Text('₦$price', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)),
-              ),
-              child: Text('$validity days', style: Theme.of(context).textTheme.bodySmall),
-            ),
-            if (network != null && network!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(network!, style: Theme.of(context).textTheme.bodySmall),
-            ],
-            if (selected) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(999),
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.05),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
                 ),
-                child: const Text(
-                  'Selected',
-                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ],
-        ),
-        ),
+              ],
       ),
-    );
-  }
-}
-
-class _PurchaseResultSheet extends StatelessWidget {
-  const _PurchaseResultSheet({
-    required this.success,
-    required this.message,
-    required this.customerName,
-    required this.provider,
-    required this.network,
-    required this.capacity,
-    required this.phone,
-    required this.timeLabel,
-    required this.amount,
-  });
-
-  final bool success;
-  final String message;
-  final String customerName;
-  final String provider;
-  final String network;
-  final String capacity;
-  final String phone;
-  final String timeLabel;
-  final String amount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 34),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: 64,
-            width: 64,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(22),
+          child: Ink(
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: success ? const Color(0xFFD1FADF) : const Color(0xFFFEE2E2),
-              shape: BoxShape.circle,
+              color: selected
+                  ? color.withValues(alpha: 0.12)
+                  : Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: selected
+                    ? color
+                    : Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.24),
+                width: selected ? 1.7 : 1,
+              ),
             ),
-            child: Icon(
-              success ? Icons.check_rounded : Icons.close_rounded,
-              color: success ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-              size: 34,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            success ? 'Purchase Successful' : 'Purchase Failed',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(message, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 16),
-          GlassCard(
-            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.receipt_long),
-                    const SizedBox(width: 8),
-                    Text('Transfer Receipt', style: Theme.of(context).textTheme.titleMedium),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: success ? const Color(0xFFD1FADF) : const Color(0xFFFEE2E2),
-                        borderRadius: BorderRadius.circular(999),
+                    Expanded(
+                      child: Text(
+                        capacity.isEmpty ? '—' : capacity,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      child: Text(success ? 'Successful' : 'Failed'),
                     ),
+                    if (bestValue)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFF16A34A,
+                          ).withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: const Color(
+                              0xFF16A34A,
+                            ).withValues(alpha: 0.45),
+                          ),
+                        ),
+                        child: const Text(
+                          'Best',
+                          style: TextStyle(
+                            color: Color(0xFF15803D),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                _ReceiptRow(label: 'Time', value: timeLabel),
-                _ReceiptRow(label: 'Sender Name', value: customerName),
-                _ReceiptRow(label: 'Provider', value: provider),
-                _ReceiptRow(label: 'Data Capacity', value: capacity),
-                _ReceiptRow(label: 'Network', value: network),
-                _ReceiptRow(label: 'Receiver Phone', value: phone),
-                if (amount.isNotEmpty) _ReceiptRow(label: 'Amount', value: '₦$amount'),
+                const SizedBox(height: 10),
+                Text(
+                  '₦$price',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                if (unitCost.isNotEmpty)
+                  Text(
+                    unitCost,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                const Spacer(),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _Pill(text: validity),
+                    if (selected)
+                      _Pill(
+                        text: 'Selected',
+                        background: color,
+                        foreground: Colors.white,
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  child: const Text('Download Receipt'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Done'),
-                ),
-              ),
-            ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text, this.background, this.foreground});
+
+  final String text;
+  final Color? background;
+  final Color? foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = background ?? Theme.of(context).colorScheme.surface;
+    final fg = foreground ?? Theme.of(context).textTheme.bodySmall?.color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.28),
+        ),
+      ),
+      child: Text(
+        text,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: fg, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _ToggleTile extends StatelessWidget {
+  const _ToggleTile({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.14),
+            child: Icon(
+              icon,
+              size: 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+          Switch(value: value, onChanged: onChanged),
         ],
       ),
     );
   }
 }
 
-class _ReceiptRow extends StatelessWidget {
-  const _ReceiptRow({required this.label, required this.value});
+class _GradientActionButton extends StatelessWidget {
+  const _GradientActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
 
   final String label;
-  final String value;
+  final IconData icon;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          Flexible(
-            child: Text(
-              value.isEmpty ? '-' : value,
-              textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        height: 52,
+        decoration: BoxDecoration(
+          gradient: AxisPalette.gradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.28),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(icon, color: Colors.white),
+          ],
+        ),
       ),
     );
   }
@@ -856,7 +1435,9 @@ class _TabChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: selected ? color : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+        ),
       ),
       child: Text(
         label,

@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../services/user_lookup_service.dart';
 import '../state/session.dart';
-import '../theme/app_theme.dart';
 import '../widgets/auth_backdrop.dart';
 import '../widgets/auth_route.dart';
+import '../widgets/primary_button.dart';
 import '../widgets/theme_toggle_button.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
@@ -81,181 +81,200 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.7);
+    final muted = onSurface.withValues(alpha: 0.66);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      body: AuthBackdrop(
-        overlay: Positioned(
-          top: 16,
-          left: 16,
-          right: 16,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _CircleIconButton(
-                icon: Icons.arrow_back,
-                onTap: () => Navigator.of(context).pop(),
-              ),
-              const ThemeToggleButton(),
-            ],
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 520),
-            Text(
-              'Welcome ${_displayName.isNotEmpty ? _displayName : 'back'}',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: onSurface),
-            ),
-            const SizedBox(height: 8),
-            if (_lookupLoading)
-              Text('Fetching your profile...', style: TextStyle(color: muted))
-            else
-              Text(
-                'Enter your password to continue.',
-                style: TextStyle(color: muted),
-              ),
-            const SizedBox(height: 16),
-            Row(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: AuthBackdrop(
+          overlay: Positioned(
+            top: 16,
+            left: 16,
+            right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.person_outline, color: muted, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            widget.identifier,
-                            style: TextStyle(color: onSurface),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                _HeaderIconButton(
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onTap: () => Navigator.of(context).pop(),
                 ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Change'),
-                ),
+                const ThemeToggleButton(),
               ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordCtrl,
-              obscureText: _obscure,
-              style: TextStyle(color: onSurface),
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.lock_outline, color: muted),
-                suffixIcon: IconButton(
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                  icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off, color: muted),
-                ),
-                hintText: 'Password',
-                hintStyle: TextStyle(color: onSurface.withValues(alpha: 0.4)),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    AuthRoute(page: ForgotPasswordScreen(identifier: widget.identifier)),
-                  );
-                },
-                child: const Text('Forgot password?'),
-              ),
-            ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            _GradientButton(
-              label: _loading ? 'Signing in...' : 'Login',
-              onTap: _loading ? () {} : _login,
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  AuthRoute(
-                    page: RegisterScreen(
-                      initialPhone: widget.identifier.contains('@') ? null : widget.identifier,
-                      initialEmail: widget.identifier.contains('@') ? widget.identifier : null,
-                    ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 500),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF10182B) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.2),
                   ),
-                );
-              },
-              child: const Text('Create new account'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GradientButton extends StatelessWidget {
-  const _GradientButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: AxisPalette.gradient,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.28 : 0.1,
+                      ),
+                      blurRadius: 24,
+                      offset: const Offset(0, 14),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Welcome ${_displayName.isEmpty ? 'back' : _displayName}',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    if (_lookupLoading)
+                      Text(
+                        'Checking profile...',
+                        style: TextStyle(color: muted),
+                      )
+                    else
+                      Text(
+                        'Enter your password to continue.',
+                        style: TextStyle(color: muted),
+                      ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF151E31)
+                            : const Color(0xFFF7FAFF),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person_outline_rounded, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.identifier,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: onSurface),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Change'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _passwordCtrl,
+                      obscureText: _obscure,
+                      decoration: InputDecoration(
+                        hintText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                          icon: Icon(
+                            _obscure ? Icons.visibility_off : Icons.visibility,
+                            size: 20,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: isDark
+                            ? const Color(0xFF151E31)
+                            : const Color(0xFFF7FAFF),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withValues(alpha: 0.2),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            AuthRoute(
+                              page: ForgotPasswordScreen(
+                                identifier: widget.identifier,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('Forgot password?'),
+                      ),
+                    ),
+                    if (_error != null) ...[
+                      Text(
+                        _error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    PrimaryButton(
+                      label: _loading ? 'Signing in...' : 'Login',
+                      loading: _loading,
+                      icon: Icons.login_rounded,
+                      onPressed: _loading ? null : _login,
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          AuthRoute(
+                            page: RegisterScreen(
+                              initialPhone: widget.identifier.contains('@')
+                                  ? null
+                                  : widget.identifier,
+                              initialEmail: widget.identifier.contains('@')
+                                  ? widget.identifier
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('Create new account'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
-            ),
-          ),
         ),
       ),
     );
   }
 }
 
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({required this.icon, required this.onTap});
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -266,16 +285,22 @@ class _CircleIconButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Ink(
-          width: 48,
-          height: 48,
+          width: 46,
+          height: 46,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF151F34)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.24),
+            ),
           ),
-          child: Icon(icon, color: Theme.of(context).colorScheme.onSurface),
+          child: Icon(icon, size: 18),
         ),
       ),
     );

@@ -16,30 +16,44 @@ class AppTheme {
       brightness: brightness,
       secondary: _secondary,
     );
-    final baseText = GoogleFonts.plusJakartaSansTextTheme()
-        .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
+    final baseText = GoogleFonts.plusJakartaSansTextTheme().apply(
+      bodyColor: scheme.onSurface,
+      displayColor: scheme.onSurface,
+    );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: isDark ? const Color(0xFF0C1118) : const Color(0xFFF4F7FB),
+      scaffoldBackgroundColor: isDark
+          ? const Color(0xFF0C1118)
+          : const Color(0xFFF4F7FB),
       textTheme: baseText.copyWith(
-        headlineSmall: baseText.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-        titleMedium: baseText.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        headlineSmall: baseText.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+        titleMedium: baseText.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        bodyMedium: baseText.bodyMedium?.copyWith(height: 1.35),
+        bodySmall: baseText.bodySmall?.copyWith(height: 1.32),
       ),
-      pageTransitionsTheme: const PageTransitionsTheme(builders: {
-        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
-      }),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+        },
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: scheme.onSurface,
         centerTitle: false,
-        titleTextStyle: baseText.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        titleTextStyle: baseText.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
       ),
       cardTheme: CardThemeData(
         color: isDark ? const Color(0xFF141B24) : Colors.white,
@@ -50,7 +64,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark ? const Color(0xFF141B24) : Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: scheme.outline.withValues(alpha: 0.35)),
@@ -59,17 +76,27 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          textStyle: baseText.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: baseText.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
           animationDuration: const Duration(milliseconds: 160),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           side: BorderSide(color: scheme.outline.withValues(alpha: 0.4)),
-          textStyle: baseText.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          textStyle: baseText.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
           animationDuration: const Duration(milliseconds: 160),
         ),
       ),
@@ -80,7 +107,9 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark ? const Color(0xFF1A2230) : const Color(0xFF0F172A),
+        backgroundColor: isDark
+            ? const Color(0xFF1A2230)
+            : const Color(0xFF0F172A),
         contentTextStyle: baseText.bodyMedium?.copyWith(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         behavior: SnackBarBehavior.floating,
@@ -103,19 +132,13 @@ class AxisPalette extends ThemeExtension<AxisPalette> {
   const AxisPalette();
 
   static const gradient = LinearGradient(
-    colors: [
-      Color(0xFF1E88E5),
-      Color(0xFF0FB5AE),
-    ],
+    colors: [Color(0xFF1E88E5), Color(0xFF0FB5AE)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const warmGradient = LinearGradient(
-    colors: [
-      Color(0xFFFFB020),
-      Color(0xFFFF7A59),
-    ],
+    colors: [Color(0xFFFFB020), Color(0xFFFF7A59)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -124,5 +147,8 @@ class AxisPalette extends ThemeExtension<AxisPalette> {
   ThemeExtension<AxisPalette> copyWith() => this;
 
   @override
-  ThemeExtension<AxisPalette> lerp(ThemeExtension<AxisPalette>? other, double t) => this;
+  ThemeExtension<AxisPalette> lerp(
+    ThemeExtension<AxisPalette>? other,
+    double t,
+  ) => this;
 }

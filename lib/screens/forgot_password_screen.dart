@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/password_service.dart';
 import '../widgets/auth_backdrop.dart';
 import '../widgets/auth_route.dart';
+import '../widgets/primary_button.dart';
 import '../widgets/theme_toggle_button.dart';
 import 'reset_password_screen.dart';
 
@@ -34,15 +35,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _emailCtrl.text = widget.identifier;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_isEmail(_emailCtrl.text)) {
-        _sendReset();
-      }
+      if (_isEmail(_emailCtrl.text)) _sendReset();
     });
     _emailCtrl.addListener(() => setState(() {}));
     _codeCtrl.addListener(() {
-      setState(() {
-        _tokenFull = _codeCtrl.text.trim();
-      });
+      setState(() => _tokenFull = _codeCtrl.text.trim());
     });
   }
 
@@ -101,152 +98,141 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() => _error = 'Enter the reset code sent to your email.');
       return;
     }
-    Navigator.of(context).push(
-      AuthRoute(page: ResetPasswordScreen(token: _tokenFull)),
-    );
-  }
-
-  void _pasteToken() async {
-    final controller = TextEditingController(text: _tokenFull);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Paste reset token'),
-        content: TextField(
-          controller: controller,
-          maxLines: 2,
-          decoration: const InputDecoration(labelText: 'Token from email'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(controller.text.trim()), child: const Text('Use')),
-        ],
-      ),
-    );
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _tokenFull = result;
-        _codeCtrl.text = result;
-      });
-    }
+    Navigator.of(
+      context,
+    ).push(AuthRoute(page: ResetPasswordScreen(token: _tokenFull)));
   }
 
   @override
   Widget build(BuildContext context) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.7);
+    final muted = onSurface.withValues(alpha: 0.66);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      body: AuthBackdrop(
-        showBrandText: false,
-        overlay: Positioned(
-          top: 16,
-          left: 16,
-          right: 16,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _CircleIconButton(
-                icon: Icons.arrow_back,
-                onTap: () => Navigator.of(context).pop(),
-              ),
-              const ThemeToggleButton(),
-            ],
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 460),
-            Text(
-              'Forgot Password',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: onSurface),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Verify with OTP and set a new password.',
-              style: TextStyle(color: muted),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _emailCtrl,
-              keyboardType: TextInputType.emailAddress,
-              style: TextStyle(color: onSurface),
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.email_outlined, color: muted),
-                hintText: 'you@email.com',
-                hintStyle: TextStyle(color: onSurface.withValues(alpha: 0.5)),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: AuthBackdrop(
+          showBrandText: false,
+          overlay: Positioned(
+            top: 16,
+            left: 16,
+            right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _HeaderIconButton(
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onTap: () => Navigator.of(context).pop(),
                 ),
-              ),
+                const ThemeToggleButton(),
+              ],
             ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    blurRadius: 30,
-                    offset: const Offset(0, 16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 470),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF10182B) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.2),
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'We sent a 6-digit code to ${_emailCtrl.text.isEmpty ? 'your email' : _emailCtrl.text}.',
-                    style: TextStyle(color: muted),
-                  ),
-                  const SizedBox(height: 12),
-                  _OtpRow(controller: _codeCtrl, focusNode: _otpFocus),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _loading ? null : _verify,
-                          child: const Text('Verify OTP'),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.28 : 0.1,
+                      ),
+                      blurRadius: 24,
+                      offset: const Offset(0, 14),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Forgot Password',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'We will verify and let you set a new password.',
+                      style: TextStyle(color: muted),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _emailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        hintText: 'you@email.com',
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        filled: true,
+                        fillColor: isDark
+                            ? const Color(0xFF151E31)
+                            : const Color(0xFFF7FAFF),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withValues(alpha: 0.2),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      TextButton(onPressed: _pasteToken, child: const Text('Paste token')),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: _secondsLeft == 0 && !_loading ? _sendReset : null,
-                        child: const Text('Resend Code'),
-                      ),
-                      const SizedBox(width: 8),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Enter the 6-digit code sent to ${_emailCtrl.text.isEmpty ? 'your email' : _emailCtrl.text}.',
+                      style: TextStyle(color: muted),
+                    ),
+                    const SizedBox(height: 10),
+                    _OtpRow(controller: _codeCtrl, focusNode: _otpFocus),
+                    const SizedBox(height: 14),
+                    PrimaryButton(
+                      label: _loading ? 'Verifying...' : 'Verify OTP',
+                      loading: _loading,
+                      icon: Icons.verified_rounded,
+                      onPressed: _loading ? null : _verify,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: _secondsLeft == 0 && !_loading
+                              ? _sendReset
+                              : null,
+                          child: const Text('Resend Code'),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _secondsLeft == 0 ? '' : _formatTimer(),
+                          style: TextStyle(color: muted),
+                        ),
+                      ],
+                    ),
+                    if (_error != null)
                       Text(
-                        _secondsLeft == 0 ? '' : _formatTimer(),
-                        style: TextStyle(color: muted),
+                        _error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ],
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -262,6 +248,7 @@ class _OtpRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = controller.text;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final onSurface = Theme.of(context).colorScheme.onSurface;
     return GestureDetector(
       onTap: () => focusNode.requestFocus(),
@@ -290,14 +277,24 @@ class _OtpRow extends StatelessWidget {
                 width: 44,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
+                  color: isDark
+                      ? const Color(0xFF151E31)
+                      : const Color(0xFFF7FAFF),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.2),
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   char,
-                  style: TextStyle(color: onSurface, fontSize: 18, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: onSurface,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               );
             }),
@@ -308,8 +305,8 @@ class _OtpRow extends StatelessWidget {
   }
 }
 
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({required this.icon, required this.onTap});
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -320,16 +317,22 @@ class _CircleIconButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Ink(
-          width: 48,
-          height: 48,
+          width: 46,
+          height: 46,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF151F34)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.24),
+            ),
           ),
-          child: Icon(icon, color: Theme.of(context).colorScheme.onSurface),
+          child: Icon(icon, size: 18),
         ),
       ),
     );

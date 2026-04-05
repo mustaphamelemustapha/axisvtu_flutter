@@ -42,7 +42,10 @@ class AuthService {
     return _client.get('/auth/me');
   }
 
-  Future<Map<String, dynamic>> updateProfile({String? fullName, String? phoneNumber}) async {
+  Future<Map<String, dynamic>> updateProfile({
+    String? fullName,
+    String? phoneNumber,
+  }) async {
     final body = <String, dynamic>{};
     if (fullName != null) {
       body['full_name'] = fullName.trim();
@@ -51,5 +54,19 @@ class AuthService {
       body['phone_number'] = phoneNumber.trim();
     }
     return _client.patch('/auth/me', body);
+  }
+
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    return _client.post('/auth/change-password', {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
+  }
+
+  Future<Map<String, dynamic>> deleteMe() {
+    return _client.delete('/auth/delete-me');
   }
 }
