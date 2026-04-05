@@ -1,0 +1,4 @@
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=axisvtu
+storeFile=/Users/mustaphamelemustapha/Desktop/VTU/keys/axisvtu-release.jks
