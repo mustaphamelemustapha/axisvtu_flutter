@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../services/notifications_service.dart';
 import '../services/wallet_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
@@ -25,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   Future<Map<String, dynamic>>? _walletFuture;
   Future<Map<String, dynamic>>? _accountsFuture;
+  Future<List<Map<String, dynamic>>>? _notificationsFuture;
   String _activeToken = '';
 
   @override
@@ -44,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final service = WalletService(token: token);
     _walletFuture = service.getWallet();
     _accountsFuture = service.getBankAccounts();
+    _notificationsFuture = _loadNotifications(token);
   }
 
   Future<void> _refresh() async {
@@ -52,7 +55,23 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _reloadDashboard(token);
     });
-    await Future.wait([_walletFuture!, _accountsFuture!]);
+    await Future.wait([
+      _walletFuture!,
+      _accountsFuture!,
+      _notificationsFuture ?? Future.value(<Map<String, dynamic>>[]),
+    ]);
+  }
+
+  Future<List<Map<String, dynamic>>> _loadNotifications(String token) async {
+    try {
+      final rows = await NotificationsService(token: token).getBroadcasts();
+      return rows
+          .whereType<Map>()
+          .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
+          .toList();
+    } catch (_) {
+      return <Map<String, dynamic>>[];
+    }
   }
 
   Future<void> _copyAccountNumber(String value) async {
@@ -85,6 +104,111 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _openScreen(Widget screen) async {
     HapticFeedback.selectionClick();
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  }
+
+  Future<void> _openNotificationsSheet() async {
+    final token = (context.read<SessionController>().token ?? '').trim();
+    final future =
+        _notificationsFuture ??
+        (token.isEmpty
+            ? Future.value(<Map<String, dynamic>>[])
+            : _loadNotifications(token));
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.55,
+          minChildSize: 0.4,
+          maxChildSize: 0.8,
+          builder: (context, controller) {
+            return ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              child: Container(
+                color: Theme.of(context).colorScheme.surface,
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: future,
+                  builder: (context, snapshot) {
+                    final rows =
+                        snapshot.data ?? const <Map<String, dynamic>>[];
+                    return ListView(
+                      controller: controller,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 48,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outline.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Notifications',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 12),
+                        if (snapshot.connectionState == ConnectionState.waiting)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: LinearProgressIndicator(minHeight: 2),
+                          ),
+                        if (snapshot.connectionState !=
+                                ConnectionState.waiting &&
+                            rows.isEmpty)
+                          const _NoticeTile(
+                            title: 'No announcements yet',
+                            subtitle:
+                                'Admin announcements and important updates will appear here.',
+                            icon: Icons.notifications_none_rounded,
+                          ),
+                        ...rows.map((row) {
+                          final title = (row['title'] ?? 'Announcement')
+                              .toString()
+                              .trim();
+                          final message = (row['message'] ?? '')
+                              .toString()
+                              .trim();
+                          final level = (row['level'] ?? 'info')
+                              .toString()
+                              .trim()
+                              .toLowerCase();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _NoticeTile(
+                              title: title.isEmpty ? 'Announcement' : title,
+                              subtitle: message.isEmpty
+                                  ? 'No message'
+                                  : message,
+                              icon: switch (level) {
+                                'warning' => Icons.warning_amber_rounded,
+                                'danger' => Icons.error_outline_rounded,
+                                'success' => Icons.task_alt_rounded,
+                                _ => Icons.campaign_rounded,
+                              },
+                            ),
+                          );
+                        }),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -205,7 +329,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const ThemeToggleButton(size: 44),
                 const SizedBox(width: 10),
-                _HeaderIconButton(icon: Icons.notifications_none_rounded),
+                _HeaderIconButton(
+                  icon: Icons.notifications_none_rounded,
+                  onTap: _openNotificationsSheet,
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -503,15 +630,49 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon});
+  const _HeaderIconButton({required this.icon, this.onTap});
 
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.outline.withValues(alpha: 0.22),
+          ),
+        ),
+        child: Icon(icon, size: 21),
+      ),
+    );
+  }
+}
+
+class _NoticeTile extends StatelessWidget {
+  const _NoticeTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
   final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
-      height: 44,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
@@ -519,7 +680,38 @@ class _HeaderIconButton extends StatelessWidget {
           color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.22),
         ),
       ),
-      child: Icon(icon, size: 21),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.12),
+            child: Icon(
+              icon,
+              size: 16,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

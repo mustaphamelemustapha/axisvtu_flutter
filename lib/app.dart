@@ -24,6 +24,7 @@ class AxisVTUApp extends StatelessWidget {
           final mode = context.watch<ThemeController>().mode;
           return MaterialApp(
             title: 'AxisVTU',
+            debugShowCheckedModeBanner: false,
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             themeMode: mode,

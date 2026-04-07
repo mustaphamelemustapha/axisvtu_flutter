@@ -24,7 +24,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _confirmPasswordCtrl = TextEditingController();
   bool _obscure = true;
+  bool _obscureConfirm = true;
+  String? _localError;
 
   @override
   void initState() {
@@ -43,18 +46,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _passwordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
+    final name = _nameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    final confirmPassword = _confirmPasswordCtrl.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      setState(
+        () => _localError = 'Full name, email, and password are required.',
+      );
+      return;
+    }
+    if (password.length < 6) {
+      setState(() => _localError = 'Password must be at least 6 characters.');
+      return;
+    }
+    if (confirmPassword.isEmpty) {
+      setState(() => _localError = 'Please confirm your password.');
+      return;
+    }
+    if (password != confirmPassword) {
+      setState(() => _localError = 'Passwords do not match.');
+      return;
+    }
+
+    setState(() => _localError = null);
     final session = context.read<SessionController>();
-    final ok = await session.register(
-      _nameCtrl.text,
-      _emailCtrl.text,
-      _phoneCtrl.text,
-      _passwordCtrl.text,
-    );
+    final ok = await session.register(name, email, phone, password);
     if (!mounted) return;
     if (ok) {
       Navigator.of(context).pushReplacementNamed(ShellScreen.route);
@@ -226,6 +251,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 10),
+                          _AuthInput(
+                            controller: _confirmPasswordCtrl,
+                            hint: 'Confirm password',
+                            icon: Icons.lock_reset_rounded,
+                            obscureText: _obscureConfirm,
+                            suffix: IconButton(
+                              onPressed: () => setState(
+                                () => _obscureConfirm = !_obscureConfirm,
+                              ),
+                              icon: Icon(
+                                _obscureConfirm
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          if (_localError != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              _localError!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ],
                           if (session.error != null) ...[
                             const SizedBox(height: 8),
                             Text(
