@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_client.dart';
-import '../services/app_pin_service.dart';
 import '../services/data_service.dart';
+import '../services/purchase_auth_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/primary_button.dart';
@@ -76,122 +76,6 @@ class _DataScreenState extends State<DataScreen> {
   List<String> _suggestions = [];
   String? _error;
   Future<void>? _plansLoadFuture;
-
-  Future<String?> _requestPinInput({
-    required String title,
-    required String subtitle,
-  }) async {
-    final controller = TextEditingController();
-    String? errorText;
-
-    final pin = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text(title),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: controller,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.done,
-                    maxLength: 4,
-                    obscureText: true,
-                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(4),
-                    ],
-                    decoration: InputDecoration(
-                      labelText: '4-digit PIN',
-                      errorText: errorText,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    final value = controller.text.trim();
-                    if (!RegExp(r'^\d{4}$').hasMatch(value)) {
-                      setStateDialog(
-                        () => errorText = 'PIN must be exactly 4 digits.',
-                      );
-                      return;
-                    }
-                    Navigator.of(context).pop(value);
-                  },
-                  child: const Text('Continue'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    controller.dispose();
-    return pin;
-  }
-
-  Future<bool> _ensurePinVerified() async {
-    final hasPin = await AppPinService.hasPin();
-    if (!mounted) return false;
-
-    if (!hasPin) {
-      final first = await _requestPinInput(
-        title: 'Create Purchase PIN',
-        subtitle: 'Set your 4-digit PIN for data purchases.',
-      );
-      if (first == null) return false;
-      if (!mounted) return false;
-
-      final second = await _requestPinInput(
-        title: 'Confirm Purchase PIN',
-        subtitle: 'Re-enter the 4-digit PIN.',
-      );
-      if (second == null) return false;
-      if (first != second) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('PIN mismatch. Please try again.')),
-          );
-        }
-        return false;
-      }
-
-      await AppPinService.savePin(first);
-      if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN created successfully.')),
-      );
-      return true;
-    }
-
-    final pin = await _requestPinInput(
-      title: 'Enter Purchase PIN',
-      subtitle: 'Authorize this purchase with your 4-digit PIN.',
-    );
-    if (pin == null) return false;
-
-    final ok = await AppPinService.verifyPin(pin);
-    if (!ok && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Incorrect PIN.')));
-    }
-    return ok;
-  }
 
   @override
   void initState() {
@@ -825,7 +709,10 @@ class _DataScreenState extends State<DataScreen> {
                                 : () async {
                                     setSheetState(() => usingPin = true);
                                     final authorized =
-                                        await _ensurePinVerified();
+                                        await PurchaseAuthService.authorizePin(
+                                          context: context,
+                                          reason: 'data purchase',
+                                        );
                                     if (!mounted) return;
                                     setSheetState(() => usingPin = false);
                                     if (!authorized) return;

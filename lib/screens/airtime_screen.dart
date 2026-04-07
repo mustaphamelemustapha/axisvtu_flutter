@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_client.dart';
+import '../services/purchase_auth_service.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
 import '../widgets/primary_button.dart';
@@ -21,6 +22,8 @@ class AirtimeScreen extends StatefulWidget {
 
 class _AirtimeScreenState extends State<AirtimeScreen> {
   static const _recentNumbersKey = 'axis_airtime_recent_numbers_v1';
+  static const _beneficiariesEnabledKey = 'axis_airtime_beneficiaries_v1';
+  static const _smartSuggestionEnabledKey = 'axis_airtime_suggestions_v1';
   static const Map<String, List<String>> _networkPrefixes = {
     'mtn': [
       '07025',
@@ -71,6 +74,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     super.initState();
     _phoneCtrl.addListener(_onPhoneChanged);
     _loadCatalog();
+    _loadPreferences();
     _loadRecentNumbers();
   }
 
@@ -110,6 +114,25 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     final numbers = prefs.getStringList(_recentNumbersKey) ?? <String>[];
     if (!mounted) return;
     setState(() => _recentNumbers = numbers);
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final beneficiariesEnabled =
+        prefs.getBool(_beneficiariesEnabledKey) ?? _beneficiariesEnabled;
+    final smartSuggestionEnabled =
+        prefs.getBool(_smartSuggestionEnabledKey) ?? _smartSuggestionEnabled;
+    if (!mounted) return;
+    setState(() {
+      _beneficiariesEnabled = beneficiariesEnabled;
+      _smartSuggestionEnabled = smartSuggestionEnabled;
+    });
+    _onPhoneChanged();
+  }
+
+  Future<void> _saveTogglePreference(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
   }
 
   Future<void> _saveRecentNumber(String number) async {
@@ -203,6 +226,12 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       return;
     }
 
+    final authorized = await PurchaseAuthService.authorizePin(
+      context: context,
+      reason: 'airtime purchase',
+    );
+    if (!mounted || !authorized) return;
+
     setState(() {
       _loading = true;
       _error = null;
@@ -213,12 +242,13 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       final res = await ServicesService(
         token: token,
       ).purchaseAirtime(network: _network, phoneNumber: phone, amount: amount);
+      final status = _resolveResultStatus(res);
       if (!mounted) return;
       await _saveRecentNumber(phone);
       PurchaseLoadingOverlay.hide();
       _showResult(
-        status: (res['status'] ?? 'success').toString(),
-        subtitle: 'Airtime request has been submitted successfully.',
+        status: status,
+        subtitle: _resultSubtitle(status, res),
         reference: (res['reference'] ?? '').toString(),
         fields: [
           ReceiptField(label: 'Network', value: _network.toUpperCase()),
@@ -262,9 +292,12 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => PurchaseResultSheet(
         status: status,
-        title: status.toLowerCase() == 'failed'
-            ? 'Airtime Failed'
-            : 'Airtime Successful',
+        title: _statusTitle(
+          status: status,
+          success: 'Airtime Successful',
+          pending: 'Airtime Pending',
+          failed: 'Airtime Failed',
+        ),
         subtitle: subtitle,
         fields: [
           ReceiptField(label: 'Time', value: _formatDate(DateTime.now())),
@@ -273,6 +306,50 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         ],
       ),
     );
+  }
+
+  String _resolveResultStatus(Map<String, dynamic> payload) {
+    final statusRaw = (payload['status'] ?? '').toString().trim().toLowerCase();
+    final ok =
+        payload['success'] == true ||
+        statusRaw == 'success' ||
+        statusRaw == 'successful' ||
+        statusRaw == 'delivered' ||
+        statusRaw == 'completed' ||
+        statusRaw == 'order_completed';
+    if (ok) return 'success';
+    final pending =
+        statusRaw == 'pending' ||
+        statusRaw == 'processing' ||
+        statusRaw == 'queued' ||
+        statusRaw == 'order_received' ||
+        statusRaw == 'order_onhold';
+    if (pending) return 'pending';
+    return 'failed';
+  }
+
+  String _statusTitle({
+    required String status,
+    required String success,
+    required String pending,
+    required String failed,
+  }) {
+    final normalized = status.toLowerCase();
+    if (normalized == 'success') return success;
+    if (normalized == 'pending') return pending;
+    return failed;
+  }
+
+  String _resultSubtitle(String status, Map<String, dynamic> payload) {
+    final message = (payload['message'] ?? payload['detail'] ?? '')
+        .toString()
+        .trim();
+    if (message.isNotEmpty) return message;
+    if (status == 'success') return 'Airtime purchase completed successfully.';
+    if (status == 'pending') {
+      return 'Airtime request received and currently processing.';
+    }
+    return 'Airtime purchase failed.';
   }
 
   String _formatDate(DateTime value) {
@@ -524,7 +601,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                   label: 'Auto-save Beneficiaries',
                   subtitle: 'Keep frequently used numbers ready.',
                   value: _beneficiariesEnabled,
-                  onChanged: (v) => setState(() => _beneficiariesEnabled = v),
+                  onChanged: (v) {
+                    setState(() => _beneficiariesEnabled = v);
+                    _saveTogglePreference(_beneficiariesEnabledKey, v);
+                  },
                 ),
                 const SizedBox(height: 10),
                 _ToggleTile(
@@ -534,6 +614,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                   value: _smartSuggestionEnabled,
                   onChanged: (v) {
                     setState(() => _smartSuggestionEnabled = v);
+                    _saveTogglePreference(_smartSuggestionEnabledKey, v);
                     _onPhoneChanged();
                   },
                 ),
