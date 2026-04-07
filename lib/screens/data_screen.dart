@@ -403,10 +403,10 @@ class _DataScreenState extends State<DataScreen> {
     return 0;
   }
 
-  Future<void> _openPlansSheet() async {
+  Future<void> _openPlansSheet({bool requirePhone = true}) async {
     FocusManager.instance.primaryFocus?.unfocus();
     final normalizedPhone = _normalizePhone(_phoneCtrl.text);
-    if (normalizedPhone.isEmpty) {
+    if (requirePhone && normalizedPhone.isEmpty) {
       setState(() => _error = 'Enter a phone number first.');
       return;
     }
@@ -887,7 +887,7 @@ class _DataScreenState extends State<DataScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: _openPlansSheet,
+                        onPressed: () => _openPlansSheet(requirePhone: false),
                         icon: const Icon(Icons.grid_view_rounded),
                         label: const Text('Change Plan'),
                       ),
