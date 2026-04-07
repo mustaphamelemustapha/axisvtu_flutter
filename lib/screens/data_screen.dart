@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_client.dart';
+import '../services/app_pin_service.dart';
 import '../services/data_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
@@ -75,6 +76,122 @@ class _DataScreenState extends State<DataScreen> {
   List<String> _suggestions = [];
   String? _error;
   Future<void>? _plansLoadFuture;
+
+  Future<String?> _requestPinInput({
+    required String title,
+    required String subtitle,
+  }) async {
+    final controller = TextEditingController();
+    String? errorText;
+
+    final pin = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: Text(title),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    maxLength: 4,
+                    obscureText: true,
+                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: '4-digit PIN',
+                      errorText: errorText,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final value = controller.text.trim();
+                    if (!RegExp(r'^\d{4}$').hasMatch(value)) {
+                      setStateDialog(
+                        () => errorText = 'PIN must be exactly 4 digits.',
+                      );
+                      return;
+                    }
+                    Navigator.of(context).pop(value);
+                  },
+                  child: const Text('Continue'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    controller.dispose();
+    return pin;
+  }
+
+  Future<bool> _ensurePinVerified() async {
+    final hasPin = await AppPinService.hasPin();
+    if (!mounted) return false;
+
+    if (!hasPin) {
+      final first = await _requestPinInput(
+        title: 'Create Purchase PIN',
+        subtitle: 'Set your 4-digit PIN for data purchases.',
+      );
+      if (first == null) return false;
+      if (!mounted) return false;
+
+      final second = await _requestPinInput(
+        title: 'Confirm Purchase PIN',
+        subtitle: 'Re-enter the 4-digit PIN.',
+      );
+      if (second == null) return false;
+      if (first != second) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('PIN mismatch. Please try again.')),
+          );
+        }
+        return false;
+      }
+
+      await AppPinService.savePin(first);
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PIN created successfully.')),
+      );
+      return true;
+    }
+
+    final pin = await _requestPinInput(
+      title: 'Enter Purchase PIN',
+      subtitle: 'Authorize this purchase with your 4-digit PIN.',
+    );
+    if (pin == null) return false;
+
+    final ok = await AppPinService.verifyPin(pin);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Incorrect PIN.')));
+    }
+    return ok;
+  }
 
   @override
   void initState() {
@@ -524,6 +641,13 @@ class _DataScreenState extends State<DataScreen> {
                                               _selectedPlanCode = selectedCode,
                                         );
                                         Navigator.of(context).pop();
+                                        if (_normalizePhone(
+                                          _phoneCtrl.text,
+                                        ).isNotEmpty) {
+                                          Future.microtask(
+                                            _openPurchaseSummary,
+                                          );
+                                        }
                                       },
                                 icon: const Icon(Icons.check_circle_outline),
                                 label: const Text('Confirm'),
@@ -536,6 +660,222 @@ class _DataScreenState extends State<DataScreen> {
                   ),
                 );
               },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openPurchaseSummary() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final normalizedPhone = _normalizePhone(_phoneCtrl.text);
+    final selected = _selectedPlan;
+    if (selected == null || normalizedPhone.isEmpty) {
+      setState(() => _error = 'Enter phone number and select a plan.');
+      return;
+    }
+
+    double totalAmount = _planPriceValue(selected);
+    if (!totalAmount.isFinite) {
+      totalAmount = _toDouble(_planPrice(selected)) ?? 0;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        bool usingPin = false;
+
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF091225),
+                    Color(0xFF0A1630),
+                    Color(0xFF0B1D3E),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 30,
+                    offset: const Offset(0, 18),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.receipt_long_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Purchase Summary',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => Navigator.of(context).pop(),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Ink(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.14),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _SummaryLine(label: 'Phone', value: normalizedPhone),
+                    const SizedBox(height: 10),
+                    _SummaryLine(
+                      label: 'Network',
+                      value: _planNetwork(selected),
+                    ),
+                    const SizedBox(height: 10),
+                    _SummaryLine(
+                      label: 'Plan',
+                      value:
+                          '${_planCapacity(selected)} • ${_planValidity(selected)}',
+                    ),
+                    const SizedBox(height: 10),
+                    _SummaryLine(
+                      label: 'Plan Price',
+                      value: '₦${_planPrice(selected)}',
+                    ),
+                    const SizedBox(height: 12),
+                    Divider(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      height: 1,
+                    ),
+                    const SizedBox(height: 12),
+                    _SummaryToggleLine(label: 'Amigo Earn', amount: '₦0.00'),
+                    const SizedBox(height: 10),
+                    _SummaryToggleLine(label: 'Cashback', amount: '₦0.00'),
+                    const SizedBox(height: 12),
+                    Divider(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      height: 1,
+                    ),
+                    const SizedBox(height: 12),
+                    const _SummaryLine(
+                      label: 'Referral Applied',
+                      value: '₦0.00',
+                    ),
+                    const SizedBox(height: 8),
+                    const _SummaryLine(
+                      label: 'Cashback Applied',
+                      value: '₦0.00',
+                    ),
+                    const SizedBox(height: 10),
+                    _SummaryLine(
+                      label: 'Total to Pay',
+                      value: '₦${totalAmount.toStringAsFixed(2)}',
+                      highlight: true,
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: usingPin
+                                ? null
+                                : () async {
+                                    setSheetState(() => usingPin = true);
+                                    final authorized =
+                                        await _ensurePinVerified();
+                                    if (!mounted) return;
+                                    setSheetState(() => usingPin = false);
+                                    if (!authorized) return;
+                                    Navigator.of(this.context).pop();
+                                    await _buy();
+                                  },
+                            icon: usingPin
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.lock_outline_rounded),
+                            label: const Text('Use Pin'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.28),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: usingPin
+                                ? null
+                                : () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Biometric verification coming soon. Use PIN for now.',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            icon: const Icon(Icons.fingerprint_rounded),
+                            label: const Text('Biometric'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF4C8DFF),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         );
@@ -898,7 +1238,9 @@ class _DataScreenState extends State<DataScreen> {
                         label: 'Buy Data',
                         icon: Icons.send_rounded,
                         loading: _submitting,
-                        onPressed: _selectedPlanCode == null ? null : _buy,
+                        onPressed: _selectedPlanCode == null
+                            ? null
+                            : _openPurchaseSummary,
                       ),
                     ),
                   ],
@@ -1051,6 +1393,87 @@ class _DataScreenState extends State<DataScreen> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _SummaryLine extends StatelessWidget {
+  const _SummaryLine({
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
+
+  final String label;
+  final String value;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: highlight ? 0.96 : 0.78),
+              fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
+              fontSize: highlight ? 18 : 16,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: highlight ? FontWeight.w800 : FontWeight.w700,
+              fontSize: highlight ? 24 : 18,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryToggleLine extends StatefulWidget {
+  const _SummaryToggleLine({required this.label, required this.amount});
+
+  final String label;
+  final String amount;
+
+  @override
+  State<_SummaryToggleLine> createState() => _SummaryToggleLineState();
+}
+
+class _SummaryToggleLineState extends State<_SummaryToggleLine> {
+  bool _enabled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            '${widget.label}: ${widget.amount}',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.86),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Switch.adaptive(
+          value: _enabled,
+          onChanged: (value) => setState(() => _enabled = value),
+          activeThumbColor: const Color(0xFF4C8DFF),
+          activeTrackColor: const Color(0xFF7FB0FF),
+        ),
+      ],
     );
   }
 }
