@@ -22,6 +22,9 @@ class DataScreen extends StatefulWidget {
 
 class _DataScreenState extends State<DataScreen> {
   static const _recentNumbersKey = 'axis_airtime_recent_numbers_v1';
+  static const _beneficiariesEnabledKey = 'axis_data_beneficiaries_v1';
+  static const _smartSuggestionEnabledKey = 'axis_data_suggestions_v1';
+  static const _fastRouteEnabledKey = 'axis_data_fast_route_v1';
   static const Map<String, List<String>> _networkPrefixes = {
     'mtn': [
       '07025',
@@ -81,6 +84,7 @@ class _DataScreenState extends State<DataScreen> {
       _plans = DataService.cachedPlans;
       _loadingPlans = false;
     }
+    _loadPreferences();
     _loadRecentNumbers();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadPlans(silent: DataService.hasCache);
@@ -165,6 +169,28 @@ class _DataScreenState extends State<DataScreen> {
     if (!mounted) return;
     setState(() => _recentNumbers = numbers);
     _onPhoneChanged();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final beneficiariesEnabled =
+        prefs.getBool(_beneficiariesEnabledKey) ?? _beneficiariesEnabled;
+    final smartSuggestionEnabled =
+        prefs.getBool(_smartSuggestionEnabledKey) ?? _smartSuggestionEnabled;
+    final fastRouteEnabled =
+        prefs.getBool(_fastRouteEnabledKey) ?? _fastRouteEnabled;
+    if (!mounted) return;
+    setState(() {
+      _beneficiariesEnabled = beneficiariesEnabled;
+      _smartSuggestionEnabled = smartSuggestionEnabled;
+      _fastRouteEnabled = fastRouteEnabled;
+    });
+    _onPhoneChanged();
+  }
+
+  Future<void> _saveTogglePreference(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
   }
 
   Future<void> _saveRecentNumber(String number) async {
@@ -976,6 +1002,7 @@ class _DataScreenState extends State<DataScreen> {
                   onChanged: (v) {
                     HapticFeedback.selectionClick();
                     setState(() => _beneficiariesEnabled = v);
+                    _saveTogglePreference(_beneficiariesEnabledKey, v);
                   },
                 ),
                 const SizedBox(height: 10),
@@ -987,6 +1014,7 @@ class _DataScreenState extends State<DataScreen> {
                   onChanged: (v) {
                     HapticFeedback.selectionClick();
                     setState(() => _smartSuggestionEnabled = v);
+                    _saveTogglePreference(_smartSuggestionEnabledKey, v);
                     _onPhoneChanged();
                   },
                 ),
@@ -994,11 +1022,12 @@ class _DataScreenState extends State<DataScreen> {
                 _ToggleTile(
                   icon: Icons.rocket_launch_rounded,
                   label: 'Fast Route',
-                  subtitle: 'Fast route preference (coming soon)',
+                  subtitle: 'Fast route preference',
                   value: _fastRouteEnabled,
                   onChanged: (v) {
                     HapticFeedback.selectionClick();
                     setState(() => _fastRouteEnabled = v);
+                    _saveTogglePreference(_fastRouteEnabledKey, v);
                   },
                 ),
               ],
@@ -1088,13 +1117,17 @@ class _SelectedPlanCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                network,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+              Expanded(
+                child: Text(
+                  network,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 10),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -1114,18 +1147,31 @@ class _SelectedPlanCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(
-                capacity,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  capacity,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              const Spacer(),
-              Text(
-                '₦$price',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '₦$price',
+                      maxLines: 1,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
