@@ -404,6 +404,7 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   Future<void> _openPlansSheet() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final normalizedPhone = _normalizePhone(_phoneCtrl.text);
     if (normalizedPhone.isEmpty) {
       setState(() => _error = 'Enter a phone number first.');
@@ -543,6 +544,7 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   Future<void> _buy() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final normalizedPhone = _normalizePhone(_phoneCtrl.text);
     if (_selectedPlanCode == null || normalizedPhone.isEmpty) {
       setState(() => _error = 'Enter phone number and select a plan.');
@@ -707,6 +709,9 @@ class _DataScreenState extends State<DataScreen> {
                 TextField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.done,
+                  onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                  onSubmitted: (_) => FocusScope.of(context).unfocus(),
                   decoration: const InputDecoration(
                     labelText: 'Phone Number',
                     hintText: '080...',
@@ -907,6 +912,7 @@ class _DataScreenState extends State<DataScreen> {
             child: Column(
               children: [
                 TextField(
+                  onTapOutside: (_) => FocusScope.of(context).unfocus(),
                   decoration: InputDecoration(
                     hintText: 'Search Contacts',
                     prefixIcon: const Icon(Icons.search),

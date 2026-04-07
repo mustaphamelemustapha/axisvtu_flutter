@@ -46,6 +46,15 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
   bool get _isSuccess => widget.status.toLowerCase() == 'success';
   bool get _isPending => widget.status.toLowerCase() == 'pending';
 
+  String _fieldValue(String label) {
+    for (final field in widget.fields) {
+      if (field.label.trim().toLowerCase() == label.toLowerCase()) {
+        return field.value.trim();
+      }
+    }
+    return '';
+  }
+
   Future<Uint8List?> _captureReceiptImage() async {
     await Future.delayed(const Duration(milliseconds: 18));
     final renderObject = _receiptCaptureKey.currentContext?.findRenderObject();
@@ -122,12 +131,13 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
     final statusPillColor = _isSuccess
         ? const Color(0xFFD1FADF)
         : (_isPending ? const Color(0xFFFFF4CC) : const Color(0xFFFEE2E2));
-    final surface = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF10131A)
-        : const Color(0xFFF7F8FC);
-    final border = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF2A2F3A)
-        : const Color(0xFFE8EBF4);
+
+    const border = Color(0xFFE8EBF4);
+    const softText = Color(0xFF6B7280);
+    const deepText = Color(0xFF0F172A);
+
+    final receiptTime = _fieldValue('Time');
+    final receiptRef = _fieldValue('Reference');
 
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
@@ -146,126 +156,229 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: surface,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF8FBFF), Color(0xFFF1F6FF)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                     borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: border),
                   ),
-                  padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-                  child: Column(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                  child: Stack(
                     children: [
-                      Container(
-                        width: 84,
-                        height: 84,
-                        decoration: BoxDecoration(
-                          color: iconBg,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _isSuccess
-                              ? Icons.check_rounded
-                              : (_isPending
-                                    ? Icons.hourglass_top_rounded
-                                    : Icons.close_rounded),
-                          color: iconColor,
-                          size: 46,
+                      Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: Opacity(
+                          opacity: 0.08,
+                          child: Image.asset(
+                            'assets/brand/axisvtu-icon.png',
+                            width: 60,
+                            height: 60,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      Text(
-                        widget.title,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        widget.subtitle,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.72),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: border),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 22,
-                              offset: const Offset(0, 10),
+                      Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                12,
-                                12,
-                                12,
-                                12,
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.receipt_long, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Transfer Receipt',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall
-                                        ?.copyWith(fontWeight: FontWeight.w700),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.88),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: border),
+                            ),
+                            child: Row(
+                              children: [
+                                Image.asset(
+                                  'assets/brand/axisvtu-icon.png',
+                                  width: 20,
+                                  height: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'AxisVTU Transfer Receipt',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: deepText,
                                   ),
-                                  const Spacer(),
-                                  Image.asset(
-                                    'assets/brand/axisvtu-icon.png',
-                                    width: 22,
-                                    height: 22,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: statusPillColor,
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
+                                ),
+                                const Spacer(),
+                                if (receiptTime.isNotEmpty)
+                                  Flexible(
                                     child: Text(
-                                      statusLabel,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelMedium
-                                          ?.copyWith(
-                                            color: iconColor,
-                                            fontWeight: FontWeight.w700,
-                                          ),
+                                      receiptTime,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: softText,
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ),
+                              ],
                             ),
-                            Divider(color: border, height: 1),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-                              child: Column(
-                                children: widget.fields
-                                    .map(
-                                      (field) => _ReceiptRow(
-                                        label: field.label,
-                                        value: field.value,
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            width: 84,
+                            height: 84,
+                            decoration: BoxDecoration(
+                              color: iconBg,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _isSuccess
+                                  ? Icons.check_rounded
+                                  : (_isPending
+                                        ? Icons.hourglass_top_rounded
+                                        : Icons.close_rounded),
+                              color: iconColor,
+                              size: 46,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            widget.title,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: deepText,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            widget.subtitle,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(color: softText),
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: border),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x14000000),
+                                  blurRadius: 22,
+                                  offset: Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    12,
+                                    12,
+                                    12,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.receipt_long, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Transfer Receipt',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              color: deepText,
+                                            ),
                                       ),
-                                    )
-                                    .toList(),
-                              ),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: statusPillColor,
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          statusLabel,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelMedium
+                                              ?.copyWith(
+                                                color: iconColor,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Divider(color: border, height: 1),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    8,
+                                    12,
+                                    10,
+                                  ),
+                                  child: Column(
+                                    children: widget.fields
+                                        .map(
+                                          (field) => _ReceiptRow(
+                                            label: field.label,
+                                            value: field.value,
+                                          ),
+                                        )
+                                        .toList(),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Fast • Secure • Smart',
+                                style: TextStyle(
+                                  color: softText,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (receiptRef.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                const Text(
+                                  '•',
+                                  style: TextStyle(color: softText),
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    receiptRef,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: softText,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -349,25 +462,17 @@ class _ReceiptRow extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: 2),
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF2A2F3A)
-                : const Color(0xFFE8EBF4),
-          ),
-        ),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE8EBF4))),
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.68),
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280)),
             ),
           ),
           const SizedBox(width: 8),
@@ -377,9 +482,10 @@ class _ReceiptRow extends StatelessWidget {
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F172A),
+              ),
             ),
           ),
         ],
