@@ -41,6 +41,78 @@ class ReceiptExportService {
     return 'axisvtu_${DateTime.now().millisecondsSinceEpoch}';
   }
 
+  static String _sanitize(String value) =>
+      value.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+
+  static String inferReceiptImageFilename(List<ReceiptField> fields) {
+    final reference = inferReference(fields);
+    return 'axisvtu_receipt_${_sanitize(reference)}.png';
+  }
+
+  static Future<void> downloadReceiptImage({
+    required BuildContext context,
+    required Uint8List imageBytes,
+    required List<ReceiptField> fields,
+  }) async {
+    final filename = inferReceiptImageFilename(fields);
+    final file = XFile.fromData(
+      imageBytes,
+      mimeType: 'image/png',
+      name: filename,
+    );
+
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [file],
+          subject: 'AxisVTU Receipt',
+          text: 'Save your AxisVTU receipt image.',
+          fileNameOverrides: [filename],
+        ),
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Receipt image ready. Save to Files / Downloads.'),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to save image receipt.')),
+      );
+    }
+  }
+
+  static Future<void> shareReceiptImage({
+    required BuildContext context,
+    required Uint8List imageBytes,
+    required List<ReceiptField> fields,
+  }) async {
+    final filename = inferReceiptImageFilename(fields);
+    final file = XFile.fromData(
+      imageBytes,
+      mimeType: 'image/png',
+      name: filename,
+    );
+
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [file],
+          subject: 'AxisVTU Receipt',
+          text: 'AxisVTU receipt.',
+          fileNameOverrides: [filename],
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to share image receipt.')),
+      );
+    }
+  }
+
   static Future<void> downloadReceiptAsFile({
     required BuildContext context,
     required String title,
@@ -55,14 +127,9 @@ class ReceiptExportService {
       fields: fields,
     );
     final reference = inferReference(fields);
-    final filename =
-        'axisvtu_receipt_${reference.replaceAll(RegExp(r"[^a-zA-Z0-9_-]"), "_")}.txt';
+    final filename = 'axisvtu_receipt_${_sanitize(reference)}.txt';
     final bytes = Uint8List.fromList(utf8.encode(text));
-    final file = XFile.fromData(
-      bytes,
-      mimeType: 'text/plain',
-      name: filename,
-    );
+    final file = XFile.fromData(bytes, mimeType: 'text/plain', name: filename);
 
     try {
       await SharePlus.instance.share(
@@ -76,7 +143,9 @@ class ReceiptExportService {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Receipt file ready. Choose Save to Files / Downloads.'),
+          content: Text(
+            'Receipt file ready. Choose Save to Files / Downloads.',
+          ),
         ),
       );
     } catch (_) {
@@ -105,10 +174,7 @@ class ReceiptExportService {
     );
     try {
       await SharePlus.instance.share(
-        ShareParams(
-          text: text,
-          subject: 'AxisVTU Receipt',
-        ),
+        ShareParams(text: text, subject: 'AxisVTU Receipt'),
       );
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: text));
