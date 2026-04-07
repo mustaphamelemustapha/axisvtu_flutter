@@ -123,18 +123,28 @@ class _WalletScreenState extends State<WalletScreen> {
       ),
     );
     if (phone == null || phone.trim().isEmpty) return;
+    final normalizedPhone = phone.replaceAll(RegExp(r'\D'), '');
+    if (normalizedPhone.length < 10) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid phone number.')),
+      );
+      return;
+    }
     final token = session.token;
     if (token == null || token.isEmpty) return;
     try {
-      final service = AuthService(token: token);
-      final updated = await service.updateProfile(phoneNumber: phone.trim());
-      session.updateUser(updated);
       final walletService = WalletService(token: token);
       setState(() {
         _walletFuture = walletService.getWallet();
-        _accountsFuture = walletService.createBankAccounts();
+        _accountsFuture = walletService.createBankAccounts(
+          phoneNumber: normalizedPhone,
+        );
       });
       await _accountsFuture;
+      final auth = AuthService(token: token);
+      final me = await auth.me();
+      session.updateUser(me);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
