@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/receipt_export_service.dart';
 import 'glass_card.dart';
 
 class ReceiptField {
@@ -9,7 +10,7 @@ class ReceiptField {
   final String value;
 }
 
-class PurchaseResultSheet extends StatelessWidget {
+class PurchaseResultSheet extends StatefulWidget {
   const PurchaseResultSheet({
     super.key,
     required this.status,
@@ -25,8 +26,50 @@ class PurchaseResultSheet extends StatelessWidget {
   final List<ReceiptField> fields;
   final Widget? footer;
 
-  bool get _isSuccess => status.toLowerCase() == 'success';
-  bool get _isPending => status.toLowerCase() == 'pending';
+  @override
+  State<PurchaseResultSheet> createState() => _PurchaseResultSheetState();
+}
+
+class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
+  bool _downloading = false;
+  bool _sharing = false;
+
+  bool get _busy => _downloading || _sharing;
+
+  bool get _isSuccess => widget.status.toLowerCase() == 'success';
+  bool get _isPending => widget.status.toLowerCase() == 'pending';
+
+  Future<void> _downloadReceipt() async {
+    if (_busy) return;
+    setState(() => _downloading = true);
+    try {
+      await ReceiptExportService.downloadReceiptAsFile(
+        context: context,
+        title: widget.title,
+        subtitle: widget.subtitle,
+        status: widget.status,
+        fields: widget.fields,
+      );
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  Future<void> _shareReceipt() async {
+    if (_busy) return;
+    setState(() => _sharing = true);
+    try {
+      await ReceiptExportService.shareReceiptText(
+        context: context,
+        title: widget.title,
+        subtitle: widget.subtitle,
+        status: widget.status,
+        fields: widget.fields,
+      );
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,14 +113,14 @@ class PurchaseResultSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            title,
+            widget.title,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
-            subtitle,
+            widget.subtitle,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -110,18 +153,53 @@ class PurchaseResultSheet extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                ...fields.map(
+                ...widget.fields.map(
                   (f) => _ReceiptRow(label: f.label, value: f.value),
                 ),
               ],
             ),
           ),
-          if (footer != null) ...[const SizedBox(height: 14), footer!],
+          if (widget.footer != null) ...[
+            const SizedBox(height: 14),
+            widget.footer!,
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : _downloadReceipt,
+                  icon: _downloading
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.download_rounded),
+                  label: const Text('Download Receipt'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : _shareReceipt,
+                  icon: _sharing
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.share_rounded),
+                  label: const Text('Share Receipt'),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: _busy ? null : () => Navigator.of(context).pop(),
               child: const Text('Done'),
             ),
           ),
