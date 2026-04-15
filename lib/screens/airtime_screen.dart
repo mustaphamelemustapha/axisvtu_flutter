@@ -221,6 +221,15 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       setState(() => _error = 'Enter a valid phone number.');
       return;
     }
+    final detectedNetwork = _detectNetwork(phone);
+    if (detectedNetwork != null && detectedNetwork != _network) {
+      setState(() {
+        _error =
+            'Detected ${detectedNetwork.toUpperCase()} number. Please use ${detectedNetwork.toUpperCase()} network.';
+        _network = detectedNetwork;
+      });
+      return;
+    }
     if (amount < 50) {
       setState(() => _error = 'Minimum airtime amount is ₦50.');
       return;
@@ -414,6 +423,25 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
             subtitle: 'Enter beneficiary number and amount.',
             child: Column(
               children: [
+                Builder(
+                  builder: (context) {
+                    final detected = _detectNetwork(
+                      _normalizePhone(_phoneCtrl.text),
+                    );
+                    if (detected == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Detected network: ${detected.toUpperCase()}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    );
+                  },
+                ),
                 TextField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
