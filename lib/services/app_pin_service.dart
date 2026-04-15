@@ -2,8 +2,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppPinService {
-  static const _pinKey = 'axis_app_pin_v1';
-  static const _securePinKey = 'axis_app_pin_secure_v1';
+  static const _pinKeyPrefix = 'axis_app_pin_v2';
+  static const _securePinKeyPrefix = 'axis_app_pin_secure_v2';
+  static const _legacyScopedPinKey = 'axis_app_pin_v1';
+  static const _legacyScopedSecurePinKey = 'axis_app_pin_secure_v1';
   static const _legacyPinKey = 'axis_transaction_pin_v1';
   static const _legacyPinKeyAlt = 'transaction_pin';
 
@@ -16,6 +18,24 @@ class AppPinService {
 
   static String? _cachedPin;
   static bool _hydrated = false;
+  static String _scopeKey = 'global';
+
+  static String _scopedKey(String prefix) => '${prefix}_$_scopeKey';
+
+  static String _sanitizeScope(String? value) {
+    final raw = (value ?? '').trim().toLowerCase();
+    if (raw.isEmpty) return 'global';
+    final normalized = raw.replaceAll(RegExp(r'[^a-z0-9._@-]'), '_');
+    return normalized.isEmpty ? 'global' : normalized;
+  }
+
+  static void setUserScope(String? identity) {
+    final next = _sanitizeScope(identity);
+    if (next == _scopeKey) return;
+    _scopeKey = next;
+    _cachedPin = null;
+    _hydrated = false;
+  }
 
   static String _sanitizePin(String pin) {
     final digits = pin.replaceAll(RegExp(r'\D'), '');
@@ -26,9 +46,9 @@ class AppPinService {
   static Future<void> _persistPinEverywhere(String pin) async {
     final prefs = await SharedPreferences.getInstance();
     _cachedPin = pin;
-    await prefs.setString(_pinKey, pin);
+    await prefs.setString(_scopedKey(_pinKeyPrefix), pin);
     try {
-      await _secureStorage.write(key: _securePinKey, value: pin);
+      await _secureStorage.write(key: _scopedKey(_securePinKeyPrefix), value: pin);
     } catch (_) {
       // Keep SharedPreferences as fallback when secure storage is unavailable.
     }
@@ -40,15 +60,32 @@ class AppPinService {
 
     final prefs = await SharedPreferences.getInstance();
     String resolved = '';
+    final scopedSecureKey = _scopedKey(_securePinKeyPrefix);
+    final scopedPrefsKey = _scopedKey(_pinKeyPrefix);
 
     try {
-      resolved = _sanitizePin(await _secureStorage.read(key: _securePinKey) ?? '');
+      resolved = _sanitizePin(await _secureStorage.read(key: scopedSecureKey) ?? '');
     } catch (_) {
       resolved = '';
     }
 
     if (resolved.isEmpty) {
-      resolved = _sanitizePin(prefs.getString(_pinKey) ?? '');
+      resolved = _sanitizePin(prefs.getString(scopedPrefsKey) ?? '');
+    }
+
+    // Migrate from older non-scoped keys on first read.
+    if (resolved.isEmpty) {
+      try {
+        resolved = _sanitizePin(
+          await _secureStorage.read(key: _legacyScopedSecurePinKey) ?? '',
+        );
+      } catch (_) {
+        resolved = '';
+      }
+    }
+
+    if (resolved.isEmpty) {
+      resolved = _sanitizePin(prefs.getString(_legacyScopedPinKey) ?? '');
     }
 
     if (resolved.isEmpty) {
@@ -61,8 +98,14 @@ class AppPinService {
 
     if (resolved.isNotEmpty) {
       await _persistPinEverywhere(resolved);
+      await prefs.remove(_legacyScopedPinKey);
       await prefs.remove(_legacyPinKey);
       await prefs.remove(_legacyPinKeyAlt);
+      try {
+        await _secureStorage.delete(key: _legacyScopedSecurePinKey);
+      } catch (_) {
+        // no-op
+      }
     } else {
       _cachedPin = null;
     }
@@ -95,11 +138,13 @@ class AppPinService {
   static Future<void> clearPin() async {
     final prefs = await SharedPreferences.getInstance();
     _cachedPin = null;
-    await prefs.remove(_pinKey);
+    await prefs.remove(_scopedKey(_pinKeyPrefix));
+    await prefs.remove(_legacyScopedPinKey);
     await prefs.remove(_legacyPinKey);
     await prefs.remove(_legacyPinKeyAlt);
     try {
-      await _secureStorage.delete(key: _securePinKey);
+      await _secureStorage.delete(key: _scopedKey(_securePinKeyPrefix));
+      await _secureStorage.delete(key: _legacyScopedSecurePinKey);
     } catch (_) {
       // no-op
     }
