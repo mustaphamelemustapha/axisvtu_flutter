@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +24,7 @@ class _WalletScreenState extends State<WalletScreen> {
   Future<Map<String, dynamic>>? _accountsFuture;
   bool _generating = false;
   String _activeToken = '';
+  Timer? _pollTimer;
 
   @override
   void didChangeDependencies() {
@@ -32,14 +35,29 @@ class _WalletScreenState extends State<WalletScreen> {
             _walletFuture == null ||
             _accountsFuture == null)) {
       _reloadWallet(token);
+      _startAutoRefresh(token);
       _activeToken = token;
     }
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   void _reloadWallet(String token) {
     final service = WalletService(token: token);
     _walletFuture = service.getWallet();
     _accountsFuture = service.getBankAccounts();
+  }
+
+  void _startAutoRefresh(String token) {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (!mounted || _generating) return;
+      setState(() => _reloadWallet(token));
+    });
   }
 
   Future<void> _refresh() async {
