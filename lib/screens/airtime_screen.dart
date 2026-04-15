@@ -69,6 +69,16 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   List<String> _recentNumbers = [];
   List<String> _suggestions = [];
 
+  bool _isUncertainPurchaseError(String message) {
+    final text = message.toLowerCase();
+    return text.contains('timed out') ||
+        text.contains('timeout') ||
+        text.contains('unable to reach server') ||
+        text.contains('failed to fetch') ||
+        text.contains('network error') ||
+        text.contains('connection');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -269,18 +279,33 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       if (!mounted) return;
       final message = e is ApiException ? e.message : e.toString();
       PurchaseLoadingOverlay.hide();
-      _showResult(
-        status: 'failed',
-        subtitle: message,
-        reference:
-            'AXIS-AIRTIME-ATTEMPT-${DateTime.now().millisecondsSinceEpoch}',
-        fields: [
-          ReceiptField(label: 'Network', value: _network.toUpperCase()),
-          ReceiptField(label: 'Phone', value: phone),
-          ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
-          ReceiptField(label: 'Failure', value: message),
-        ],
-      );
+      if (_isUncertainPurchaseError(message)) {
+        _showResult(
+          status: 'pending',
+          subtitle:
+              'Purchase submitted. Provider confirmation is delayed. Check History shortly.',
+          reference:
+              'AXIS-AIRTIME-PENDING-${DateTime.now().millisecondsSinceEpoch}',
+          fields: [
+            ReceiptField(label: 'Network', value: _network.toUpperCase()),
+            ReceiptField(label: 'Phone', value: phone),
+            ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
+          ],
+        );
+      } else {
+        _showResult(
+          status: 'failed',
+          subtitle: message,
+          reference:
+              'AXIS-AIRTIME-ATTEMPT-${DateTime.now().millisecondsSinceEpoch}',
+          fields: [
+            ReceiptField(label: 'Network', value: _network.toUpperCase()),
+            ReceiptField(label: 'Phone', value: phone),
+            ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
+            ReceiptField(label: 'Failure', value: message),
+          ],
+        );
+      }
     } finally {
       PurchaseLoadingOverlay.hide();
       if (mounted) {

@@ -77,6 +77,16 @@ class _DataScreenState extends State<DataScreen> {
   String? _error;
   Future<void>? _plansLoadFuture;
 
+  bool _isUncertainPurchaseError(String message) {
+    final text = message.toLowerCase();
+    return text.contains('timed out') ||
+        text.contains('timeout') ||
+        text.contains('unable to reach server') ||
+        text.contains('failed to fetch') ||
+        text.contains('network error') ||
+        text.contains('connection');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -800,11 +810,14 @@ class _DataScreenState extends State<DataScreen> {
     } catch (e) {
       if (!mounted) return;
       final message = e is ApiException ? e.message : e.toString();
-      setState(() => _error = message);
+      final uncertain = _isUncertainPurchaseError(message);
+      setState(() => _error = uncertain ? null : message);
       PurchaseLoadingOverlay.hide();
       _showResult({
-        'status': 'failed',
-        'message': message,
+        'status': uncertain ? 'pending' : 'failed',
+        'message': uncertain
+            ? 'Purchase submitted. Provider confirmation is delayed. Check History shortly.'
+            : message,
         'provider': 'AxisVTU',
       });
     } finally {
