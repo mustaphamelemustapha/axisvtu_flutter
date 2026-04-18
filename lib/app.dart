@@ -51,12 +51,13 @@ class AppEntryGate extends StatelessWidget {
   Widget build(BuildContext context) {
     final uri = Uri.base;
     final token = uri.queryParameters['token'];
+    final flow = (uri.queryParameters['flow'] ?? uri.queryParameters['kind'] ?? uri.queryParameters['reset'] ?? '').toLowerCase();
     final path = uri.path.toLowerCase();
     if (token != null && token.isNotEmpty) {
-      if (path.contains('reset-pin')) {
+      if (flow == 'pin' || path.contains('reset-pin')) {
         return ResetPinScreen(token: token);
       }
-      if (path.contains('reset-password')) {
+      if (flow == 'password' || path.contains('reset-password')) {
         return ResetPasswordScreen(token: token);
       }
     }
