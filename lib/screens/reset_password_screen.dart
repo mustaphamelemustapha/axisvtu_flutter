@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../services/password_service.dart';
+import '../services/transaction_pin_service.dart';
 import '../widgets/auth_backdrop.dart';
 import '../widgets/auth_chrome.dart';
 import '../widgets/primary_button.dart';
 import 'login_screen.dart';
+import 'reset_pin_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key, required this.token});
@@ -21,13 +23,39 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscure = true;
   bool _loading = false;
   bool _success = false;
+  bool _checkingToken = true;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveResetToken();
+  }
 
   @override
   void dispose() {
     _passwordCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _resolveResetToken() async {
+    try {
+      final isPinReset = await TransactionPinService(token: widget.token)
+          .isResetTokenValid(widget.token);
+      if (!mounted) return;
+      if (isPinReset) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => ResetPinScreen(token: widget.token)),
+        );
+        return;
+      }
+    } catch (_) {
+      // Stay on password reset when the PIN resolver is unavailable.
+    }
+    if (mounted) {
+      setState(() => _checkingToken = false);
+    }
   }
 
   Future<void> _reset() async {
@@ -257,21 +285,28 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               AuthTopBar(
                 onBack: () => Navigator.of(context).pop(),
               ),
-              AuthHeroBlock(
-                title: 'Create new password',
-                subtitle: 'Use the link in your email to finish resetting.',
-                logoSize: 74,
-                titleSize: 24,
-                tight: true,
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                  child: _success
-                      ? _buildSuccess(context, onSurface, muted)
-                      : _buildForm(context, onSurface, muted),
-                ),
-              ),
+              if (_checkingToken)
+                const Expanded(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                ...[
+                  AuthHeroBlock(
+                    title: 'Create new password',
+                    subtitle: 'Use the link in your email to finish resetting.',
+                    logoSize: 74,
+                    titleSize: 24,
+                    tight: true,
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                      child: _success
+                          ? _buildSuccess(context, onSurface, muted)
+                          : _buildForm(context, onSurface, muted),
+                    ),
+                  ),
+                ],
             ],
           ),
         ),

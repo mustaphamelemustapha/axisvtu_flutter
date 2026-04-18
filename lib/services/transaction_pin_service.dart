@@ -81,6 +81,13 @@ class TransactionPinService {
     await _client.post('/security/pin/reset-request', const <String, dynamic>{});
   }
 
+  Future<bool> isResetTokenValid(String token) async {
+    final uri = Uri.parse('${AppConfig.baseUrl}/security/pin/reset-token')
+        .replace(queryParameters: {'token': token});
+    final data = await _client.get(uri.path + '?${uri.query}');
+    return data['is_valid'] == true;
+  }
+
   Future<void> confirmReset({
     required String token,
     required String newPin,
