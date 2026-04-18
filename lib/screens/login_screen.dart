@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../state/session.dart';
+import '../widgets/auth_chrome.dart';
 import '../widgets/auth_route.dart';
 import '../widgets/primary_button.dart';
-import '../widgets/theme_toggle_button.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'shell_screen.dart';
@@ -83,83 +83,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-            SafeArea(
-              child: Column(
+            Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (canPop)
-                          _HeaderIconButton(
-                            icon: Icons.arrow_back_ios_new_rounded,
-                            onTap: () => Navigator.of(context).pop(),
-                          )
-                        else
-                          const SizedBox(width: 46, height: 46),
-                        const ThemeToggleButton(size: 46),
-                      ],
-                    ),
+                  AuthTopBar(
+                    showBack: canPop,
+                    onBack: () => Navigator.of(context).pop(),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 6, 24, 18),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 86,
-                          height: 86,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: isDark
-                                  ? const Color(0x2D60A5FA)
-                                  : const Color(0x1F2563EB),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: isDark ? 0.26 : 0.16,
-                                ),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(22),
-                              child: Image.asset(
-                                'assets/brand/axisvtu-icon.png',
-                                width: 86,
-                                height: 86,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Welcome Back',
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w800,
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF0F172A),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Sign in to continue your AxisVTU experience.',
-                          style: TextStyle(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.72)
-                                : const Color(0xFF475569),
-                          ),
-                        ),
-                      ],
-                    ),
+                  AuthHeroBlock(
+                    title: 'Welcome Back',
+                    subtitle: 'Sign in to continue your AxisVTU experience.',
+                    logoSize: 86,
+                    titleSize: 30,
                   ),
                   Expanded(
                     child: Container(
@@ -181,6 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                       child: ListView(
+                        padding: EdgeInsets.zero,
                         children: [
                           _SectionLabel(text: 'Account'),
                           const SizedBox(height: 8),
@@ -225,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: const Text('Forgot password?'),
                             ),
                           ),
-                          if (session.error != null) ...[
+                        if (session.error != null) ...[
                             Text(
                               session.error!,
                               style: TextStyle(
@@ -261,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
                           const Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -277,7 +212,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
-            ),
           ],
         ),
       ),
@@ -367,10 +301,23 @@ class _AuthInput extends StatelessWidget {
         suffixIcon: suffix,
         filled: true,
         fillColor: isDark ? const Color(0xFF151E31) : const Color(0xFFF7FAFF),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.18),
+          ),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.18),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.82),
+            width: 1.4,
           ),
         ),
       ),

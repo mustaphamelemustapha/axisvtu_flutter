@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/auth_backdrop.dart';
-import '../widgets/auth_route.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/theme_toggle_button.dart';
+import '../widgets/glass_card.dart';
 import 'auth_password_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -26,16 +26,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   void _continue() {
     final identifier = _idCtrl.text.trim();
     if (identifier.isEmpty) return;
-    Navigator.of(
-      context,
-    ).push(AuthRoute(page: AuthPasswordScreen(identifier: identifier)));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AuthPasswordScreen(identifier: identifier),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.66);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.66);
 
     return Scaffold(
       body: GestureDetector(
@@ -46,123 +47,53 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             right: 16,
             child: ThemeToggleButton(),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 495),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF10182B) : Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withValues(alpha: 0.2),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.28 : 0.1,
-                      ),
-                      blurRadius: 24,
-                      offset: const Offset(0, 14),
-                    ),
-                  ],
-                ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: GlassCard(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Get Started',
-                      style: TextStyle(
-                        fontSize: 28,
+                      'Welcome back',
+                      style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: onSurface,
+                        letterSpacing: -0.35,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Text(
-                      'Enter your email and continue in one tap.',
-                      style: TextStyle(color: muted),
+                      'Sign in to buy data, top up airtime, pay bills, and manage your wallet in one place.',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: muted),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 18),
                     TextField(
                       controller: _idCtrl,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'you@email.com',
-                        prefixIcon: const Icon(Icons.person_outline_rounded),
-                        filled: true,
-                        fillColor: isDark
-                            ? const Color(0xFF151E31)
-                            : const Color(0xFFF7FAFF),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outline.withValues(alpha: 0.2),
-                          ),
-                        ),
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        hintText: 'Email address or phone number',
+                        prefixIcon: Icon(Icons.person_outline_rounded),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     PrimaryButton(
                       label: 'Continue',
                       icon: Icons.arrow_forward_rounded,
                       onPressed: _continue,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     Text(
-                      'By continuing, you agree to use AxisVTU responsibly.',
-                      style: TextStyle(fontSize: 12, color: muted),
+                      'Secure wallet access, fast login, and instant purchases.',
+                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              const Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _ChipTag(label: 'Fast onboarding'),
-                  _ChipTag(label: 'Trusted wallet'),
-                  _ChipTag(label: 'Simple flows'),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChipTag extends StatelessWidget {
-  const _ChipTag({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          color: Theme.of(
-            context,
-          ).colorScheme.onSurface.withValues(alpha: 0.72),
         ),
       ),
     );

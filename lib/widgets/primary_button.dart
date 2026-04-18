@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme/axis_tokens.dart';
+
 class PrimaryButton extends StatefulWidget {
   const PrimaryButton({
     super.key,
@@ -32,26 +34,50 @@ class _PrimaryButtonState extends State<PrimaryButton> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SizedBox(
       width: double.infinity,
       child: Listener(
         onPointerDown: _enabled ? (_) => setState(() => _pressed = true) : null,
         onPointerUp: _enabled ? (_) => setState(() => _pressed = false) : null,
-        onPointerCancel: _enabled ? (_) => setState(() => _pressed = false) : null,
+        onPointerCancel: _enabled
+            ? (_) => setState(() => _pressed = false)
+            : null,
         child: AnimatedScale(
-          scale: _pressed ? 0.98 : 1.0,
-          duration: const Duration(milliseconds: 120),
+          scale: _pressed ? 0.97 : 1.0,
+          duration: AxisDurations.fast,
           curve: Curves.easeOut,
           child: FilledButton.icon(
-            onPressed: widget.loading ? null : _handlePress,
+            onPressed: _enabled ? _handlePress : null,
             icon: widget.loading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(widget.icon ?? Icons.arrow_forward_rounded),
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Icon(widget.icon ?? Icons.arrow_forward_rounded, size: 20),
             label: Text(widget.label),
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              minimumSize: const Size.fromHeight(54),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AxisRadii.lg),
+              ),
+              textStyle: theme.textTheme.labelLarge?.copyWith(
+                fontSize: 16,
+                letterSpacing: 0.4,
+                fontWeight: FontWeight.w600,
+              ),
+              elevation: 0,
+              shadowColor: theme.colorScheme.primary.withValues(alpha: 0.18),
+              surfaceTintColor: Colors.transparent,
+              animationDuration: AxisDurations.normal,
+            ),
           ),
         ),
       ),

@@ -14,20 +14,25 @@ class ReceiptExportService {
     required List<ReceiptField> fields,
   }) {
     final buffer = StringBuffer();
-    buffer.writeln('AXISVTU TRANSACTION RECEIPT');
-    buffer.writeln('----------------------------------------');
-    buffer.writeln('Title: $title');
+    buffer.writeln('AxisVTU');
+    buffer.writeln('Transaction receipt');
+    buffer.writeln('');
     buffer.writeln('Status: ${status.toUpperCase()}');
-    buffer.writeln('Note: $subtitle');
+    buffer.writeln(title);
+    if (subtitle.trim().isNotEmpty) {
+      buffer.writeln(subtitle);
+    }
+    buffer.writeln('');
     buffer.writeln('Generated: ${DateTime.now().toIso8601String()}');
-    buffer.writeln('----------------------------------------');
+    buffer.writeln('');
     for (final field in fields) {
       final label = field.label.trim().isEmpty ? 'Field' : field.label.trim();
       final value = field.value.trim().isEmpty ? '-' : field.value.trim();
-      buffer.writeln('$label: $value');
+      buffer.writeln(label);
+      buffer.writeln(value);
+      buffer.writeln('');
     }
-    buffer.writeln('----------------------------------------');
-    buffer.writeln('AxisVTU - Fast • Secure • Smart');
+    buffer.writeln('AxisVTU');
     return buffer.toString();
   }
 
@@ -35,7 +40,7 @@ class ReceiptExportService {
     for (final field in fields) {
       if (field.label.trim().toLowerCase() == 'reference') {
         final ref = field.value.trim();
-        if (ref.isNotEmpty) return ref;
+        if (_looksLikeRealReference(ref)) return ref;
       }
     }
     return 'axisvtu_${DateTime.now().millisecondsSinceEpoch}';
@@ -43,6 +48,13 @@ class ReceiptExportService {
 
   static String _sanitize(String value) =>
       value.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+
+  static bool _looksLikeRealReference(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) return false;
+    const placeholders = {'—', '-', 'n/a', 'na', 'null', 'none'};
+    return !placeholders.contains(normalized);
+  }
 
   static String inferReceiptImageFilename(List<ReceiptField> fields) {
     final reference = inferReference(fields);
@@ -65,8 +77,8 @@ class ReceiptExportService {
       await SharePlus.instance.share(
         ShareParams(
           files: [file],
-          subject: 'AxisVTU Receipt',
-          text: 'Save your AxisVTU receipt image.',
+          subject: 'AxisVTU receipt',
+          text: 'AxisVTU receipt image ready to save or share.',
           fileNameOverrides: [filename],
         ),
       );
@@ -100,8 +112,8 @@ class ReceiptExportService {
       await SharePlus.instance.share(
         ShareParams(
           files: [file],
-          subject: 'AxisVTU Receipt',
-          text: 'AxisVTU receipt.',
+          subject: 'AxisVTU receipt',
+          text: 'AxisVTU receipt image.',
           fileNameOverrides: [filename],
         ),
       );
@@ -135,8 +147,8 @@ class ReceiptExportService {
       await SharePlus.instance.share(
         ShareParams(
           files: [file],
-          subject: 'AxisVTU Receipt',
-          text: 'Download and save your receipt file.',
+          subject: 'AxisVTU receipt',
+          text: 'AxisVTU receipt file ready to save.',
           fileNameOverrides: [filename],
         ),
       );
@@ -174,7 +186,7 @@ class ReceiptExportService {
     );
     try {
       await SharePlus.instance.share(
-        ShareParams(text: text, subject: 'AxisVTU Receipt'),
+        ShareParams(text: text, subject: 'AxisVTU receipt'),
       );
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: text));

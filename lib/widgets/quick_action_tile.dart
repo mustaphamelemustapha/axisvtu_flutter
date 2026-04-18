@@ -43,12 +43,12 @@ class _QuickActionTileState extends State<QuickActionTile> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Theme.of(context).dividerColor),
+            border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.95)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
+                color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.12 : 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
               ),
             ],
           ),

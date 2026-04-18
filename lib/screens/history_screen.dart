@@ -7,7 +7,7 @@ import '../services/transactions_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
-import '../widgets/theme_toggle_button.dart';
+import '../widgets/purchase_result_sheet.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -399,11 +399,173 @@ class _HistoryScreenState extends State<HistoryScreen> {
     ).showSnackBar(const SnackBar(content: Text('Reference copied')));
   }
 
+  Map<String, dynamic> _metaOf(Map<String, dynamic> tx) {
+    final raw = tx['meta'];
+    if (raw is Map) {
+      return raw.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return const {};
+  }
+
+  String _firstText(Iterable<dynamic?> values, {String fallback = '—'}) {
+    for (final value in values) {
+      final text = value?.toString().trim() ?? '';
+      if (text.isNotEmpty) return text;
+    }
+    return fallback;
+  }
+
+  String _receiptRecipientFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    return _firstText([
+      meta['recipient_phone'],
+      meta['phone_number'],
+      meta['meter_number'],
+      meta['smartcard_number'],
+      tx['recipient_phone'],
+      tx['phone_number'],
+      tx['meter_number'],
+      tx['smartcard_number'],
+    ]);
+  }
+
+  String _receiptNetworkFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    return _firstText([
+      tx['network'],
+      meta['network'],
+      meta['provider'],
+      tx['provider'],
+    ]);
+  }
+
+  String _receiptPlanFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    return _firstText([
+      meta['plan'],
+      meta['plan_name'],
+      meta['bundle'],
+      meta['package_name'],
+      meta['package_code'],
+      tx['plan'],
+      tx['plan_name'],
+      tx['bundle'],
+      tx['package_code'],
+      tx['service'],
+      _titleFor(tx),
+    ]);
+  }
+
+  String _receiptSenderFor() {
+    final user = context.read<SessionController>().user;
+    final name = user?['full_name'];
+    return _firstText([name, 'AxisVTU User'], fallback: 'AxisVTU User');
+  }
+
+  String _receiptReferenceFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    return _firstText([
+      tx['reference'],
+      tx['external_reference'],
+      meta['reference'],
+      meta['external_reference'],
+      tx['id'],
+    ]);
+  }
+
+  String _receiptSubtitleFor(Map<String, dynamic> tx) {
+    final parts = <String>[];
+    final recipient = _receiptRecipientFor(tx);
+    final network = _receiptNetworkFor(tx);
+    if (recipient != '—') parts.add(recipient);
+    if (network != '—') parts.add(network.toUpperCase());
+    if (parts.isEmpty) {
+      final ref = _receiptReferenceFor(tx);
+      if (ref != '—') parts.add(ref);
+    }
+    return parts.isEmpty ? 'Transaction receipt' : parts.join(' • ');
+  }
+
+  List<ReceiptField> _receiptFieldsFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    final sender = _receiptSenderFor();
+    final recipient = _receiptRecipientFor(tx);
+    final network = _receiptNetworkFor(tx);
+    final plan = _receiptPlanFor(tx);
+    final reference = _receiptReferenceFor(tx);
+    final providerRef = _firstText([
+      tx['external_reference'],
+      meta['external_reference'],
+      meta['provider_reference'],
+    ], fallback: '');
+
+    final fields = <ReceiptField>[
+      ReceiptField(label: 'Time', value: _formatDate(tx)),
+      ReceiptField(label: 'Sender Name', value: sender),
+      if (recipient != '—') ReceiptField(label: 'Recipient', value: recipient),
+      if (network != '—') ReceiptField(label: 'Network', value: network.toUpperCase()),
+      ReceiptField(label: 'Plan', value: plan),
+      ReceiptField(label: 'Amount', value: _amountLabel(tx)),
+      ReceiptField(label: 'Reference', value: reference),
+    ];
+
+    if (providerRef.isNotEmpty) {
+      fields.add(ReceiptField(label: 'Provider Ref', value: providerRef));
+    }
+
+    return fields;
+  }
+
+  Future<void> _openTransactionReceipt(
+    Map<String, dynamic> tx, {
+    required bool autoShareOnOpen,
+  }) async {
+    final status = _statusOf(tx);
+    final title = _titleFor(tx);
+    final subtitle = _receiptSubtitleFor(tx);
+    final fields = _receiptFieldsFor(tx);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => PurchaseResultSheet(
+        status: status,
+        title: title,
+        subtitle: subtitle,
+        fields: fields,
+        autoShareOnOpen: autoShareOnOpen,
+      ),
+    );
+  }
+
+  Future<void> _closeDetailAndOpenReceipt(
+    BuildContext sheetContext,
+    Map<String, dynamic> tx, {
+    required bool autoShareOnOpen,
+  }) async {
+    Navigator.of(sheetContext).pop();
+    await Future<void>.delayed(const Duration(milliseconds: 160));
+    if (!mounted) return;
+    try {
+      await _openTransactionReceipt(tx, autoShareOnOpen: autoShareOnOpen);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open receipt right now.')),
+      );
+    }
+  }
+
   void _openTxDetails(Map<String, dynamic> tx) {
     final status = _statusOf(tx);
     final color = _statusColor(context, status);
     final isCredit = _isCredit(tx);
     final failure = (tx['failure_reason'] ?? '').toString().trim();
+    final receiptRef = (tx['reference'] ?? '').toString().trim();
+    final created = _formatDate(tx);
+    final typeLabel = _titleFor(tx);
+    final summaryLine = _subtitleFor(tx);
 
     showModalBottomSheet(
       context: context,
@@ -411,8 +573,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.68,
-          minChildSize: 0.42,
+          initialChildSize: 0.72,
+          minChildSize: 0.44,
           maxChildSize: 0.9,
           builder: (context, controller) {
             return ClipRRect(
@@ -420,125 +582,219 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 top: Radius.circular(24),
               ),
               child: Container(
-                color: Theme.of(context).colorScheme.surface,
-                padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
+                color: Theme.of(context).scaffoldBackgroundColor,
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
                 child: ListView(
                   controller: controller,
                   children: [
                     Center(
                       child: Container(
-                        width: 48,
-                        height: 5,
+                        width: 40,
+                        height: 4,
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withValues(alpha: 0.35),
+                          ).colorScheme.outline.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: Theme.of(context).brightness == Brightness.dark ? 0.14 : 0.04,
+                            ),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.10),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(
+                                  _iconFor(tx),
+                                  color: color,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      status == 'success'
+                                          ? 'Transaction successful'
+                                          : (status == 'pending'
+                                              ? 'Transaction pending'
+                                              : 'Transaction failed'),
+                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.18,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      typeLabel,
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.08),
+                                  border: Border.all(color: color.withValues(alpha: 0.16)),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  status.toUpperCase(),
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _ReceiptDetailLine(
+                            label: 'Recipient / Service',
+                            value: summaryLine,
+                          ),
+                          _ReceiptDetailLine(
+                            label: 'Amount',
+                            value: _amountLabel(tx),
+                            valueColor: isCredit
+                                ? const Color(0xFF16A34A)
+                                : Theme.of(context).colorScheme.error,
+                            strong: true,
+                          ),
+                          _ReceiptDetailLine(
+                            label: 'Date / Time',
+                            value: created,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.07),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Details',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          _DetailRow(
+                            label: 'Reference',
+                            value: receiptRef,
+                            trailing: IconButton(
+                              onPressed: () => _copyRef(receiptRef),
+                              icon: const Icon(Icons.copy_rounded, size: 18),
+                            ),
+                          ),
+                          if ((tx['external_reference'] ?? '').toString().trim().isNotEmpty)
+                            _DetailRow(
+                              label: 'Provider Ref',
+                              value: (tx['external_reference'] ?? '').toString(),
+                            ),
+                          _DetailRow(
+                            label: 'Type',
+                            value: _typeOf(tx).toUpperCase(),
+                          ),
+                          if (failure.isNotEmpty)
+                            _DetailRow(
+                              label: 'Status note',
+                              value: failure,
+                              valueColor: Theme.of(context).colorScheme.error,
+                            ),
+                          if (tx['has_open_report'] == true)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                'Support ticket open for this transaction.',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
+                                    ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.12),
-                          child: Icon(
-                            _iconFor(tx),
-                            color: Theme.of(context).colorScheme.primary,
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _closeDetailAndOpenReceipt(
+                              context,
+                              tx,
+                              autoShareOnOpen: false,
+                            ),
+                            icon: const Icon(Icons.receipt_long_rounded),
+                            label: const Text('View Receipt'),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(
-                            _titleFor(tx),
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: color.withValues(alpha: 0.4),
+                          child: OutlinedButton.icon(
+                            onPressed: () => _closeDetailAndOpenReceipt(
+                              context,
+                              tx,
+                              autoShareOnOpen: true,
                             ),
-                          ),
-                          child: Text(
-                            status.toUpperCase(),
-                            style: TextStyle(
-                              color: color,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            icon: const Icon(Icons.share_rounded),
+                            label: const Text('Share Receipt'),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    _DetailRow(label: 'Time', value: _formatDate(tx)),
-                    _DetailRow(label: 'Type', value: _typeOf(tx).toUpperCase()),
-                    _DetailRow(
-                      label: 'Amount',
-                      value: _amountLabel(tx),
-                      valueColor: isCredit
-                          ? const Color(0xFF16A34A)
-                          : Theme.of(context).colorScheme.error,
-                    ),
-                    _DetailRow(
-                      label: 'Network / Provider',
-                      value: _subtitleFor(tx),
-                    ),
-                    _DetailRow(
-                      label: 'Reference',
-                      value: (tx['reference'] ?? '').toString(),
-                      trailing: IconButton(
-                        onPressed: () =>
-                            _copyRef((tx['reference'] ?? '').toString()),
-                        icon: const Icon(Icons.copy_rounded, size: 18),
-                      ),
-                    ),
-                    if ((tx['external_reference'] ?? '')
-                        .toString()
-                        .trim()
-                        .isNotEmpty)
-                      _DetailRow(
-                        label: 'Provider Ref',
-                        value: (tx['external_reference'] ?? '').toString(),
-                      ),
-                    if (failure.isNotEmpty)
-                      _DetailRow(
-                        label: 'Failure Reason',
-                        value: failure,
-                        valueColor: Theme.of(context).colorScheme.error,
-                      ),
-                    if (tx['has_open_report'] == true)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFFF59E0B,
-                            ).withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color(
-                                0xFFF59E0B,
-                              ).withValues(alpha: 0.36),
-                            ),
-                          ),
-                          child: const Text(
-                            'You have an open report on this transaction.',
-                          ),
+                    if (status == 'failed') ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _reload,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Retry'),
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -563,11 +819,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
             Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     gradient: AxisPalette.gradient,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(13),
                   ),
                   child: const Icon(
                     Icons.receipt_long_rounded,
@@ -582,65 +838,41 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       Text(
                         'History',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
                         ),
                       ),
                       Text(
-                        'Credits and debits at a glance',
-                        style: TextStyle(color: muted, fontSize: 12),
+                        'Transactions and receipts at a glance',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: muted,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const ThemeToggleButton(size: 44),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: Text(
+                    _txFuture == null ? '0 records' : '${_activeFilterCount} filters',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: muted,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 _HeaderActionBtn(icon: Icons.refresh_rounded, onTap: _reload),
               ],
             ),
             const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-              decoration: BoxDecoration(
-                gradient: Theme.of(context).brightness == Brightness.dark
-                    ? const LinearGradient(
-                        colors: [Color(0xFF0E1B2C), Color(0xFF172A46)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : const LinearGradient(
-                        colors: [Color(0xFFEAF2FF), Color(0xFFD9E8FF)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Track every transaction, filter fast, and open details with one tap.',
-                      style: TextStyle(color: muted),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.24),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.insights_rounded, size: 22),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -648,7 +880,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     child: TextField(
                       controller: _searchCtrl,
                       decoration: const InputDecoration(
-                        hintText: 'Search by reference, number or service',
+                        hintText: 'Search transactions',
                         prefixIcon: Icon(Icons.search_rounded),
                       ),
                     ),
@@ -663,39 +895,73 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ],
             ),
             const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _MiniFilterChip(
+                    label: 'All',
+                    selected: _statusFilter == 'all' && _typeFilter == 'all',
+                    onTap: () => setState(() {
+                      _statusFilter = 'all';
+                      _typeFilter = 'all';
+                    }),
+                  ),
+                  const SizedBox(width: 8),
+                  _MiniFilterChip(
+                    label: 'Successful',
+                    selected: _statusFilter == 'success',
+                    onTap: () => setState(() => _statusFilter = 'success'),
+                  ),
+                  const SizedBox(width: 8),
+                  _MiniFilterChip(
+                    label: 'Pending',
+                    selected: _statusFilter == 'pending',
+                    onTap: () => setState(() => _statusFilter = 'pending'),
+                  ),
+                  const SizedBox(width: 8),
+                  _MiniFilterChip(
+                    label: 'Failed',
+                    selected: _statusFilter == 'failed',
+                    onTap: () => setState(() => _statusFilter = 'failed'),
+                  ),
+                  const SizedBox(width: 8),
+                  _MiniFilterChip(
+                    label: 'Data',
+                    selected: _typeFilter == 'data',
+                    onTap: () => setState(() => _typeFilter = 'data'),
+                  ),
+                  const SizedBox(width: 8),
+                  _MiniFilterChip(
+                    label: 'Airtime',
+                    selected: _typeFilter == 'airtime',
+                    onTap: () => setState(() => _typeFilter = 'airtime'),
+                  ),
+                  const SizedBox(width: 8),
+                  _MiniFilterChip(
+                    label: 'Bills',
+                    selected: _typeFilter == 'cable' || _typeFilter == 'electricity',
+                    onTap: () => setState(() => _typeFilter = 'cable'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             FutureBuilder<List<dynamic>>(
               future: _txFuture,
               builder: (context, snapshot) {
                 if (_txFuture == null ||
                     snapshot.connectionState == ConnectionState.waiting) {
-                  return const GlassCard(
-                    child: Padding(
-                      padding: EdgeInsets.all(8),
-                      child: LinearProgressIndicator(minHeight: 2),
-                    ),
-                  );
+                  return const _HistoryLoadingState();
                 }
 
                 if (snapshot.hasError) {
-                  return GlassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Failed to load history',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(snapshot.error.toString()),
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                          onPressed: _reload,
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text('Retry'),
-                        ),
-                      ],
-                    ),
+                  return _HistoryNoticeCard(
+                    icon: Icons.refresh_rounded,
+                    title: 'Failed to load history',
+                    subtitle: snapshot.error.toString(),
+                    actionLabel: 'Retry',
+                    onAction: _reload,
                   );
                 }
 
@@ -768,7 +1034,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             Expanded(
                               child: Text(
                                 _activeFilterSummary,
-                                style: Theme.of(context).textTheme.bodySmall,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: muted,
+                                ),
                               ),
                             ),
                             TextButton(
@@ -785,11 +1053,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       const SizedBox(height: 12),
                     ],
                     if (filtered.isEmpty)
-                      const GlassCard(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Center(child: Text('No transactions yet.')),
-                        ),
+                      _HistoryEmptyState(
+                        onBrowseServices: () => Navigator.of(context)
+                            .pushNamedAndRemoveUntil('/app', (route) => false),
                       )
                     else
                       ...filtered.map(
@@ -880,6 +1146,52 @@ class _HeaderActionBtn extends StatelessWidget {
   }
 }
 
+class _MiniFilterChip extends StatelessWidget {
+  const _MiniFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? color.withValues(alpha: 0.10)
+              : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? color.withValues(alpha: 0.20)
+                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: selected
+                    ? color
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
     required this.label,
@@ -896,20 +1208,241 @@ class _MetricCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.32)),
+        border: Border.all(color: color.withValues(alpha: 0.16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62),
+            ),
+          ),
           const SizedBox(height: 2),
           Text(
             value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: color,
               fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryEmptyState extends StatelessWidget {
+  const _HistoryEmptyState({required this.onBrowseServices});
+
+  final VoidCallback onBrowseServices;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    return GlassCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 4),
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                Icons.receipt_long_rounded,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No transactions yet',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Your successful purchases will appear here once you start using services.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: muted,
+                  ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: 180,
+              child: FilledButton(
+                onPressed: onBrowseServices,
+                child: const Text('Browse services'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryLoadingState extends StatelessWidget {
+  const _HistoryLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: List.generate(
+        4,
+        (index) => const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: GlassCard(
+            child: Padding(
+              padding: EdgeInsets.all(14),
+              child: _HistorySkeletonRow(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HistorySkeletonRow extends StatelessWidget {
+  const _HistorySkeletonRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final base = isDark ? const Color(0xFF1A2433) : const Color(0xFFEAF0F7);
+    final shimmer = isDark ? const Color(0xFF243244) : const Color(0xFFF4F7FB);
+    return Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: base,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 12,
+                width: 128,
+                decoration: BoxDecoration(
+                  color: base,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 10,
+                width: 160,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 10,
+                width: 92,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Container(
+              height: 12,
+              width: 70,
+              decoration: BoxDecoration(
+                color: base,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              height: 20,
+              width: 54,
+              decoration: BoxDecoration(
+                color: base.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _HistoryNoticeCard extends StatelessWidget {
+  const _HistoryNoticeCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: muted,
+                ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: 132,
+            child: FilledButton(
+              onPressed: onAction,
+              child: Text(actionLabel),
             ),
           ),
         ],
@@ -938,19 +1471,19 @@ class _FilterChipBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? color : Theme.of(context).colorScheme.surface,
+          color: selected ? color.withValues(alpha: 0.12) : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? color
-                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.26),
+                ? color.withValues(alpha: 0.18)
+                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : color,
-            fontWeight: FontWeight.w600,
+            color: selected ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.70),
+            fontWeight: FontWeight.w700,
             fontSize: 12,
           ),
         ),
@@ -986,20 +1519,19 @@ class _HistoryTxCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(18),
       child: GlassCard(
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.14),
+                color: statusColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: statusColor.withValues(alpha: 0.26)),
               ),
-              child: Icon(icon, color: statusColor, size: 22),
+              child: Icon(icon, color: statusColor, size: 20),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1008,8 +1540,11 @@ class _HistoryTxCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.1,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1017,10 +1552,17 @@ class _HistoryTxCard extends StatelessWidget {
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62),
+                    ),
                   ),
                   const SizedBox(height: 2),
-                  Text(date, style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    date,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1030,33 +1572,36 @@ class _HistoryTxCard extends StatelessWidget {
               children: [
                 Text(
                   amount,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: amountColor),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: amountColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 17,
+                    letterSpacing: -0.1,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
+                    color: statusColor.withValues(alpha: 0.08),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.14)),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: statusColor.withValues(alpha: 0.35),
-                    ),
                   ),
                   child: Text(
                     status.toUpperCase(),
                     style: TextStyle(
                       color: statusColor,
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
               ],
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
             ),
           ],
         ),
@@ -1085,9 +1630,9 @@ class _DetailRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
         ),
       ),
       child: Row(
@@ -1099,9 +1644,7 @@ class _DetailRow extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.color?.withValues(alpha: 0.75),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -1109,13 +1652,60 @@ class _DetailRow extends StatelessWidget {
                   value,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: valueColor,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
           ),
           if (trailing case final Widget item) item,
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiptDetailLine extends StatelessWidget {
+  const _ReceiptDetailLine({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.strong = false,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: muted,
+                  ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                    fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
+                    letterSpacing: strong ? -0.05 : 0,
+                  ),
+            ),
+          ),
         ],
       ),
     );

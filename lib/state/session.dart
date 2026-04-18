@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_service.dart';
-import '../services/app_pin_service.dart';
 
 class SessionController extends ChangeNotifier {
   SessionController();
@@ -45,22 +44,6 @@ class SessionController extends ChangeNotifier {
     return fullName.isNotEmpty || email.isNotEmpty;
   }
 
-  String? _pinScopeIdentity(Map<String, dynamic>? user) {
-    final map = user;
-    if (map == null || map.isEmpty) return null;
-    final id = (map['id'] ?? '').toString().trim();
-    if (id.isNotEmpty) return id;
-    final email = (map['email'] ?? '').toString().trim().toLowerCase();
-    if (email.isNotEmpty) return email;
-    final phone = (map['phone'] ?? '').toString().trim();
-    if (phone.isNotEmpty) return phone;
-    return null;
-  }
-
-  void _syncPinScope() {
-    AppPinService.setUserScope(_pinScopeIdentity(_user));
-  }
-
   Future<Map<String, dynamic>?> _fetchMe(String token) async {
     try {
       final data = await AuthService(token: token).me();
@@ -77,14 +60,10 @@ class SessionController extends ChangeNotifier {
       final fetched = await _fetchMe(_token!);
       if (fetched != null) {
         _user = fetched;
-        _syncPinScope();
       } else {
         _token = null;
         _user = null;
-        _syncPinScope();
       }
-    } else {
-      _syncPinScope();
     }
     notifyListeners();
   }
@@ -102,7 +81,6 @@ class SessionController extends ChangeNotifier {
         final fresh = await _fetchMe(_token!);
         if (fresh != null) _user = fresh;
       }
-      _syncPinScope();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('axisvtu_token', _token!);
       _setError(null);
@@ -153,7 +131,6 @@ class SessionController extends ChangeNotifier {
         final fresh = await _fetchMe(_token!);
         if (fresh != null) _user = fresh;
       }
-      _syncPinScope();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('axisvtu_token', _token!);
       _setError(null);
@@ -172,13 +149,11 @@ class SessionController extends ChangeNotifier {
     await prefs.remove('axisvtu_token');
     _token = null;
     _user = null;
-    _syncPinScope();
     notifyListeners();
   }
 
   void updateUser(Map<String, dynamic> user) {
     _user = user;
-    _syncPinScope();
     notifyListeners();
   }
 

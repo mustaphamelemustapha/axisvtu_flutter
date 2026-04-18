@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../state/session.dart';
+import '../widgets/auth_chrome.dart';
 import '../widgets/auth_route.dart';
 import '../widgets/primary_button.dart';
-import '../widgets/theme_toggle_button.dart';
 import 'login_screen.dart';
 import 'shell_screen.dart';
 
@@ -118,79 +118,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
             ),
-            SafeArea(
-              child: Column(
+            Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _HeaderIconButton(
-                          icon: Icons.arrow_back_ios_new_rounded,
-                          onTap: () => Navigator.of(context).pop(),
-                        ),
-                        const ThemeToggleButton(size: 46),
-                      ],
-                    ),
+                  AuthTopBar(
+                    onBack: () => Navigator.of(context).pop(),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 14),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 82,
-                          height: 82,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: isDark
-                                  ? const Color(0x2D60A5FA)
-                                  : const Color(0x1F2563EB),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 20,
-                                offset: const Offset(0, 12),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(22),
-                              child: Image.asset(
-                                'assets/brand/axisvtu-icon.png',
-                                width: 82,
-                                height: 82,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Create Axis Account',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF0F172A),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          'Open your VTU wallet and start transacting instantly.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.72)
-                                : const Color(0xFF475569),
-                          ),
-                        ),
-                      ],
-                    ),
+                  AuthHeroBlock(
+                    title: 'Create Axis Account',
+                    subtitle: 'Open your VTU wallet and start transacting instantly.',
+                    logoSize: 82,
+                    titleSize: 28,
+                    tight: true,
                   ),
                   Expanded(
                     child: Container(
@@ -338,7 +276,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ],
               ),
-            ),
           ],
         ),
       ),

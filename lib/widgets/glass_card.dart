@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/axis_tokens.dart';
+
 class GlassCard extends StatelessWidget {
   const GlassCard({super.key, required this.child, this.padding});
 
@@ -8,17 +10,21 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.surface;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
-      padding: padding ?? const EdgeInsets.all(18),
+      padding: padding ?? const EdgeInsets.all(AxisSpacing.md),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.7)),
+        color: isDark ? const Color(0xFF0E1624) : const Color(0xFFFEFFFF),
+        borderRadius: BorderRadius.circular(AxisRadii.lg),
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: isDark ? 0.14 : 0.16),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 18,
+            color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.05),
+            blurRadius: 16,
             offset: const Offset(0, 8),
           ),
         ],

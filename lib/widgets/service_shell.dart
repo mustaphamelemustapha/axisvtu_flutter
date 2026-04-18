@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/axis_tokens.dart';
 import 'theme_toggle_button.dart';
 
 class ServiceShell extends StatelessWidget {
@@ -11,12 +12,16 @@ class ServiceShell extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.child,
+    this.footer,
+    this.scrollController,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final Widget child;
+  final Widget? footer;
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -61,11 +66,19 @@ class ServiceShell extends StatelessWidget {
               ),
             ),
             SafeArea(
-              child: ListView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Stack(
                 children: [
+                  ListView(
+                    controller: scrollController,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      12,
+                      16,
+                      footer == null ? 24 : 160,
+                    ),
+                    children: [
                   Row(
                     children: [
                       _ActionBtn(
@@ -84,30 +97,31 @@ class ServiceShell extends StatelessWidget {
                       const ThemeToggleButton(size: 44),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(26),
+                      borderRadius: BorderRadius.circular(28),
                       gradient: AxisPalette.gradient,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(
-                            0xFF1E88E5,
-                          ).withValues(alpha: 0.22),
-                          blurRadius: 30,
-                          offset: const Offset(0, 14),
+                          color: const Color(0xFF2457F5).withValues(alpha: 0.2),
+                          blurRadius: 24,
+                          offset: const Offset(0, 12),
                         ),
                       ],
                     ),
                     child: Row(
                       children: [
                         Container(
-                          height: 50,
-                          width: 50,
+                          height: 52,
+                          width: 52,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(16),
+                            color: Colors.white.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.14),
+                            ),
                           ),
                           child: Icon(icon, color: Colors.white, size: 26),
                         ),
@@ -140,8 +154,17 @@ class ServiceShell extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   child,
+                ],
+              ),
+                  if (footer != null)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: footer!,
+                    ),
                 ],
               ),
             ),
@@ -176,27 +199,20 @@ class ServiceChoiceChip extends StatelessWidget {
       },
       borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
+        duration: AxisDurations.normal,
         curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
           color: selected
-              ? color.withValues(alpha: 0.16)
+              ? color.withValues(alpha: 0.10)
               : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? color : Theme.of(context).dividerColor,
-            width: selected ? 1.3 : 1,
+            color: selected
+                ? color.withValues(alpha: 0.26)
+                : Theme.of(context).dividerColor.withValues(alpha: 0.95),
+            width: 1,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.22),
-                    blurRadius: 14,
-                    offset: const Offset(0, 8),
-                  ),
-                ]
-              : [],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -208,7 +224,7 @@ class ServiceChoiceChip extends StatelessWidget {
                 color: selected
                     ? color
                     : Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -238,12 +254,14 @@ class ServiceSectionCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF111827) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.55 : 0.92),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.07),
-            blurRadius: 20,
+            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.06),
+            blurRadius: 22,
             offset: const Offset(0, 10),
           ),
         ],
@@ -251,12 +269,25 @@ class ServiceSectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.15,
+            ),
+          ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
-            Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.64),
+              ),
+            ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           child,
         ],
       ),
@@ -281,7 +312,7 @@ class _ActionBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor),
+          border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.95)),
         ),
         child: Icon(icon),
       ),
