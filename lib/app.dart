@@ -6,6 +6,8 @@ import 'state/theme_controller.dart';
 import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/reset_password_screen.dart';
+import 'screens/reset_pin_screen.dart';
 import 'screens/shell_screen.dart';
 import 'screens/welcome_screen.dart';
 
@@ -34,7 +36,7 @@ class AxisVTUApp extends StatelessWidget {
               RegisterScreen.route: (_) => const RegisterScreen(),
               ShellScreen.route: (_) => const ShellScreen(),
             },
-            home: const AuthGate(),
+            home: const AppEntryGate(),
           );
         },
       ),
@@ -42,11 +44,23 @@ class AxisVTUApp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+class AppEntryGate extends StatelessWidget {
+  const AppEntryGate({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final uri = Uri.base;
+    final token = uri.queryParameters['token'];
+    final path = uri.path.toLowerCase();
+    if (token != null && token.isNotEmpty) {
+      if (path.contains('reset-pin')) {
+        return ResetPinScreen(token: token);
+      }
+      if (path.contains('reset-password')) {
+        return ResetPasswordScreen(token: token);
+      }
+    }
+
     final session = context.watch<SessionController>();
     if (session.isAuthenticated) {
       return const ShellScreen();

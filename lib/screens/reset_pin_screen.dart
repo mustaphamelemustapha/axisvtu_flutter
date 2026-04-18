@@ -1,42 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import '../services/password_service.dart';
+import '../services/api_client.dart';
+import '../services/transaction_pin_service.dart';
 import '../widgets/auth_backdrop.dart';
 import '../widgets/auth_chrome.dart';
 import '../widgets/primary_button.dart';
 import 'login_screen.dart';
 
-class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key, required this.token});
+class ResetPinScreen extends StatefulWidget {
+  const ResetPinScreen({super.key, required this.token});
 
   final String token;
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  State<ResetPinScreen> createState() => _ResetPinScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  final _passwordCtrl = TextEditingController();
+class _ResetPinScreenState extends State<ResetPinScreen> {
+  final _pinCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
-  bool _obscure = true;
   bool _loading = false;
-  bool _success = false;
+  bool _sent = false;
   String? _error;
 
   @override
   void dispose() {
-    _passwordCtrl.dispose();
+    _pinCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _reset() async {
-    final password = _passwordCtrl.text.trim();
+    final pin = _pinCtrl.text.trim();
     final confirm = _confirmCtrl.text.trim();
-    if (password.length < 6 || password != confirm) {
-      setState(
-        () => _error = 'Passwords must match and be at least 6 characters.',
-      );
+    if (!RegExp(r'^\d{4}$').hasMatch(pin) || pin != confirm) {
+      setState(() => _error = 'PINs must match and be exactly 4 digits.');
       return;
     }
     setState(() {
@@ -44,21 +43,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _error = null;
     });
     try {
-      await PasswordService().resetPassword(
+      await TransactionPinService(
         token: widget.token,
-        newPassword: password,
+      ).confirmReset(
+        token: widget.token,
+        newPin: pin,
+        confirmPin: confirm,
       );
       if (!mounted) return;
-      setState(() => _success = true);
-    } catch (e) {
+      setState(() => _sent = true);
+    } on ApiException catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _error = e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () => _error = 'We could not reset your PIN right now. Please try again.',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Widget _buildForm(BuildContext context, Color onSurface, Color muted) {
+  Widget _buildRequestCard(BuildContext context, Color onSurface, Color muted) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
@@ -81,7 +88,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Set New Password',
+            'Reset Transaction PIN',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
@@ -90,16 +97,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Use a strong password you can remember.',
+            'Create a new 4-digit PIN to protect wallet debits.',
             style: TextStyle(color: muted),
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _passwordCtrl,
-            obscureText: _obscure,
+            controller: _pinCtrl,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(4),
+            ],
+            obscureText: true,
             decoration: InputDecoration(
-              hintText: 'New password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded),
+              hintText: 'New PIN',
+              prefixIcon: const Icon(Icons.pin_outlined),
               filled: true,
               fillColor: isDark ? const Color(0xFF151E31) : const Color(0xFFF7FAFF),
               border: OutlineInputBorder(
@@ -113,10 +125,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           const SizedBox(height: 10),
           TextField(
             controller: _confirmCtrl,
-            obscureText: _obscure,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(4),
+            ],
+            obscureText: true,
             decoration: InputDecoration(
-              hintText: 'Confirm password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded),
+              hintText: 'Confirm PIN',
+              prefixIcon: const Icon(Icons.pin_outlined),
               filled: true,
               fillColor: isDark ? const Color(0xFF151E31) : const Color(0xFFF7FAFF),
               border: OutlineInputBorder(
@@ -127,36 +144,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
             ),
           ),
-          Row(
-            children: [
-              Checkbox(
-                value: !_obscure,
-                onChanged: (_) => setState(() => _obscure = !_obscure),
-              ),
-              Text('Show password', style: TextStyle(color: muted)),
-            ],
-          ),
-          if (_error != null) ...[
-            Text(
-              _error!,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
+          const SizedBox(height: 14),
           PrimaryButton(
-            label: _loading ? 'Resetting...' : 'Reset Password',
+            label: _loading ? 'Resetting...' : 'Reset PIN',
             loading: _loading,
             icon: Icons.check_circle_outline_rounded,
             onPressed: _loading ? null : _reset,
           ),
+          const SizedBox(height: 10),
+          if (_error != null)
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildSuccess(BuildContext context, Color onSurface, Color muted) {
+  Widget _buildSuccessCard(BuildContext context, Color onSurface, Color muted) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
@@ -196,7 +202,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           const SizedBox(height: 16),
           Center(
             child: Text(
-              'Password reset successfully',
+              'PIN reset successfully',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
@@ -207,7 +213,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              'Your password has been updated securely.',
+              'Your transaction PIN has been updated securely.',
               textAlign: TextAlign.center,
               style: TextStyle(color: muted, height: 1.45),
             ),
@@ -215,7 +221,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           const SizedBox(height: 12),
           Center(
             child: Text(
-              'You can now log in with your new password.',
+              'Use the new PIN for wallet approvals and purchases.',
               textAlign: TextAlign.center,
               style: TextStyle(color: muted, height: 1.45),
             ),
@@ -258,8 +264,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 onBack: () => Navigator.of(context).pop(),
               ),
               AuthHeroBlock(
-                title: 'Create new password',
-                subtitle: 'Use the link in your email to finish resetting.',
+                title: 'Reset transaction PIN',
+                subtitle: 'Use the link in your email to finish updating your PIN.',
                 logoSize: 74,
                 titleSize: 24,
                 tight: true,
@@ -267,9 +273,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                  child: _success
-                      ? _buildSuccess(context, onSurface, muted)
-                      : _buildForm(context, onSurface, muted),
+                  child: _sent
+                      ? _buildSuccessCard(context, onSurface, muted)
+                      : _buildRequestCard(context, onSurface, muted),
                 ),
               ),
             ],
