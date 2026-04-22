@@ -62,13 +62,32 @@ class _DataScreenState extends State<DataScreen> {
     '9mobile': ['0809', '0817', '0818', '0908', '0909'],
   };
 
+  static const Map<String, int> _airtelBundleOrder = {
+    '2GB': 0,
+    '3GB': 1,
+    '4GB': 2,
+    '8GB': 3,
+    '10GB': 4,
+    '13GB': 5,
+    '18GB': 6,
+    '25GB': 7,
+  };
+
+  static const double _planTileExtent = 174;
+
+  double _planTileExtentForWidth(double width) {
+    if (width < 340) return 166;
+    if (width < 380) return 170;
+    if (width < 430) return 174;
+    return _planTileExtent;
+  }
+
   final _phoneCtrl = TextEditingController();
   final _scrollController = ScrollController();
   final bool _ported = false;
   final GlobalKey _planStepKey = GlobalKey();
 
   String _network = 'mtn';
-  String _planBucket = 'all';
   String? _selectedPlanCode;
   List<dynamic> _plans = [];
 
@@ -76,11 +95,11 @@ class _DataScreenState extends State<DataScreen> {
   bool _autoAdvancedToPlans = false;
   bool _refreshing = false;
   bool _submitting = false;
+  String? _activeRequestId;
   bool _beneficiariesEnabled = true;
   bool _smartSuggestionEnabled = true;
   bool _fastRouteEnabled = false;
   List<String> _recentNumbers = [];
-  List<String> _suggestions = [];
   String? _error;
   Future<void>? _plansLoadFuture;
 
@@ -98,6 +117,7 @@ class _DataScreenState extends State<DataScreen> {
   void initState() {
     super.initState();
     _phoneCtrl.addListener(_onPhoneChanged);
+    DataService.clearCache();
     if (DataService.hasCache) {
       _plans = DataService.cachedPlans;
       _loadingPlans = false;
@@ -122,11 +142,19 @@ class _DataScreenState extends State<DataScreen> {
     bool silent = false,
   }) async {
     if (_plansLoadFuture != null) {
+      if (forceRefresh) {
+        return _plansLoadFuture!.then(
+          (_) => _loadPlans(forceRefresh: true, silent: silent),
+        );
+      }
       return _plansLoadFuture!;
     }
 
     final token = context.read<SessionController>().token;
     if (token == null || token.isEmpty) return;
+    if (forceRefresh) {
+      DataService.clearCache();
+    }
 
     final future = () async {
       if (mounted) {
@@ -150,6 +178,7 @@ class _DataScreenState extends State<DataScreen> {
         if (!mounted) return;
         setState(() {
           _plans = data;
+          _error = null;
           final plans = _sortedNetworkPlans;
           final current = _selectedPlanCode;
           _selectedPlanCode = plans.isEmpty
@@ -160,7 +189,7 @@ class _DataScreenState extends State<DataScreen> {
         });
       } catch (e) {
         if (!mounted) return;
-        setState(() => _error = e is ApiException ? e.message : e.toString());
+        setState(() => _error = _friendlyPlanLoadError(e));
       } finally {
         if (mounted && (_loadingPlans || _refreshing)) {
           setState(() {
@@ -205,10 +234,6 @@ class _DataScreenState extends State<DataScreen> {
     _onPhoneChanged();
   }
 
-  Future<void> _saveTogglePreference(String key, bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, value);
-  }
 
   Future<void> _saveRecentNumber(String number) async {
     if (!_beneficiariesEnabled) return;
@@ -223,16 +248,26 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   void _onPhoneChanged() {
+    _activeRequestId = null;
     final normalized = _normalizePhone(_phoneCtrl.text);
 
     final detected = _detectNetwork(normalized);
     if (detected != null && detected != _network) {
+      final shouldForceRefresh = detected == 'airtel';
+      if (shouldForceRefresh) {
+        DataService.clearCache();
+      }
       setState(() {
         _network = detected;
-        final plans = _sortedNetworkPlans;
-        _selectedPlanCode = plans.isNotEmpty
-            ? plans.first['plan_code']?.toString()
-            : null;
+        _error = null;
+        _plans = [];
+        _selectedPlanCode = null;
+        _loadingPlans = true;
+        _refreshing = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _loadPlans(forceRefresh: shouldForceRefresh, silent: true);
       });
     }
 
@@ -255,6 +290,10 @@ class _DataScreenState extends State<DataScreen> {
     if (normalized.length < 10) {
       _autoAdvancedToPlans = false;
     }
+  }
+
+  void _invalidateRequestId() {
+    _activeRequestId = null;
   }
 
   String _normalizePhone(String input) {
@@ -295,27 +334,17 @@ class _DataScreenState extends State<DataScreen> {
   List<dynamic> get _sortedNetworkPlans {
     final plans = List<dynamic>.from(_networkPlans);
     plans.sort((a, b) {
+      if (_network == 'airtel') {
+        final aOrder = _airtelBundleOrder[_planCapacity(a).toUpperCase()] ?? 999;
+        final bOrder = _airtelBundleOrder[_planCapacity(b).toUpperCase()] ?? 999;
+        if (aOrder != bOrder) return aOrder.compareTo(bOrder);
+      }
       final aPrice = _planPriceValue(a);
       final bPrice = _planPriceValue(b);
       if (aPrice != bPrice) return aPrice.compareTo(bPrice);
       return _capacityToGb(_planCapacity(a)).compareTo(_capacityToGb(_planCapacity(b)));
     });
     return plans;
-  }
-
-  List<dynamic> _plansForBucket(List<dynamic> plans) {
-    switch (_planBucket) {
-      case 'daily':
-        return plans.where(_isDailyPlan).toList();
-      case 'weekly':
-        return plans.where(_isWeeklyPlan).toList();
-      case 'monthly':
-        return plans.where(_isMonthlyPlan).toList();
-      case 'value':
-        return plans.where(_isValuePlan).toList();
-      default:
-        return plans;
-    }
   }
 
   dynamic get _selectedPlan {
@@ -374,9 +403,7 @@ class _DataScreenState extends State<DataScreen> {
 
   String _planValidity(dynamic plan) {
     final validity = (plan['validity'] ?? '').toString().trim();
-    final days = _extractDays(validity);
-    if (days != null) return '$days day${days == 1 ? '' : 's'}';
-    return validity.isEmpty ? 'Flexible' : validity;
+    return validity.isEmpty ? '—' : validity;
   }
 
   String _planNetwork(dynamic plan) {
@@ -421,12 +448,6 @@ class _DataScreenState extends State<DataScreen> {
     return double.tryParse(cleaned);
   }
 
-  int? _extractDays(String text) {
-    final match = RegExp(r'(\d+)').firstMatch(text);
-    if (match == null) return null;
-    return int.tryParse(match.group(1)!);
-  }
-
   double _capacityToGb(String capacity) {
     final upper = capacity.toUpperCase();
     final match = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(upper);
@@ -438,28 +459,17 @@ class _DataScreenState extends State<DataScreen> {
     return 0;
   }
 
-  bool _isDailyPlan(dynamic plan) {
-    final text = '${_planValidity(plan)} ${_planCapacity(plan)} ${plan['name'] ?? ''} ${plan['plan_name'] ?? ''}'
-        .toLowerCase();
-    return text.contains('day');
-  }
-
-  bool _isWeeklyPlan(dynamic plan) {
-    final text = '${_planValidity(plan)} ${_planCapacity(plan)} ${plan['name'] ?? ''} ${plan['plan_name'] ?? ''}'
-        .toLowerCase();
-    return text.contains('week');
-  }
-
-  bool _isMonthlyPlan(dynamic plan) {
-    final text = '${_planValidity(plan)} ${_planCapacity(plan)} ${plan['name'] ?? ''} ${plan['plan_name'] ?? ''}'
-        .toLowerCase();
-    return text.contains('month') || text.contains('30 day');
-  }
-
-  bool _isValuePlan(dynamic plan) {
-    final price = _planPriceValue(plan);
-    final capacityGb = _capacityToGb(_planCapacity(plan));
-    return price <= 1000 || capacityGb <= 1.5;
+  String _friendlyPlanLoadError(Object error) {
+    final raw = error is ApiException ? error.message : error.toString();
+    final text = raw.toLowerCase();
+    if (text.contains('network') ||
+        text.contains('timeout') ||
+        text.contains('timed out') ||
+        text.contains('connection') ||
+        text.contains('server')) {
+      return 'Plans are taking longer than usual. Please try again shortly.';
+    }
+    return 'Plans are temporarily unavailable. Please try again.';
   }
 
   Future<void> _openPlansSheet({bool requirePhone = true}) async {
@@ -475,17 +485,9 @@ class _DataScreenState extends State<DataScreen> {
     }
     if (!mounted) return;
 
-    final allPlans = _sortedNetworkPlans;
-    if (allPlans.isEmpty) {
-      setState(() {
-        _error = 'No plans available for ${_network.toUpperCase()} right now.';
-      });
-      return;
-    }
-
-    String? selectedCode = _selectedPlanCode ?? allPlans.first['plan_code']?.toString();
-    final bestValueCode = allPlans.first['plan_code']?.toString();
-    var selectedBucket = _planBucket;
+    String? selectedCode = _selectedPlanCode;
+    var loadFuture =
+        _plansLoadFuture ?? (_loadingPlans ? _loadPlans(silent: DataService.hasCache) : Future.value());
 
     showModalBottomSheet(
       context: context,
@@ -494,202 +496,262 @@ class _DataScreenState extends State<DataScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            final filteredPlans = allPlans.where((plan) {
-              if (selectedBucket == 'all') return true;
-              if (selectedBucket == 'daily') return _isDailyPlan(plan);
-              if (selectedBucket == 'weekly') return _isWeeklyPlan(plan);
-              if (selectedBucket == 'monthly') return _isMonthlyPlan(plan);
-              if (selectedBucket == 'value') return _isValuePlan(plan);
-              return true;
-            }).toList();
+            return FutureBuilder<void>(
+              future: loadFuture,
+              builder: (context, loadingSnapshot) {
+                final currentPlans = List<dynamic>.from(_sortedNetworkPlans);
+                final isLoading = loadingSnapshot.connectionState ==
+                        ConnectionState.waiting &&
+                    _loadingPlans &&
+                    currentPlans.isEmpty;
+                final hasError = !isLoading &&
+                    _error != null &&
+                    currentPlans.isEmpty;
 
-            return DraggableScrollableSheet(
-              initialChildSize: 0.82,
-              minChildSize: 0.58,
-              maxChildSize: 0.95,
-              builder: (context, scrollController) {
-                final isDark = Theme.of(context).brightness == Brightness.dark;
-                return ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-                  child: Container(
-                    color: isDark ? const Color(0xFF0E1624) : Colors.white,
-                    padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.16),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
+                if (selectedCode != null &&
+                    currentPlans.isNotEmpty &&
+                    !currentPlans.any(
+                      (plan) => plan['plan_code']?.toString() == selectedCode,
+                    )) {
+                  selectedCode = currentPlans.first['plan_code']?.toString();
+                }
+
+                if (selectedCode == null && currentPlans.isNotEmpty) {
+                  selectedCode = currentPlans.first['plan_code']?.toString();
+                }
+
+                final planCountLabel = isLoading
+                    ? 'Loading plans…'
+                    : '${_network.toUpperCase()} • ${currentPlans.length} plan${currentPlans.length == 1 ? '' : 's'}';
+
+                return DraggableScrollableSheet(
+                  initialChildSize: 0.82,
+                  minChildSize: 0.58,
+                  maxChildSize: 0.95,
+                  builder: (context, scrollController) {
+                    final size = MediaQuery.sizeOf(context);
+                    final compact = size.height < 760 || size.width < 390;
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    return ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(26),
+                      ),
+                      child: Container(
+                        color: isDark ? const Color(0xFF0E1624) : Colors.white,
+                        padding: EdgeInsets.fromLTRB(
+                          compact ? 12 : 14,
+                          compact ? 4 : 6,
+                          compact ? 12 : 14,
+                          compact ? 10 : 12,
                         ),
-                        const SizedBox(height: 8),
-                        Row(
+                        child: Column(
                           children: [
                             Container(
                               width: 36,
-                              height: 36,
+                              height: 4,
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(12),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outline
+                                    .withValues(alpha: 0.16),
+                                borderRadius: BorderRadius.circular(999),
                               ),
-                              child: Icon(Icons.view_carousel_rounded, color: Theme.of(context).colorScheme.primary, size: 18),
                             ),
-                            const SizedBox(width: 9),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Available Plans',
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: -0.15,
-                                    ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${_network.toUpperCase()} • ${filteredPlans.length} plan${filteredPlans.length == 1 ? '' : 's'}',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.52),
-                                    ),
+                                  child: Icon(
+                                    Icons.view_carousel_rounded,
+                                    color: Theme.of(context).colorScheme.primary,
+                                    size: 18,
                                   ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: const Icon(Icons.close_rounded),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              ServiceChoiceChip(
-                                label: 'All',
-                                selected: selectedBucket == 'all',
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setSheetState(() => selectedBucket = 'all');
-                                  setState(() => _planBucket = 'all');
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              ServiceChoiceChip(
-                                label: 'Daily',
-                                selected: selectedBucket == 'daily',
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setSheetState(() => selectedBucket = 'daily');
-                                  setState(() => _planBucket = 'daily');
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              ServiceChoiceChip(
-                                label: 'Weekly',
-                                selected: selectedBucket == 'weekly',
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setSheetState(() => selectedBucket = 'weekly');
-                                  setState(() => _planBucket = 'weekly');
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              ServiceChoiceChip(
-                                label: 'Monthly',
-                                selected: selectedBucket == 'monthly',
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setSheetState(() => selectedBucket = 'monthly');
-                                  setState(() => _planBucket = 'monthly');
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              ServiceChoiceChip(
-                                label: 'Value',
-                                selected: selectedBucket == 'value',
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setSheetState(() => selectedBucket = 'value');
-                                  setState(() => _planBucket = 'value');
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: filteredPlans.isEmpty
-                              ? _EmptyStateCard(
-                                  icon: Icons.search_off_rounded,
-                                  title: 'No matching plans',
-                                  subtitle: 'Try another category or switch the network.',
-                                )
-                              : GridView.builder(
-                                  controller: scrollController,
-                                  physics: const BouncingScrollPhysics(),
-                                  itemCount: filteredPlans.length,
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        crossAxisSpacing: 7,
-                                        mainAxisSpacing: 7,
-                                        childAspectRatio: 0.92,
-                                      ),
-                                  itemBuilder: (context, index) {
-                                    final plan = filteredPlans[index];
-                                    final code = plan['plan_code']?.toString();
-                                    final selected = selectedCode == code;
-                                    final bestValue = code == bestValueCode;
-                                    return _PlanTile(
-                                      capacity: _planCapacity(plan),
-                                      price: _planPrice(plan),
-                                      validity: _planValidity(plan),
-                                      selected: selected,
-                                      bestValue: bestValue,
-                                      onTap: () {
-                                        HapticFeedback.selectionClick();
-                                        setSheetState(() => selectedCode = code);
-                                      },
-                                    );
-                                  },
                                 ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
+                                const SizedBox(width: 9),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Available Plans',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: -0.15,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        planCountLabel,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.52),
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  icon: const Icon(Icons.close_rounded),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
                             Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Cancel'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                            Expanded(
-                              child: FilledButton.icon(
-                                onPressed: selectedCode == null
-                                    ? null
-                                    : () {
-                                        HapticFeedback.lightImpact();
-                                        setState(() => _selectedPlanCode = selectedCode);
-                                        Navigator.of(context).pop();
-                                        if (_normalizePhone(_phoneCtrl.text).isNotEmpty) {
-                                          Future.microtask(_openPurchaseSummary);
-                                        }
-                                      },
-                                icon: const Icon(Icons.check_circle_outline_rounded),
-                                label: const Text('Confirm'),
-                              ),
+                              child: isLoading
+                                  ? const _PlanSheetLoadingState()
+                                  : hasError
+                                      ? _PlanLoadErrorState(
+                                          message: _error!,
+                                          onRetry: () {
+                                            HapticFeedback.selectionClick();
+                                            setState(() {
+                                              _error = null;
+                                              _loadingPlans = true;
+                                              _refreshing = true;
+                                            });
+                                            loadFuture = _loadPlans(forceRefresh: true);
+                                            setSheetState(() {});
+                                          },
+                                        )
+                                      : currentPlans.isEmpty
+                                          ? _EmptyStateCard(
+                                              icon: Icons.search_off_rounded,
+                                              title: 'Plans will appear here shortly',
+                                              subtitle:
+                                                  'Try another network or refresh.',
+                                            )
+                                          : LayoutBuilder(
+                                              builder: (context, constraints) {
+                                                final oneColumn = constraints.maxWidth < 380;
+                                                final extent = oneColumn
+                                                    ? 146.0
+                                                    : _planTileExtentForWidth(
+                                                        constraints.maxWidth,
+                                                      );
+                                                return GridView.builder(
+                                                  controller: scrollController,
+                                                  physics:
+                                                      const BouncingScrollPhysics(),
+                                                  itemCount: currentPlans.length,
+                                                  gridDelegate:
+                                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                                    crossAxisCount: oneColumn ? 1 : 2,
+                                                    crossAxisSpacing: 7,
+                                                    mainAxisSpacing: 7,
+                                                    mainAxisExtent: extent,
+                                                  ),
+                                                  itemBuilder: (context, index) {
+                                                    final plan = currentPlans[index];
+                                                    final code =
+                                                        plan['plan_code']?.toString();
+                                                    final selected = selectedCode == code;
+                                                    return _PlanTile(
+                                                      capacity: _planCapacity(plan),
+                                                      price: _planPrice(plan),
+                                                      validity: _planValidity(plan),
+                                                      selected: selected,
+                                                      onTap: () {
+                                                        HapticFeedback.selectionClick();
+                                                        _invalidateRequestId();
+                                                        setSheetState(() => selectedCode = code);
+                                                      },
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                            ),
+                            ),
+                            const SizedBox(height: 10),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final compactActions = constraints.maxWidth < 380;
+                                if (compactActions) {
+                                  return Column(
+                                    children: [
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton(
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: const Text('Cancel'),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: FilledButton.icon(
+                                          onPressed: selectedCode == null
+                                              ? null
+                                              : () {
+                                                  HapticFeedback.lightImpact();
+                                                  _invalidateRequestId();
+                                                  setState(() => _selectedPlanCode = selectedCode);
+                                                  Navigator.of(context).pop();
+                                                  if (_normalizePhone(_phoneCtrl.text)
+                                                      .isNotEmpty) {
+                                                    Future.microtask(_openPurchaseSummary);
+                                                  }
+                                                },
+                                          icon: const Icon(Icons.check_circle_outline_rounded),
+                                          label: const Text('Confirm'),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton(
+                                        onPressed: () => Navigator.of(context).pop(),
+                                        child: const Text('Cancel'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: FilledButton.icon(
+                                        onPressed: selectedCode == null
+                                            ? null
+                                            : () {
+                                                HapticFeedback.lightImpact();
+                                                _invalidateRequestId();
+                                                setState(() => _selectedPlanCode = selectedCode);
+                                                Navigator.of(context).pop();
+                                                if (_normalizePhone(_phoneCtrl.text)
+                                                    .isNotEmpty) {
+                                                  Future.microtask(_openPurchaseSummary);
+                                                }
+                                              },
+                                        icon: const Icon(Icons.check_circle_outline_rounded),
+                                        label: const Text('Confirm'),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 );
               },
             );
@@ -743,9 +805,10 @@ class _DataScreenState extends State<DataScreen> {
               ),
               child: SafeArea(
                 top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                     Container(
                       width: 52,
                       height: 5,
@@ -815,61 +878,39 @@ class _DataScreenState extends State<DataScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: usingPin
-                                ? null
-                                : () async {
-                                    setSheetState(() => usingPin = true);
-                                    final authorized =
-                                        await PurchaseAuthService.authorizePin(
-                                      context: context,
-                                      reason: 'data purchase',
-                                    );
-                                    if (!mounted) return;
-                                    setSheetState(() => usingPin = false);
-                                    if (!authorized) return;
-                                    Navigator.of(this.context).pop();
-                                    await _buy();
-                                  },
-                            icon: usingPin
-                                ? const SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.lock_outline_rounded),
-                            label: const Text('Use PIN'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: BorderSide(color: Colors.white.withValues(alpha: 0.28)),
-                            ),
-                          ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: usingPin
+                            ? null
+                            : () async {
+                                setSheetState(() => usingPin = true);
+                                final authorized =
+                                    await PurchaseAuthService.authorizePin(
+                                  context: context,
+                                  reason: 'data purchase',
+                                );
+                                if (!mounted) return;
+                                setSheetState(() => usingPin = false);
+                                if (!authorized) return;
+                                Navigator.of(this.context).pop();
+                                await _buy();
+                              },
+                        icon: usingPin
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.lock_outline_rounded),
+                        label: const Text('Use PIN'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF4C8DFF),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: usingPin
-                                ? null
-                                : () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Biometric verification coming soon. Use PIN for now.'),
-                                      ),
-                                    );
-                                  },
-                            icon: const Icon(Icons.fingerprint_rounded),
-                            label: const Text('Biometric'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF4C8DFF),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -897,15 +938,21 @@ class _DataScreenState extends State<DataScreen> {
     PurchaseLoadingOverlay.show(context, title: 'Buying data');
 
     try {
+      _activeRequestId ??= "DATA_${DateTime.now().microsecondsSinceEpoch}";
       final response = await DataService(token: token).purchase(
         planCode: _selectedPlanCode!,
         phoneNumber: normalizedPhone,
         ported: _ported,
+        clientRequestId: _activeRequestId,
       );
       if (!mounted) return;
       await _saveRecentNumber(normalizedPhone);
       PurchaseLoadingOverlay.hide();
+      final finalStatus = (response['status'] ?? '').toString().toLowerCase();
       _showResult(response);
+      if (finalStatus != 'pending') {
+        _activeRequestId = null;
+      }
     } catch (e) {
       if (!mounted) return;
       final message = e is ApiException ? e.message : e.toString();
@@ -985,10 +1032,22 @@ class _DataScreenState extends State<DataScreen> {
 
   void _selectNetwork(String value) {
     HapticFeedback.selectionClick();
+    final shouldForceRefresh = value == 'airtel';
+    if (shouldForceRefresh) {
+      DataService.clearCache();
+    }
     setState(() {
+      _invalidateRequestId();
       _network = value;
-      final plans = _sortedNetworkPlans;
-      _selectedPlanCode = plans.isNotEmpty ? plans.first['plan_code']?.toString() : null;
+      _error = null;
+      _plans = [];
+      _selectedPlanCode = null;
+      _loadingPlans = true;
+      _refreshing = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadPlans(forceRefresh: shouldForceRefresh, silent: true);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -1033,26 +1092,24 @@ class _DataScreenState extends State<DataScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 360 || size.height < 760;
     final selected = _selectedPlan;
     final hasPhone = _normalizePhone(_phoneCtrl.text).isNotEmpty;
     final canBuy = !_submitting && selected != null && hasPhone;
-    final planCount = _sortedNetworkPlans.length;
-    final activeStep = !hasPhone
-        ? 1
-        : selected == null
-            ? 3
-            : 4;
 
     return ServiceShell(
       title: 'Buy Data',
-      subtitle: 'Guided checkout, clean plan selection, and instant receipts.',
+      subtitle: 'Enter a number, choose a network, pick a plan, and confirm.',
       icon: Icons.wifi_rounded,
       scrollController: _scrollController,
       footer: _StickyCheckoutBar(
-        recipient: hasPhone ? _normalizePhone(_phoneCtrl.text) : 'No recipient',
+        recipient: hasPhone ? _normalizePhone(_phoneCtrl.text) : 'Enter recipient number',
         network: _network.toUpperCase(),
-        plan: selected == null ? 'Select a plan' : _planCapacity(selected),
-        amount: selected == null ? '₦0' : '₦${_planPrice(selected)}',
+        plan: selected == null
+            ? 'Select plan'
+            : '${_planCapacity(selected)} • ${_planValidity(selected)}',
+        amount: selected == null ? '₦0.00' : '₦${_planPrice(selected)}',
         active: canBuy,
         loading: _submitting,
         onBuy: canBuy ? _openPurchaseSummary : null,
@@ -1060,179 +1117,157 @@ class _DataScreenState extends State<DataScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _TransactionHeroCard(
-            title: 'Buy Data',
-            subtitle:
-                'Move through the purchase in four simple steps, with plans and summary kept clear at every stage.',
-            primaryLabel: _refreshing ? 'Refreshing...' : 'Browse plans',
-            secondaryLabel: 'Refresh plans',
-            onPrimary: _openPlansSheet,
-            onSecondary: _loadingPlans ? null : () => _loadPlans(forceRefresh: true),
-            trailingLabel: '${_network.toUpperCase()} • $planCount plans',
-            trailingIcon: Icons.network_cell_rounded,
-          ),
-          const SizedBox(height: 14),
-          GlassCard(
-            padding: const EdgeInsets.all(14),
+          ServiceSectionCard(
+            title: 'Recipient',
+            subtitle: 'Enter the phone number for this purchase.',
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _FlowStepHeader(
-                  step: '1',
-                  title: 'Recipient',
-                  subtitle: 'Enter the phone number to start the flow.',
-                  active: activeStep == 1,
-                  done: hasPhone,
-                ),
-                const SizedBox(height: 10),
                 TextField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.done,
                   onTapOutside: (_) => FocusScope.of(context).unfocus(),
                   onSubmitted: (_) => FocusScope.of(context).unfocus(),
-                  decoration: InputDecoration(
-                    labelText: 'Phone number',
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number',
                     hintText: '080...',
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                    prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-                    prefixIconConstraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                    prefixIcon: Icon(Icons.phone_outlined),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _SecondaryButton(
-                        label: 'Recent recipients',
-                        icon: Icons.history_rounded,
-                        onTap: () => showModalBottomSheet<void>(
-                          context: context,
-                          backgroundColor: Colors.transparent,
-                          builder: (sheetContext) => _RecentRecipientsSheet(
-                            recentNumbers: _recentNumbers,
-                            currentNetwork: _network,
-                            onApply: _applySuggestedNumber,
-                            onClose: () => Navigator.pop(sheetContext),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
                 if (_error != null && _error!.toLowerCase().contains('phone')) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontWeight: FontWeight.w600,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          GlassCard(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _FlowStepHeader(
-                  step: '2',
-                  title: 'Network',
-                  subtitle: 'Pick the network with a single tap.',
-                  active: activeStep >= 2,
-                  done: true,
-                ),
                 const SizedBox(height: 10),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      ServiceChoiceChip(
-                        label: 'MTN',
-                        selected: _network == 'mtn',
-                        leading: _networkLogoByName('mtn'),
-                        onTap: () => _selectNetwork('mtn'),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _SecondaryButton(
+                    label: 'Recent recipients',
+                    icon: Icons.history_rounded,
+                    compact: compact,
+                    onTap: () => showModalBottomSheet<void>(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      builder: (sheetContext) => _RecentRecipientsSheet(
+                        recentNumbers: _recentNumbers,
+                        currentNetwork: _network,
+                        onApply: _applySuggestedNumber,
+                        onClose: () => Navigator.pop(sheetContext),
                       ),
-                      const SizedBox(width: 8),
-                      ServiceChoiceChip(
-                        label: 'Airtel',
-                        selected: _network == 'airtel',
-                        leading: _networkLogoByName('airtel'),
-                        onTap: () => _selectNetwork('airtel'),
-                      ),
-                      const SizedBox(width: 8),
-                      ServiceChoiceChip(
-                        label: 'Glo',
-                        selected: _network == 'glo',
-                        leading: _networkLogoByName('glo'),
-                        onTap: () => _selectNetwork('glo'),
-                      ),
-                      const SizedBox(width: 8),
-                      ServiceChoiceChip(
-                        label: '9mobile',
-                        selected: _network == '9mobile',
-                        leading: _networkLogoByName('9mobile'),
-                        onTap: () => _selectNetwork('9mobile'),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          GlassCard(
-            padding: const EdgeInsets.all(14),
+          ServiceSectionCard(
+            title: 'Network',
+            subtitle: 'Choose the network with a single tap.',
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                ServiceChoiceChip(
+                  label: 'MTN',
+                  selected: _network == 'mtn',
+                  leading: _networkLogoByName('mtn'),
+                  onTap: () => _selectNetwork('mtn'),
+                ),
+                ServiceChoiceChip(
+                  label: 'Airtel',
+                  selected: _network == 'airtel',
+                  leading: _networkLogoByName('airtel'),
+                  onTap: () => _selectNetwork('airtel'),
+                ),
+                ServiceChoiceChip(
+                  label: 'Glo',
+                  selected: _network == 'glo',
+                  leading: _networkLogoByName('glo'),
+                  onTap: () => _selectNetwork('glo'),
+                ),
+                ServiceChoiceChip(
+                  label: '9mobile',
+                  selected: _network == '9mobile',
+                  leading: _networkLogoByName('9mobile'),
+                  onTap: () => _selectNetwork('9mobile'),
+                ),
+              ],
+            ),
+          ),
+          ServiceSectionCard(
+            title: 'Plan',
+            subtitle: 'Choose a bundle. The sticky bar keeps the final summary.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _FlowStepHeader(
-                  step: '3',
-                  title: 'Plan',
-                  subtitle: 'Choose a plan and keep the summary compact.',
-                  active: activeStep >= 3,
-                  done: selected != null,
+                Text(
+                  selected == null
+                      ? 'Choose one bundle, then confirm.'
+                      : '${_planCapacity(selected)} • ${_planValidity(selected)} • ₦${_planPrice(selected)}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: selected == null ? FontWeight.w500 : FontWeight.w700,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: selected == null ? 0.58 : 0.92),
+                      ),
                 ),
-                const SizedBox(height: 10),
-                if (selected == null)
-                  _EmptyStateCard(
-                    title: 'No plan selected',
-                    subtitle: 'Open the plan picker to choose a bundle.',
-                    icon: Icons.grid_view_rounded,
-                  )
-                else
-                  _SelectedPlanCard(
-                    network: _planNetwork(selected),
-                    capacity: _planCapacity(selected),
-                    price: _planPrice(selected),
-                    validity: _planValidity(selected),
-                  ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
                       child: _SecondaryButton(
-                        label: _loadingPlans ? 'Loading...' : 'Refresh plans',
+                        label: _loadingPlans ? 'Loading...' : 'Refresh',
                         icon: _refreshing ? Icons.sync : Icons.refresh_rounded,
+                        compact: compact,
                         onTap: _refreshing ? null : () => _loadPlans(forceRefresh: true),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: compact ? 8 : 10),
                     Expanded(
                       child: _PrimaryGradientButton(
-                        label: 'Choose plan',
+                        label: selected != null ? 'Change plan' : 'Choose plan',
                         icon: Icons.grid_view_rounded,
+                        compact: compact,
                         onTap: _openPlansSheet,
                       ),
                     ),
                   ],
                 ),
+                if (_loadingPlans && _sortedNetworkPlans.isEmpty) ...[
+                  const SizedBox(height: 12),
+                  const _PlanSkeletonGrid(),
+                ] else if (_error != null && _plans.isEmpty) ...[
+                  const SizedBox(height: 12),
+                  _ErrorBanner(
+                    message: _error!,
+                  ),
+                ] else ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    selected == null
+                        ? 'Open the picker to choose a bundle.'
+                        : 'Selected: ${_planCapacity(selected)} • ${_planValidity(selected)} • ₦${_planPrice(selected)}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: selected == null ? 0.58 : 0.88),
+                        ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1340,19 +1375,26 @@ class _StickyCheckoutBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 360 || size.height < 760;
     return SafeArea(
       top: false,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-        padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+        margin: EdgeInsets.fromLTRB(compact ? 8 : 10, 0, compact ? 8 : 10, 10),
+        padding: EdgeInsets.fromLTRB(
+          compact ? 10 : 12,
+          compact ? 8 : 9,
+          compact ? 10 : 12,
+          compact ? 9 : 10,
+        ),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF0D1522) : Colors.white.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.06)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
-              blurRadius: 14,
+              color: Colors.black.withValues(alpha: isDark ? 0.10 : 0.03),
+              blurRadius: 10,
               offset: const Offset(0, -1),
             ),
           ],
@@ -1360,43 +1402,113 @@ class _StickyCheckoutBar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${network.isEmpty ? 'NETWORK' : network} • ${plan.isEmpty ? 'Select plan' : plan}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.78),
+            if (compact) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      network.isEmpty ? 'NETWORK' : network,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.78),
+                          ),
                     ),
                   ),
-                ),
-                Text(
-                  amount,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.08,
+                  const SizedBox(width: 8),
+                  Text(
+                    amount,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.08,
+                        ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    recipient,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                plan.isEmpty ? 'Select plan' : plan,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.08,
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                recipient,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.54),
+                    ),
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      network.isEmpty ? 'NETWORK' : network,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.78),
+                          ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  Text(
+                    amount,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.08,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      recipient,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.54),
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                plan.isEmpty ? 'Select plan' : plan,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.54),
+                    ),
+              ),
+            ],
             const SizedBox(height: 8),
             Container(
               height: 1,
@@ -1405,7 +1517,7 @@ class _StickyCheckoutBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: compact ? 6 : 8),
             SizedBox(
               width: double.infinity,
               child: PrimaryButton(
@@ -1421,7 +1533,6 @@ class _StickyCheckoutBar extends StatelessWidget {
     );
   }
 }
-
 
 class _SummaryLine extends StatelessWidget {
   const _SummaryLine({
@@ -1474,20 +1585,22 @@ class _SecondaryButton extends StatelessWidget {
   const _SecondaryButton({
     required this.label,
     required this.icon,
+    this.compact = false,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
+  final bool compact;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: compact ? 46 : 48,
       child: OutlinedButton.icon(
         onPressed: onTap,
-        icon: Icon(icon, size: 17),
+        icon: Icon(icon, size: compact ? 16 : 17),
         label: Text(label),
       ),
     );
@@ -1498,11 +1611,13 @@ class _PrimaryGradientButton extends StatelessWidget {
   const _PrimaryGradientButton({
     required this.label,
     required this.icon,
+    this.compact = false,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
+  final bool compact;
   final VoidCallback? onTap;
 
   @override
@@ -1514,6 +1629,7 @@ class _PrimaryGradientButton extends StatelessWidget {
         child: _GradientActionButton(
           label: label,
           icon: icon,
+          compact: compact,
           onTap: () => onTap?.call(),
         ),
       ),
@@ -1525,11 +1641,13 @@ class _GradientActionButton extends StatelessWidget {
   const _GradientActionButton({
     required this.label,
     required this.icon,
+    this.compact = false,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -1541,7 +1659,7 @@ class _GradientActionButton extends StatelessWidget {
       },
       borderRadius: BorderRadius.circular(16),
       child: Ink(
-        height: 48,
+        height: compact ? 46 : 48,
         decoration: BoxDecoration(
           gradient: AxisPalette.gradient,
           borderRadius: BorderRadius.circular(14),
@@ -1564,7 +1682,7 @@ class _GradientActionButton extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(icon, color: Colors.white),
+            Icon(icon, color: Colors.white, size: compact ? 17 : 18),
           ],
         ),
       ),
@@ -2222,6 +2340,87 @@ class _EmptyStateCard extends StatelessWidget {
   }
 }
 
+class _PlanSheetLoadingState extends StatelessWidget {
+  const _PlanSheetLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Loading plans...',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.1,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'We’re preparing the latest bundles for this network.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.58),
+              ),
+        ),
+        const SizedBox(height: 12),
+        const Expanded(child: _PlanSkeletonGrid()),
+      ],
+    );
+  }
+}
+
+class _PlanLoadErrorState extends StatelessWidget {
+  const _PlanLoadErrorState({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Icon(Icons.cloud_off_rounded, color: Theme.of(context).colorScheme.error),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          message,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.1,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'You can try again when the connection is ready.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity,
+          child: PrimaryButton(
+            label: 'Retry',
+            icon: Icons.refresh_rounded,
+            onPressed: onRetry,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _TrustPill extends StatelessWidget {
   const _TrustPill({required this.icon, required this.label});
 
@@ -2289,15 +2488,17 @@ class _PlanSkeletonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final oneColumn = width < 380;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 4,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: oneColumn ? 1 : 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.88,
+        mainAxisExtent: oneColumn ? 132 : 174,
       ),
       itemBuilder: (context, index) => Container(
         decoration: BoxDecoration(
@@ -2327,11 +2528,12 @@ class _SelectedPlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final compact = MediaQuery.sizeOf(context).height < 760;
     return AnimatedContainer(
       duration: AxisDurations.normal,
       curve: Curves.easeOut,
       width: double.infinity,
-      padding: const EdgeInsets.all(11),
+      padding: EdgeInsets.all(compact ? 10 : 11),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF111B2B) : Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -2392,7 +2594,7 @@ class _SelectedPlanCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: compact ? 6 : 8),
           Row(
             children: [
               Expanded(
@@ -2438,7 +2640,6 @@ class _PlanTile extends StatelessWidget {
     required this.price,
     required this.validity,
     required this.selected,
-    required this.bestValue,
     required this.onTap,
   });
 
@@ -2446,13 +2647,13 @@ class _PlanTile extends StatelessWidget {
   final String price;
   final String validity;
   final bool selected;
-  final bool bestValue;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final compact = MediaQuery.sizeOf(context).height < 760;
 
     return AnimatedContainer(
       duration: AxisDurations.normal,
@@ -2473,7 +2674,7 @@ class _PlanTile extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Ink(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(compact ? 9 : 10),
             decoration: BoxDecoration(
               color: selected ? color.withValues(alpha: 0.08) : Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
@@ -2498,26 +2699,9 @@ class _PlanTile extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (bestValue)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF16A34A).withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.26)),
-                        ),
-                        child: const Text(
-                          'Best',
-                          style: TextStyle(
-                            color: Color(0xFF15803D),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: compact ? 6 : 8),
                 Text(
                   '₦$price',
                   maxLines: 1,
@@ -2527,7 +2711,7 @@ class _PlanTile extends StatelessWidget {
                     letterSpacing: -0.1,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: compact ? 4 : 6),
                 const Spacer(),
                 Wrap(
                   spacing: 5,

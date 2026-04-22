@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_client.dart';
 import '../services/purchase_auth_service.dart';
+import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
 import '../widgets/primary_button.dart';
@@ -36,6 +37,7 @@ class _CableScreenState extends State<CableScreen> {
     {'id': 'startimes', 'name': 'StarTimes'},
   ];
   bool _loading = false;
+  String? _activeRequestId;
   bool _saveBeneficiary = true;
   List<Map<String, dynamic>> _beneficiaries = [];
   String? _error;
@@ -43,12 +45,20 @@ class _CableScreenState extends State<CableScreen> {
   @override
   void initState() {
     super.initState();
+    _smartcardCtrl.addListener(_invalidateRequestId);
+    _phoneCtrl.addListener(_invalidateRequestId);
+    _packageCtrl.addListener(_invalidateRequestId);
+    _amountCtrl.addListener(_invalidateRequestId);
     _loadCatalog();
     _loadPreferences();
   }
 
   @override
   void dispose() {
+    _smartcardCtrl.removeListener(_invalidateRequestId);
+    _phoneCtrl.removeListener(_invalidateRequestId);
+    _packageCtrl.removeListener(_invalidateRequestId);
+    _amountCtrl.removeListener(_invalidateRequestId);
     _smartcardCtrl.dispose();
     _phoneCtrl.dispose();
     _packageCtrl.dispose();
@@ -113,6 +123,10 @@ class _CableScreenState extends State<CableScreen> {
     });
   }
 
+  void _invalidateRequestId() {
+    _activeRequestId = null;
+  }
+
   Future<void> _savePreference(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_saveBeneficiaryKey, value);
@@ -155,6 +169,7 @@ class _CableScreenState extends State<CableScreen> {
     final phone = (item['phone_number'] ?? '').toString().trim();
     HapticFeedback.mediumImpact();
     setState(() {
+      _invalidateRequestId();
       if (_providers.any((p) => p['id'] == provider)) {
         _provider = provider;
       }
@@ -203,12 +218,14 @@ class _CableScreenState extends State<CableScreen> {
     PurchaseLoadingOverlay.show(context, title: 'Paying cable subscription');
 
     try {
+      _activeRequestId ??= buildRequestId("cable");
       final res = await ServicesService(token: token).purchaseCable(
         provider: _provider,
         smartcardNumber: smartcard,
         phoneNumber: phone,
         packageCode: packageCode,
         amount: amount,
+        clientRequestId: _activeRequestId,
       );
       final status = _resolveResultStatus(res);
       if (!mounted) return;
@@ -228,6 +245,9 @@ class _CableScreenState extends State<CableScreen> {
           ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
         ],
       );
+      if (status != 'pending') {
+        _activeRequestId = null;
+      }
     } catch (e) {
       if (!mounted) return;
       final message = e is ApiException ? e.message : e.toString();
@@ -246,6 +266,7 @@ class _CableScreenState extends State<CableScreen> {
           ReceiptField(label: 'Failure', value: message),
         ],
       );
+      _activeRequestId = null;
     } finally {
       PurchaseLoadingOverlay.hide();
       if (mounted) {
@@ -353,6 +374,7 @@ class _CableScreenState extends State<CableScreen> {
                       selected: _provider == p['id'],
                       onTap: () {
                         HapticFeedback.selectionClick();
+                        _invalidateRequestId();
                         setState(
                           () => _provider = (p['id'] ?? _provider).toString(),
                         );
@@ -411,8 +433,10 @@ class _CableScreenState extends State<CableScreen> {
                       .map(
                         (v) => ActionChip(
                           label: Text('₦$v'),
-                          onPressed: () =>
-                              setState(() => _amountCtrl.text = v.toString()),
+                          onPressed: () => setState(() {
+                            _invalidateRequestId();
+                            _amountCtrl.text = v.toString();
+                          }),
                         ),
                       )
                       .toList(),

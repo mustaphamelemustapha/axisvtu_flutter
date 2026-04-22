@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../state/session.dart';
+import '../state/theme_controller.dart';
 import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
@@ -22,14 +26,37 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  static const _saveBeneficiariesKey = 'axis_profile_save_beneficiaries_v1';
+  static const _pushNotificationsKey = 'axis_profile_push_notifications_v1';
+  static const _emailAlertsKey = 'axis_profile_email_alerts_v1';
+
   bool _updatingProfile = false;
   bool _changingPassword = false;
-  bool _deletingAccount = false;
-  bool _biometricEnabled = true;
   bool _saveBeneficiaries = true;
   bool _pushNotifications = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _saveBeneficiaries = prefs.getBool(_saveBeneficiariesKey) ?? _saveBeneficiaries;
+      _pushNotifications = prefs.getBool(_pushNotificationsKey) ?? _pushNotifications;
+      _emailAlerts = prefs.getBool(_emailAlertsKey) ?? _emailAlerts;
+    });
+  }
+
+  Future<void> _saveBoolPref(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
   bool _emailAlerts = true;
-  bool _themeFollowSystem = false;
 
   String _displayName(Map<String, dynamic> user) {
     final fullName = (user['full_name'] ?? user['name'] ?? '')
@@ -556,6 +583,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  Text(
+                    status.isSet
+                        ? 'Your ${status.pinLength}-digit PIN protects wallet debits.'
+                        : 'Set a ${status.pinLength}-digit PIN to protect wallet debits and approvals.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.72),
+                        ),
+                  ),
+                  const SizedBox(height: 14),
                   if (!status.isSet)
                     PrimaryButton(
                       label: 'Set PIN',
@@ -599,19 +637,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _setupTransactionPin(TransactionPinService service) async {
+    final status = await service.statusOrNull();
+    final pinLength = status?.pinLength == 6 ? 6 : 4;
     final first = await PinEntrySheet.show(
       context,
       title: 'Create Transaction PIN',
-      subtitle: 'Set a 4-digit PIN to protect wallet debits.',
+      subtitle: 'Set a $pinLength-digit PIN to protect wallet debits.',
       confirmLabel: 'Continue',
+      pinLength: pinLength,
     );
     if (!mounted || first == null) return;
 
     final confirm = await PinEntrySheet.show(
       context,
       title: 'Confirm Transaction PIN',
-      subtitle: 'Re-enter your 4-digit PIN.',
+      subtitle: 'Re-enter your $pinLength-digit PIN.',
       confirmLabel: 'Save PIN',
+      pinLength: pinLength,
     );
     if (!mounted || confirm == null) return;
     if (first != confirm) {
@@ -636,27 +678,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _changeTransactionPin(TransactionPinService service) async {
+    final status = await service.statusOrNull();
+    final pinLength = status?.pinLength == 6 ? 6 : 4;
     final current = await PinEntrySheet.show(
       context,
       title: 'Enter Current PIN',
       subtitle: 'Confirm your identity before changing the PIN.',
       confirmLabel: 'Continue',
+      pinLength: pinLength,
     );
     if (!mounted || current == null) return;
 
     final next = await PinEntrySheet.show(
       context,
       title: 'Set New PIN',
-      subtitle: 'Choose a fresh 4-digit PIN.',
+      subtitle: 'Choose a fresh $pinLength-digit PIN.',
       confirmLabel: 'Continue',
+      pinLength: pinLength,
     );
     if (!mounted || next == null) return;
 
     final confirm = await PinEntrySheet.show(
       context,
       title: 'Confirm New PIN',
-      subtitle: 'Re-enter the new 4-digit PIN.',
+      subtitle: 'Re-enter the new $pinLength-digit PIN.',
       confirmLabel: 'Save PIN',
+      pinLength: pinLength,
     );
     if (!mounted || confirm == null) return;
 
@@ -704,102 +751,359 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _showComingSoon(String title, String subtitle) async {
+  Future<void> _showFeatureSheet({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Widget> actions,
+    String? helperText,
+  }) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withValues(alpha: 0.14),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.66),
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(
+                        alpha: isDark ? 0.16 : 0.18,
+                      ),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.06),
+                    blurRadius: 26,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
               ),
-              const SizedBox(height: 14),
-              PrimaryButton(
-                label: 'Got it',
-                onPressed: () => Navigator.pop(context),
-                icon: Icons.check_rounded,
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 46,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.28),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          icon,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              subtitle,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (helperText != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      helperText,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                            height: 1.45,
+                          ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  ...actions,
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
     );
   }
 
-  Future<void> _deleteAccount() async {
-    final session = context.read<SessionController>();
-    final token = (session.token ?? '').trim();
-    if (token.isEmpty) return;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text('Do you want to delete account? If yes, continue.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Yes, continue'),
+  Future<void> _showComingSoon(String title, String subtitle) async {
+    await _showFeatureSheet(
+      title: title,
+      subtitle: subtitle,
+      icon: Icons.hourglass_bottom_rounded,
+      helperText: 'This feature is not live yet. We will unlock it in a future update.',
+      actions: [
+        PrimaryButton(
+          label: 'Got it',
+          onPressed: () => Navigator.pop(context),
+          icon: Icons.check_rounded,
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showVerificationDetails({
+    required String verificationLabel,
+    required String name,
+    required String email,
+    required String phone,
+    required String joined,
+    required bool hasName,
+    required bool hasEmail,
+    required bool hasPhone,
+  }) async {
+    final missing = <String>[
+      if (!hasName) 'Full name',
+      if (!hasEmail) 'Email',
+      if (!hasPhone) 'Phone number',
+    ];
+    await _showFeatureSheet(
+      title: 'Verification status',
+      subtitle: verificationLabel,
+      icon: Icons.verified_user_rounded,
+      helperText: verificationLabel == 'Verified'
+          ? 'Your profile details are complete enough for trusted transactions.'
+          : 'Finish the missing details below to move your account closer to a verified state.',
+      actions: [
+        _InfoTile(label: 'Account name', value: name, icon: Icons.badge_outlined),
+        const SizedBox(height: 8),
+        _InfoTile(label: 'Email', value: email.isEmpty ? 'Not added' : email, icon: Icons.email_outlined),
+        const SizedBox(height: 8),
+        _InfoTile(label: 'Phone', value: phone.isEmpty ? 'Not added' : phone, icon: Icons.phone_outlined),
+        const SizedBox(height: 8),
+        _InfoTile(label: 'Member since', value: joined, icon: Icons.event_outlined),
+        if (missing.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Missing: ${missing.join(', ')}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.68),
+                ),
           ),
         ],
-      ),
+        const SizedBox(height: 16),
+        PrimaryButton(
+          label: hasName || hasEmail || hasPhone ? 'Edit profile' : 'Complete profile',
+          icon: Icons.edit_outlined,
+          onPressed: () {
+            Navigator.pop(context);
+            _openEditProfileSheet();
+          },
+        ),
+      ],
     );
+  }
 
-    if (confirm != true) return;
-    setState(() => _deletingAccount = true);
+  Future<void> _toggleThemePreference() async {
+    HapticFeedback.selectionClick();
+    context.read<ThemeController>().toggle();
+  }
+
+  Future<void> _togglePushPreference(bool value) async {
+    setState(() => _pushNotifications = value);
+    await _saveBoolPref(_pushNotificationsKey, value);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(value ? 'In-app alerts enabled.' : 'In-app alerts paused.')),
+    );
+  }
+
+  Future<void> _toggleEmailAlerts(bool value) async {
+    setState(() => _emailAlerts = value);
+    await _saveBoolPref(_emailAlertsKey, value);
+  }
+
+  Future<void> _toggleBeneficiaries(bool value) async {
+    setState(() => _saveBeneficiaries = value);
+    await _saveBoolPref(_saveBeneficiariesKey, value);
+  }
+
+  Future<void> _openFaqSheet() async {
+    await _showFeatureSheet(
+      title: 'Help center',
+      subtitle: 'Quick answers',
+      icon: Icons.help_outline_rounded,
+      helperText: 'A few quick answers while the full help center is being expanded.',
+      actions: [
+        _InfoTile(label: 'How do I fund my wallet?', value: 'Transfer to your dedicated account and the wallet updates automatically.', icon: Icons.account_balance_wallet_outlined),
+        const SizedBox(height: 8),
+        _InfoTile(label: 'Why is a purchase pending?', value: 'Some providers confirm a little later. We keep the record visible in History.', icon: Icons.schedule_outlined),
+        const SizedBox(height: 8),
+        _InfoTile(label: 'Where is my receipt?', value: 'Open the transaction and use View Receipt or Share Receipt.', icon: Icons.receipt_long_outlined),
+        const SizedBox(height: 16),
+        PrimaryButton(
+          label: 'Contact support',
+          icon: Icons.mail_outline_rounded,
+          onPressed: () {
+            Navigator.pop(context);
+            _contactSupport();
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openIssueSheet() async {
+    final subjectCtrl = TextEditingController(text: 'AxisVTU issue report');
+    final detailsCtrl = TextEditingController();
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 46,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Report an issue',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Tell us what happened and we will help you continue in the right channel.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.66),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: subjectCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Subject',
+                    prefixIcon: Icon(Icons.subject_rounded),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: detailsCtrl,
+                  minLines: 4,
+                  maxLines: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'What happened?',
+                    prefixIcon: Icon(Icons.chat_bubble_outline_rounded),
+                    alignLabelWithHint: true,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                PrimaryButton(
+                  label: 'Send to support',
+                  icon: Icons.mail_outline_rounded,
+                  onPressed: () async {
+                    final subject = subjectCtrl.text.trim().isEmpty
+                        ? 'AxisVTU issue report'
+                        : subjectCtrl.text.trim();
+                    final body = detailsCtrl.text.trim().isEmpty
+                        ? 'Hello AxisVTU team,\n\nI need help with an issue in the app.'
+                        : detailsCtrl.text.trim();
+                    Navigator.pop(context);
+                    await _launchSupportEmail(
+                      subject: subject,
+                      body: body,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _contactSupport() async {
+    await _launchSupportEmail(
+      subject: 'AxisVTU support request',
+      body: 'Hello AxisVTU team,\n\nI need help with my account.',
+    );
+  }
+
+  Future<void> _launchSupportEmail({required String subject, required String body}) async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: 'mmtechglobe@gmail.com',
+      queryParameters: {
+        'subject': subject,
+        'body': body,
+      },
+    );
     try {
-      await AuthService(token: token).deleteMe();
-      await session.logout();
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok && mounted) {
+        await _showComingSoon(
+          'Support email',
+          'Please write to mmtechglobe@gmail.com with your subject and issue details.',
+        );
+      }
+    } catch (_) {
       if (!mounted) return;
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil(WelcomeScreen.route, (route) => false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account deleted successfully')),
+      await _showComingSoon(
+        'Support email',
+        'Please write to mmtechglobe@gmail.com with your subject and issue details.',
       );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Delete account failed: $e')));
-    } finally {
-      if (mounted) setState(() => _deletingAccount = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 360 || size.height < 760;
     final session = context.watch<SessionController>();
     final user = session.user ?? {};
     final name = _displayName(user);
@@ -823,6 +1127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? 'In review'
         : 'Setup required';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final themeController = context.watch<ThemeController>();
     final heroText = isDark ? Colors.white : const Color(0xFF0F172A);
     final heroSoftText = isDark
         ? Colors.white.withValues(alpha: 0.85)
@@ -830,7 +1135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+        padding: EdgeInsets.fromLTRB(compact ? 14 : 16, 14, compact ? 14 : 16, 28),
         children: [
           Row(
             children: [
@@ -852,7 +1157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: const Icon(Icons.person_rounded, color: Colors.white),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: compact ? 10 : 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -875,12 +1180,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              const ThemeToggleButton(size: 44),
+              ThemeToggleButton(size: compact ? 40 : 44),
             ],
           ),
-              const SizedBox(height: 16),
+              SizedBox(height: compact ? 14 : 16),
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: EdgeInsets.all(compact ? 14 : 18),
             decoration: BoxDecoration(
               gradient: isDark
                   ? const LinearGradient(
@@ -963,7 +1268,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: compact ? 12 : 14),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -982,7 +1287,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: compact ? 8 : 10),
                 Text(
                   hasName && hasEmail && hasPhone
                       ? 'Your profile is ready for trusted purchases.'
@@ -994,7 +1299,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 12 : 14),
           _ProfileSection(
             title: 'Account details',
             subtitle: 'Identity and contact information',
@@ -1034,7 +1339,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
             title: 'Security center',
             subtitle: 'Protect your wallet and account',
@@ -1057,15 +1362,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
                 _ActionTile(
                   label: 'Biometric unlock',
-                  subtitle: 'Device-only quick access',
+                  subtitle: 'Device biometrics will arrive in a future update',
                   icon: Icons.fingerprint_rounded,
-                  trailing: Switch.adaptive(
-                    value: _biometricEnabled,
-                    onChanged: (value) =>
-                        setState(() => _biometricEnabled = value),
+                  onTap: () => _showComingSoon(
+                    'Biometric unlock',
+                    'Device biometrics will be supported in a future update for quicker secure access.',
                   ),
-                  onTap: () =>
-                      setState(() => _biometricEnabled = !_biometricEnabled),
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
@@ -1080,7 +1382,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
             title: 'Verification / KYC',
             subtitle: 'Strengthen your trust level',
@@ -1108,15 +1410,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? 'View verification'
                       : 'Complete verification',
                   icon: Icons.verified_rounded,
-                  onPressed: () => _showComingSoon(
-                    'KYC / Verification',
-                    'This screen will eventually connect to your full identity verification flow.',
+                  onPressed: () => _showVerificationDetails(
+                    verificationLabel: verificationLabel,
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    joined: joined,
+                    hasName: hasName,
+                    hasEmail: hasEmail,
+                    hasPhone: hasPhone,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
             title: 'Preferences',
             subtitle: 'Control notifications and convenience',
@@ -1124,16 +1432,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 _ActionTile(
-                  label: 'Push notifications',
-                  subtitle: 'Account alerts and purchase updates',
+                  label: 'Notification alerts',
+                  subtitle: 'In-app alerts and receipts for now',
                   icon: Icons.notifications_active_outlined,
                   trailing: Switch.adaptive(
                     value: _pushNotifications,
-                    onChanged: (value) =>
-                        setState(() => _pushNotifications = value),
+                    onChanged: _togglePushPreference,
                   ),
-                  onTap: () =>
-                      setState(() => _pushNotifications = !_pushNotifications),
+                  onTap: () => _togglePushPreference(!_pushNotifications),
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
@@ -1142,9 +1448,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.mark_email_unread_outlined,
                   trailing: Switch.adaptive(
                     value: _emailAlerts,
-                    onChanged: (value) => setState(() => _emailAlerts = value),
+                    onChanged: _toggleEmailAlerts,
                   ),
-                  onTap: () => setState(() => _emailAlerts = !_emailAlerts),
+                  onTap: () => _toggleEmailAlerts(!_emailAlerts),
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
@@ -1153,31 +1459,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.bookmark_border_rounded,
                   trailing: Switch.adaptive(
                     value: _saveBeneficiaries,
-                    onChanged: (value) =>
-                        setState(() => _saveBeneficiaries = value),
+                    onChanged: _toggleBeneficiaries,
                   ),
-                  onTap: () =>
-                      setState(() => _saveBeneficiaries = !_saveBeneficiaries),
+                  onTap: () => _toggleBeneficiaries(!_saveBeneficiaries),
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
                   label: 'Theme preference',
-                  subtitle: _themeFollowSystem
-                      ? 'Follow system theme'
-                      : 'Use manual theme switch',
+                  subtitle: themeController.isDark ? 'Dark mode' : 'Light mode',
                   icon: Icons.dark_mode_outlined,
                   trailing: Switch.adaptive(
-                    value: _themeFollowSystem,
-                    onChanged: (value) =>
-                        setState(() => _themeFollowSystem = value),
+                    value: themeController.isDark,
+                    onChanged: (_) => _toggleThemePreference(),
                   ),
-                  onTap: () =>
-                      setState(() => _themeFollowSystem = !_themeFollowSystem),
+                  onTap: _toggleThemePreference,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
             title: 'Help and support',
             subtitle: 'Get help quickly when needed',
@@ -1188,30 +1488,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   label: 'Contact support',
                   subtitle: 'Reach the AxisVTU team',
                   icon: Icons.headset_mic_outlined,
-                  onTap: () => _showComingSoon(
-                    'Contact support',
-                    'Support channels will open here for complaints, issues, and account help.',
-                  ),
+                  onTap: _contactSupport,
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
                   label: 'FAQ / Help center',
                   subtitle: 'Answers to common questions',
                   icon: Icons.help_outline_rounded,
-                  onTap: () => _showComingSoon(
-                    'Help center',
-                    'This will host support articles, policy notes, and quick answers.',
-                  ),
+                  onTap: _openFaqSheet,
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
                   label: 'Report an issue',
                   subtitle: 'Flag a failed transaction or app bug',
                   icon: Icons.bug_report_outlined,
-                  onTap: () => _showComingSoon(
-                    'Report an issue',
-                    'We can route reports here with screenshots and transaction references.',
-                  ),
+                  onTap: _openIssueSheet,
                 ),
               ],
             ),
@@ -1267,48 +1558,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _SectionBlock extends StatelessWidget {
-  const _SectionBlock({
-    required this.title,
-    required this.subtitle,
-    required this.child,
-  });
-
-  final String title;
-  final String subtitle;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.62);
-    return GlassCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: muted),
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
 class _ProfileSection extends StatefulWidget {
   const _ProfileSection({
     required this.title,
@@ -1331,6 +1580,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 360 || size.height < 760;
     final muted = Theme.of(
       context,
     ).colorScheme.onSurface.withValues(alpha: 0.62);
@@ -1344,7 +1595,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
           child: AnimatedContainer(
             duration: AxisDurations.normal,
             curve: Curves.easeOut,
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(compact ? 12 : 14),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(22),
@@ -1355,8 +1606,8 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 Row(
                   children: [
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: compact ? 36 : 40,
+                      height: compact ? 36 : 40,
                       decoration: BoxDecoration(
                         color: Theme.of(
                           context,
@@ -1366,22 +1617,26 @@ class _ProfileSectionState extends State<_ProfileSection> {
                       child: Icon(
                         widget.icon,
                         color: Theme.of(context).colorScheme.primary,
-                        size: 20,
+                        size: compact ? 18 : 20,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: compact ? 8 : 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             widget.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             widget.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(
                               context,
                             ).textTheme.bodySmall?.copyWith(color: muted),
@@ -1394,6 +1649,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                       duration: AxisDurations.normal,
                       child: Icon(
                         Icons.expand_more_rounded,
+                        size: compact ? 20 : 24,
                         color: Theme.of(
                           context,
                         ).colorScheme.onSurface.withValues(alpha: 0.55),
@@ -1404,7 +1660,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 AnimatedCrossFade(
                   firstChild: const SizedBox.shrink(),
                   secondChild: Column(
-                    children: [const SizedBox(height: 14), widget.child],
+                    children: [SizedBox(height: compact ? 12 : 14), widget.child],
                   ),
                   crossFadeState: _expanded
                       ? CrossFadeState.showSecond
@@ -1433,11 +1689,12 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 360 || MediaQuery.sizeOf(context).height < 760;
     final muted = Theme.of(
       context,
     ).colorScheme.onSurface.withValues(alpha: 0.64);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14, vertical: compact ? 10 : 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
@@ -1448,8 +1705,8 @@ class _InfoTile extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: compact ? 34 : 36,
+            height: compact ? 34 : 36,
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
@@ -1458,17 +1715,19 @@ class _InfoTile extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              size: 18,
+              size: compact ? 16 : 18,
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: compact ? 8 : 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: muted),
@@ -1498,7 +1757,6 @@ class _ActionTile extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.trailing,
-    this.danger = false,
   });
 
   final String label;
@@ -1506,20 +1764,18 @@ class _ActionTile extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final Widget? trailing;
-  final bool danger;
 
   @override
   Widget build(BuildContext context) {
-    final color = danger
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.primary;
+    final compact = MediaQuery.sizeOf(context).width < 360 || MediaQuery.sizeOf(context).height < 760;
+    final color = Theme.of(context).colorScheme.primary;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14, vertical: compact ? 10 : 12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(18),
@@ -1532,21 +1788,23 @@ class _ActionTile extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: compact ? 34 : 36,
+                height: compact ? 34 : 36,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, size: 18, color: color),
+                child: Icon(icon, size: compact ? 16 : 18, color: color),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: compact ? 8 : 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -1554,6 +1812,8 @@ class _ActionTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(
                           context,
@@ -1566,6 +1826,7 @@ class _ActionTile extends StatelessWidget {
               trailing ??
                   Icon(
                     Icons.chevron_right_rounded,
+                    size: compact ? 20 : 24,
                     color: Theme.of(
                       context,
                     ).colorScheme.onSurface.withValues(alpha: 0.48),

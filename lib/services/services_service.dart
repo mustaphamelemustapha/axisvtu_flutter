@@ -16,11 +16,14 @@ class ServicesService {
     required String network,
     required String phoneNumber,
     required double amount,
+    String? clientRequestId,
   }) {
     return _client.post('/services/airtime/purchase', {
       'network': network,
       'phone_number': phoneNumber,
       'amount': amount,
+      if (clientRequestId != null && clientRequestId.trim().isNotEmpty)
+        'client_request_id': clientRequestId.trim(),
     });
   }
 
@@ -30,6 +33,7 @@ class ServicesService {
     required String phoneNumber,
     required String packageCode,
     required double amount,
+    String? clientRequestId,
   }) {
     return _client.post('/services/cable/purchase', {
       'provider': provider,
@@ -37,6 +41,8 @@ class ServicesService {
       'phone_number': phoneNumber,
       'package_code': packageCode,
       'amount': amount,
+      if (clientRequestId != null && clientRequestId.trim().isNotEmpty)
+        'client_request_id': clientRequestId.trim(),
     });
   }
 
@@ -46,6 +52,7 @@ class ServicesService {
     required String meterNumber,
     required String phoneNumber,
     required double amount,
+    String? clientRequestId,
   }) {
     return _client.post('/services/electricity/purchase', {
       'disco': disco,
@@ -53,6 +60,8 @@ class ServicesService {
       'meter_number': meterNumber,
       'phone_number': phoneNumber,
       'amount': amount,
+      if (clientRequestId != null && clientRequestId.trim().isNotEmpty)
+        'client_request_id': clientRequestId.trim(),
     });
   }
 
@@ -60,6 +69,7 @@ class ServicesService {
     required String exam,
     required int quantity,
     String? phoneNumber,
+    String? clientRequestId,
   }) {
     return _client.post('/services/exam/purchase', {
       'exam': exam,
@@ -67,6 +77,8 @@ class ServicesService {
       'phone_number': (phoneNumber == null || phoneNumber.trim().isEmpty)
           ? null
           : phoneNumber.trim(),
+      if (clientRequestId != null && clientRequestId.trim().isNotEmpty)
+        'client_request_id': clientRequestId.trim(),
     });
   }
 }

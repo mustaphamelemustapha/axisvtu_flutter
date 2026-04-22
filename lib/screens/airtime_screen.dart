@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_client.dart';
 import '../services/purchase_auth_service.dart';
+import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
 import '../widgets/primary_button.dart';
@@ -62,6 +63,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
 
   String _network = 'mtn';
   bool _loading = false;
+  String? _activeRequestId;
   bool _beneficiariesEnabled = true;
   bool _smartSuggestionEnabled = true;
   String? _error;
@@ -83,6 +85,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   void initState() {
     super.initState();
     _phoneCtrl.addListener(_onPhoneChanged);
+    _amountCtrl.addListener(_invalidateRequestId);
     _loadCatalog();
     _loadPreferences();
     _loadRecentNumbers();
@@ -91,6 +94,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   @override
   void dispose() {
     _phoneCtrl.removeListener(_onPhoneChanged);
+    _amountCtrl.removeListener(_invalidateRequestId);
     _phoneCtrl.dispose();
     _amountCtrl.dispose();
     super.dispose();
@@ -110,6 +114,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
             .toList();
         if (!mounted || items.isEmpty) return;
         setState(() {
+          _invalidateRequestId();
           _networks = items;
           if (!_networks.contains(_network)) {
             _network = _networks.first;
@@ -156,6 +161,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   }
 
   void _onPhoneChanged() {
+    _activeRequestId = null;
     final rawDigits = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
     final normalized = _normalizePhone(rawDigits);
 
@@ -181,6 +187,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     if (nextSuggestions.join('|') != _suggestions.join('|')) {
       setState(() => _suggestions = nextSuggestions);
     }
+  }
+
+  void _invalidateRequestId() {
+    _activeRequestId = null;
   }
 
   String _normalizeNetworkName(dynamic value) {
@@ -258,9 +268,15 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     PurchaseLoadingOverlay.show(context, title: 'Buying airtime');
 
     try {
+      _activeRequestId ??= buildRequestId("airtime");
       final res = await ServicesService(
         token: token,
-      ).purchaseAirtime(network: _network, phoneNumber: phone, amount: amount);
+      ).purchaseAirtime(
+        network: _network,
+        phoneNumber: phone,
+        amount: amount,
+        clientRequestId: _activeRequestId,
+      );
       final status = _resolveResultStatus(res);
       if (!mounted) return;
       await _saveRecentNumber(phone);
@@ -275,6 +291,9 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
           ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
         ],
       );
+      if (status != 'pending') {
+        _activeRequestId = null;
+      }
     } catch (e) {
       if (!mounted) return;
       final message = e is ApiException ? e.message : e.toString();
@@ -305,6 +324,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
             ReceiptField(label: 'Failure', value: message),
           ],
         );
+        _activeRequestId = null;
       }
     } finally {
       PurchaseLoadingOverlay.hide();
@@ -438,7 +458,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                   label: network.toUpperCase(),
                   selected: _network == network,
                   leading: _networkLogo(network),
-                  onTap: () => setState(() => _network = network),
+                  onTap: () {
+                    _invalidateRequestId();
+                    setState(() => _network = network);
+                  },
                 );
               }).toList(),
             ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
 import 'theme_toggle_button.dart';
 
@@ -25,46 +24,16 @@ class ServiceShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.height < 760 || size.width < 390;
+    final bottomPadding = footer == null ? 24.0 : (compact ? 136.0 : 160.0);
     return Scaffold(
       body: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         behavior: HitTestBehavior.translucent,
         child: Stack(
           children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? const [
-                          Color(0xFF0A0F17),
-                          Color(0xFF0F1624),
-                          Color(0xFF0A0F17),
-                        ]
-                      : const [
-                          Color(0xFFF5F9FF),
-                          Color(0xFFEEF4FF),
-                          Color(0xFFF5F9FF),
-                        ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-            Positioned(
-              top: -80,
-              right: -60,
-              child: _GlowBlob(
-                color: const Color(0xFF1E88E5).withValues(alpha: 0.35),
-              ),
-            ),
-            Positioned(
-              top: 120,
-              left: -70,
-              child: _GlowBlob(
-                color: const Color(0xFF0FB5AE).withValues(alpha: 0.24),
-              ),
-            ),
+            Container(color: Theme.of(context).scaffoldBackgroundColor),
             SafeArea(
               child: Stack(
                 children: [
@@ -74,90 +43,82 @@ class ServiceShell extends StatelessWidget {
                         ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: EdgeInsets.fromLTRB(
                       16,
-                      12,
+                      compact ? 10 : 12,
                       16,
-                      footer == null ? 24 : 160,
+                      bottomPadding,
                     ),
                     children: [
-                  Row(
-                    children: [
-                      _ActionBtn(
-                        icon: Icons.arrow_back_rounded,
-                        onTap: () {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          final nav = Navigator.of(context);
-                          if (nav.canPop()) {
-                            nav.pop();
-                            return;
-                          }
-                          nav.pushNamedAndRemoveUntil('/app', (route) => false);
-                        },
+                      Row(
+                        children: [
+                          _ActionBtn(
+                            icon: Icons.arrow_back_rounded,
+                            onTap: () {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              final nav = Navigator.of(context);
+                              if (nav.canPop()) {
+                                nav.pop();
+                                return;
+                              }
+                              nav.pushNamedAndRemoveUntil('/app', (route) => false);
+                            },
+                          ),
+                          const Spacer(),
+                          const ThemeToggleButton(size: 44),
+                        ],
                       ),
-                      const Spacer(),
-                      const ThemeToggleButton(size: 44),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      gradient: AxisPalette.gradient,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF2457F5).withValues(alpha: 0.2),
-                          blurRadius: 24,
-                          offset: const Offset(0, 12),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          height: 52,
-                          width: 52,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.16),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.14),
+                      const SizedBox(height: 16),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 40,
+                            width: 40,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                              ),
+                            ),
+                            child: Icon(
+                              icon,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 22,
                             ),
                           ),
-                          child: Icon(icon, color: Colors.white, size: 26),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                title,
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                subtitle,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.9,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.15,
                                       ),
-                                    ),
-                              ),
-                            ],
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  subtitle,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.62),
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      child,
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  child,
-                ],
-              ),
                   if (footer != null)
                     Positioned(
                       left: 0,
@@ -249,20 +210,22 @@ class ServiceSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.height < 760 || size.width < 390;
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(compact ? 14 : 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF111827) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: isDark ? const Color(0xFF111827) : Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.55 : 0.92),
+          color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.40 : 0.72),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.06),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: isDark ? 0.06 : 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -277,7 +240,7 @@ class ServiceSectionCard extends StatelessWidget {
             ),
           ),
           if (subtitle != null) ...[
-            const SizedBox(height: 4),
+            SizedBox(height: compact ? 3 : 4),
             Text(
               subtitle!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -287,7 +250,7 @@ class ServiceSectionCard extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 12 : 14),
           child,
         ],
       ),
@@ -315,26 +278,6 @@ class _ActionBtn extends StatelessWidget {
           border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.95)),
         ),
         child: Icon(icon),
-      ),
-    );
-  }
-}
-
-class _GlowBlob extends StatelessWidget {
-  const _GlowBlob({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: 220,
-        height: 220,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
-        ),
       ),
     );
   }

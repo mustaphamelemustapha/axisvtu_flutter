@@ -30,20 +30,22 @@ class PurchaseAuthService {
       }
 
       if (!status.isSet) {
-        return _setupFlow(context: context, service: service, reason: reason);
-      }
-
-      if (status.isLocked) {
-        _showSnack(
-          context,
-          'Transaction PIN is temporarily locked. Try again later.',
+        return _setupFlow(
+          context: context,
+          service: service,
+          reason: reason,
+          pinLength: status.pinLength,
         );
-        return false;
       }
 
-      return _verifyFlow(context: context, service: service, reason: reason);
+      return _verifyFlow(
+        context: context,
+        service: service,
+        reason: reason,
+        pinLength: status.pinLength,
+      );
     } on ApiException catch (e) {
-      _showSnack(context, _friendlyError(e.message));
+      _showSnack(context, _friendlyError(e.message, e.statusCode));
       return false;
     } catch (e) {
       _showSnack(context, _friendlyError(e.toString()));
@@ -55,20 +57,23 @@ class PurchaseAuthService {
     required BuildContext context,
     required TransactionPinService service,
     required String reason,
+    required int pinLength,
   }) async {
     final first = await _requestPinInput(
       context: context,
       title: 'Create Transaction PIN',
-      subtitle: 'Set your 4-digit PIN for $reason.',
+      subtitle: 'Set your $pinLength-digit PIN for $reason.',
       confirmLabel: 'Continue',
+      pinLength: pinLength,
     );
     if (first == null || !context.mounted) return false;
 
     final second = await _requestPinInput(
       context: context,
       title: 'Confirm Transaction PIN',
-      subtitle: 'Re-enter your 4-digit PIN.',
+      subtitle: 'Re-enter your $pinLength-digit PIN.',
       confirmLabel: 'Save PIN',
+      pinLength: pinLength,
     );
     if (second == null || !context.mounted) return false;
     if (first != second) {
@@ -84,9 +89,14 @@ class PurchaseAuthService {
     } on ApiException catch (e) {
       if (e.statusCode == 409) {
         // Another device/session may have already set it. Re-run verification.
-        return _verifyFlow(context: context, service: service, reason: reason);
+        return _verifyFlow(
+          context: context,
+          service: service,
+          reason: reason,
+          pinLength: pinLength,
+        );
       }
-      _showSnack(context, _friendlyError(e.message));
+      _showSnack(context, _friendlyError(e.message, e.statusCode));
       return false;
     } catch (e) {
       _showSnack(context, _friendlyError(e.toString()));
@@ -98,25 +108,27 @@ class PurchaseAuthService {
     required BuildContext context,
     required TransactionPinService service,
     required String reason,
+    required int pinLength,
   }) async {
     final pin = await _requestPinInput(
       context: context,
       title: 'Enter Transaction PIN',
-      subtitle: 'Authorize this $reason with your 4-digit PIN.',
+      subtitle: 'Authorize this $reason with your $pinLength-digit PIN.',
       confirmLabel: 'Verify',
+      pinLength: pinLength,
+      onSubmit: (value) async {
+        try {
+          await service.verify(value);
+          return null;
+        } on ApiException catch (e) {
+          return _friendlyError(e.message, e.statusCode);
+        } catch (e) {
+          return _friendlyError(e.toString());
+        }
+      },
     );
     if (pin == null || !context.mounted) return false;
-
-    try {
-      await service.verify(pin);
-      return true;
-    } on ApiException catch (e) {
-      _showSnack(context, _friendlyError(e.message));
-      return false;
-    } catch (e) {
-      _showSnack(context, _friendlyError(e.toString()));
-      return false;
-    }
+    return true;
   }
 
   static Future<String?> _requestPinInput({
@@ -124,12 +136,16 @@ class PurchaseAuthService {
     required String title,
     required String subtitle,
     required String confirmLabel,
+    required int pinLength,
+    Future<String?> Function(String pin)? onSubmit,
   }) {
     return PinEntrySheet.show(
       context,
       title: title,
       subtitle: subtitle,
       confirmLabel: confirmLabel,
+      pinLength: pinLength,
+      onSubmit: onSubmit,
     );
   }
 
@@ -140,12 +156,50 @@ class PurchaseAuthService {
     );
   }
 
-  static String _friendlyError(String message) {
+  static String _friendlyError(String message, [int? statusCode]) {
     final raw = message.trim();
+    final lower = raw.toLowerCase();
+    if (statusCode == 401 ||
+        statusCode == 403 ||
+        statusCode == 423 ||
+        statusCode == 429) {
+      return 'Incorrect PIN, try again.';
+    }
+    if (lower.contains('incorrect') && lower.contains('pin')) {
+      return 'Incorrect PIN, try again.';
+    }
+    if (lower.contains('locked') || lower.contains('attempt')) {
+      return 'Incorrect PIN, try again.';
+    }
+    if (lower.contains('too many requests') ||
+        lower.contains('rate limit') ||
+        lower.contains('try again later')) {
+      return 'Incorrect PIN, try again.';
+    }
+    if (lower.contains('timed out') || lower.contains('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+    if (lower.contains('network') || lower.contains('connection')) {
+      return 'Check your connection and try again.';
+    }
     if (raw.startsWith('ApiException(')) {
       final idx = raw.indexOf(':');
       if (idx != -1 && idx + 1 < raw.length) {
-        return raw.substring(idx + 1).trim();
+        final parsed = raw.substring(idx + 1).trim();
+        if (parsed.toLowerCase().contains('incorrect') &&
+            parsed.toLowerCase().contains('pin')) {
+          return 'Incorrect PIN, try again.';
+        }
+        if (parsed.toLowerCase().contains('locked') ||
+            parsed.toLowerCase().contains('attempt')) {
+          return 'Incorrect PIN, try again.';
+        }
+        if (parsed.toLowerCase().contains('too many requests') ||
+            parsed.toLowerCase().contains('rate limit') ||
+            parsed.toLowerCase().contains('try again later')) {
+          return 'Incorrect PIN, try again.';
+        }
+        return parsed;
       }
     }
     if (raw.isEmpty) return 'Something went wrong. Please try again.';

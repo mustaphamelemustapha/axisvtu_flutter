@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -20,8 +21,16 @@ class ApiClient {
 
   Future<Map<String, dynamic>> get(String path) async {
     final uri = Uri.parse('$baseUrl$path');
-    final resp = await http.get(uri, headers: _headers());
-    return _decode(resp);
+    try {
+      final resp = await http.get(uri, headers: _headers());
+      return _decode(resp);
+    } on TimeoutException {
+      throw ApiException(408, 'Request timed out. Please try again.');
+    } on http.ClientException {
+      throw ApiException(503, 'Network unavailable. Please check your connection.');
+    } catch (_) {
+      throw ApiException(500, 'Request failed. Please try again.');
+    }
   }
 
   Future<Map<String, dynamic>> post(
@@ -29,12 +38,20 @@ class ApiClient {
     Map<String, dynamic> body,
   ) async {
     final uri = Uri.parse('$baseUrl$path');
-    final resp = await http.post(
-      uri,
-      headers: _headers(),
-      body: jsonEncode(body),
-    );
-    return _decode(resp);
+    try {
+      final resp = await http.post(
+        uri,
+        headers: _headers(),
+        body: jsonEncode(body),
+      );
+      return _decode(resp);
+    } on TimeoutException {
+      throw ApiException(408, 'Request timed out. Please try again.');
+    } on http.ClientException {
+      throw ApiException(503, 'Network unavailable. Please check your connection.');
+    } catch (_) {
+      throw ApiException(500, 'Request failed. Please try again.');
+    }
   }
 
   Future<Map<String, dynamic>> patch(
@@ -42,18 +59,34 @@ class ApiClient {
     Map<String, dynamic> body,
   ) async {
     final uri = Uri.parse('$baseUrl$path');
-    final resp = await http.patch(
-      uri,
-      headers: _headers(),
-      body: jsonEncode(body),
-    );
-    return _decode(resp);
+    try {
+      final resp = await http.patch(
+        uri,
+        headers: _headers(),
+        body: jsonEncode(body),
+      );
+      return _decode(resp);
+    } on TimeoutException {
+      throw ApiException(408, 'Request timed out. Please try again.');
+    } on http.ClientException {
+      throw ApiException(503, 'Network unavailable. Please check your connection.');
+    } catch (_) {
+      throw ApiException(500, 'Request failed. Please try again.');
+    }
   }
 
   Future<Map<String, dynamic>> delete(String path) async {
     final uri = Uri.parse('$baseUrl$path');
-    final resp = await http.delete(uri, headers: _headers());
-    return _decode(resp);
+    try {
+      final resp = await http.delete(uri, headers: _headers());
+      return _decode(resp);
+    } on TimeoutException {
+      throw ApiException(408, 'Request timed out. Please try again.');
+    } on http.ClientException {
+      throw ApiException(503, 'Network unavailable. Please check your connection.');
+    } catch (_) {
+      throw ApiException(500, 'Request failed. Please try again.');
+    }
   }
 
   Map<String, dynamic> _decode(http.Response resp) {

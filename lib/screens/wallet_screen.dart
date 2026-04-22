@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -9,17 +7,40 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../services/api_client.dart';
+import '../services/dashboard_snapshot_cache.dart';
 import '../services/auth_service.dart';
 import '../services/transactions_service.dart';
 import '../services/wallet_service.dart';
 import 'airtime_screen.dart';
 import 'data_screen.dart';
 import 'electricity_screen.dart';
+import 'profile_screen.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/primary_button.dart';
+
+const double _walletInsightAspectRatio = 1.46;
+
+double _walletInsightAspectRatioForWidth(double width) {
+  if (width < 340) return 1.18;
+  if (width < 380) return 1.24;
+  if (width < 430) return 1.34;
+  return _walletInsightAspectRatio;
+}
+
+double _walletInsightExtentForWidth(double width) {
+  if (width < 340) return 110;
+  if (width < 380) return 118;
+  if (width < 430) return 128;
+  return 138;
+}
+
+int _walletInsightColumnsForWidth(double width) {
+  if (width < 360) return 1;
+  return 2;
+}
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key, this.onNavigateTab});
@@ -35,10 +56,12 @@ class _WalletScreenState extends State<WalletScreen> {
   Future<Map<String, dynamic>>? _walletFuture;
   Future<Map<String, dynamic>>? _accountsFuture;
   Future<List<Map<String, dynamic>>>? _transactionsFuture;
+  Map<String, dynamic>? _cachedWalletData;
+  Map<String, dynamic>? _cachedAccountsData;
   bool _generating = false;
   bool _hideBalance = false;
-  bool _hideBalanceLoaded = false;
   String _activeToken = '';
+  String _activeDashboardKey = '';
   Timer? _pollTimer;
 
   @override
@@ -51,11 +74,24 @@ class _WalletScreenState extends State<WalletScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final token = (context.watch<SessionController>().token ?? '').trim();
+    final dashboardKey =
+        DashboardSnapshotCache.identityFromUser(
+          context.read<SessionController>().user,
+        ) ??
+        token;
     if (token.isNotEmpty &&
+        dashboardKey.isNotEmpty &&
         (token != _activeToken ||
             _walletFuture == null ||
-            _accountsFuture == null)) {
-      _reloadWallet(token);
+            _accountsFuture == null ||
+            dashboardKey != _activeDashboardKey)) {
+      if (dashboardKey != _activeDashboardKey) {
+        _cachedWalletData = null;
+        _cachedAccountsData = null;
+      }
+      _activeDashboardKey = dashboardKey;
+      _reloadWallet(token, dashboardKey);
+      _loadCachedWallet(dashboardKey);
       _startAutoRefresh(token);
       _activeToken = token;
     }
@@ -72,7 +108,6 @@ class _WalletScreenState extends State<WalletScreen> {
     if (!mounted) return;
     setState(() {
       _hideBalance = prefs.getBool(_hideBalanceKey) ?? false;
-      _hideBalanceLoaded = true;
     });
   }
 
@@ -83,25 +118,52 @@ class _WalletScreenState extends State<WalletScreen> {
     await prefs.setBool(_hideBalanceKey, next);
   }
 
-  void _reloadWallet(String token) {
+  Future<void> _loadCachedWallet(String dashboardKey) async {
+    final cached = await DashboardSnapshotCache.load(dashboardKey);
+    if (!mounted || dashboardKey != _activeDashboardKey) return;
+    setState(() {
+      _cachedWalletData = _asMap(cached?['wallet']);
+      _cachedAccountsData = _asMap(cached?['accounts']);
+    });
+  }
+
+  void _reloadWallet(String token, String dashboardKey) {
     final service = WalletService(token: token);
     _walletFuture = service.getWallet();
     _accountsFuture = service.getBankAccounts();
     _transactionsFuture = _loadRecentTransactions(token);
+    _walletFuture!.then((data) {
+      if (!mounted || dashboardKey != _activeDashboardKey) return;
+      unawaited(DashboardSnapshotCache.save(dashboardKey, wallet: data));
+    }).catchError((_) {});
+    _accountsFuture!.then((data) {
+      if (!mounted || dashboardKey != _activeDashboardKey) return;
+      unawaited(DashboardSnapshotCache.save(dashboardKey, accounts: data));
+    }).catchError((_) {});
   }
 
   void _startAutoRefresh(String token) {
+    final dashboardKey =
+        DashboardSnapshotCache.identityFromUser(
+          context.read<SessionController>().user,
+        ) ??
+        token;
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!mounted || _generating) return;
-      setState(() => _reloadWallet(token));
+      setState(() => _reloadWallet(token, dashboardKey));
     });
   }
 
   Future<void> _refresh() async {
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) return;
-    setState(() => _reloadWallet(token));
+    final dashboardKey =
+        DashboardSnapshotCache.identityFromUser(
+          context.read<SessionController>().user,
+        ) ??
+        token;
+    setState(() => _reloadWallet(token, dashboardKey));
     await Future.wait([
       _walletFuture!,
       _accountsFuture!,
@@ -128,6 +190,16 @@ class _WalletScreenState extends State<WalletScreen> {
         .whereType<Map>()
         .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
         .toList();
+  }
+
+  Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map(
+        (key, item) => MapEntry(key.toString(), item),
+      );
+    }
+    return null;
   }
 
   String _formatNaira(dynamic value) {
@@ -302,14 +374,20 @@ class _WalletScreenState extends State<WalletScreen> {
         await _promptPhoneNumber();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unable to generate account: ${e.message}')),
+          const SnackBar(
+            content: Text('We could not update your wallet details right now.'),
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Unable to generate account: $e')));
+      ).showSnackBar(
+        const SnackBar(
+          content: Text('We could not update your wallet details right now.'),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _generating = false);
     }
@@ -397,6 +475,7 @@ class _WalletScreenState extends State<WalletScreen> {
       accountName: accountName,
     );
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await SharePlus.instance.share(
         ShareParams(
@@ -407,7 +486,7 @@ class _WalletScreenState extends State<WalletScreen> {
     } catch (_) {
       if (!mounted) return;
       await Clipboard.setData(ClipboardData(text: shortText));
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Account details copied to clipboard.')),
       );
     }
@@ -444,6 +523,8 @@ class _WalletScreenState extends State<WalletScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 360 || size.height < 760;
     final user = context.watch<SessionController>().user ?? {};
     final name = (user['full_name'] ?? user['name'] ?? 'AxisVTU User')
         .toString()
@@ -464,7 +545,12 @@ class _WalletScreenState extends State<WalletScreen> {
         edgeOffset: 10,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 16 : 20,
+            14,
+            compact ? 16 : 20,
+            28,
+          ),
           children: [
             Row(
               children: [
@@ -479,8 +565,8 @@ class _WalletScreenState extends State<WalletScreen> {
                         color: Theme.of(
                           context,
                         ).colorScheme.primary.withValues(alpha: 0.18),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -489,7 +575,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: compact ? 10 : 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,7 +596,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: compact ? 4 : 8),
                 GlassCard(
                   padding: const EdgeInsets.all(4),
                   child: IconButton(
@@ -521,9 +607,9 @@ class _WalletScreenState extends State<WalletScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: compact ? 14 : 18),
             Container(
-              padding: const EdgeInsets.all(18),
+              padding: EdgeInsets.all(compact ? 14 : 18),
               decoration: BoxDecoration(
                 gradient: isDark
                     ? const LinearGradient(
@@ -547,8 +633,8 @@ class _WalletScreenState extends State<WalletScreen> {
                     color: isDark
                         ? Colors.black.withValues(alpha: 0.26)
                         : const Color(0xFF2457F5).withValues(alpha: 0.12),
-                    blurRadius: 26,
-                    offset: const Offset(0, 14),
+                    blurRadius: 14,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -588,8 +674,7 @@ class _WalletScreenState extends State<WalletScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const SizedBox(width: 8),
+                      SizedBox(width: compact ? 4 : 8),
                       GlassCard(
                         padding: const EdgeInsets.all(4),
                         child: IconButton(
@@ -631,11 +716,24 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: compact ? 12 : 16),
                   FutureBuilder<Map<String, dynamic>>(
                     future: _walletFuture,
                     builder: (context, snapshot) {
-                      final balance = _extractBalance(snapshot.data);
+                      final isLoading =
+                          snapshot.connectionState == ConnectionState.waiting;
+                      final walletData = snapshot.data ??
+                          ((isLoading || snapshot.hasError) &&
+                                  _cachedWalletData != null
+                              ? _cachedWalletData
+                              : null);
+                      if (walletData == null) {
+                        if (snapshot.hasError) {
+                          return _DashboardBalanceError(onRefresh: _refresh);
+                        }
+                        return const _DashboardBalanceSkeleton();
+                      }
+                      final balance = _extractBalance(walletData);
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -719,7 +817,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: compact ? 6 : 8),
                   Text(
                     'Money lands here automatically once your dedicated account is funded.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -729,98 +827,44 @@ class _WalletScreenState extends State<WalletScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: compact ? 12 : 14),
             FutureBuilder<Map<String, dynamic>>(
               future: _accountsFuture,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const GlassCard(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          SizedBox(width: 10),
-                          Text('Loading account details...'),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return GlassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Could not load account details.',
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.error,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Pull to refresh or generate a new dedicated account.',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(color: muted),
-                        ),
-                        const SizedBox(height: 12),
-                        PrimaryButton(
-                          label: 'Generate Account',
-                          icon: Icons.account_balance_rounded,
-                          onPressed: _generating ? null : _generateAccount,
-                        ),
-                      ],
-                    ),
-                  );
+                final isLoading =
+                    snapshot.connectionState == ConnectionState.waiting;
+                final accountsData = snapshot.data ??
+                    ((isLoading || snapshot.hasError) && _cachedAccountsData != null
+                        ? _cachedAccountsData
+                        : null);
+                if (accountsData == null) {
+                  if (snapshot.hasError) {
+                    return _WalletAccountUnavailable(
+                      message: 'Wallet details are temporarily unavailable.',
+                      actionLabel: 'Refresh',
+                      onAction: () => _refresh(),
+                    );
+                  }
+                  return const _WalletAccountSkeleton();
                 }
 
-                final accounts = (snapshot.data?['accounts'] as List?) ?? [];
-                final requiresKyc = snapshot.data?['requires_kyc'] == true;
+                final accounts = (accountsData['accounts'] as List?) ?? const [];
+                final requiresKyc = accountsData['requires_kyc'] == true;
                 if (accounts.isEmpty) {
-                  return GlassCard(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          requiresKyc
-                              ? 'Generate your dedicated account to start receiving transfers.'
-                              : 'No dedicated account is available yet.',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.1,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Once the account is created, transfer money here and your wallet updates automatically.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: muted,
-                                height: 1.45,
-                              ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: PrimaryButton(
-                            label: _generating
-                                ? 'Generating...'
-                                : 'Generate Account',
-                            icon: Icons.add_card_rounded,
-                            loading: _generating,
-                            onPressed: _generating ? null : _generateAccount,
-                          ),
-                        ),
-                      ],
-                    ),
+                  return _WalletAccountUnavailable(
+                    message: requiresKyc
+                        ? 'Finish verification to unlock your dedicated account.'
+                        : 'Wallet details will appear shortly.',
+                    actionLabel: requiresKyc ? 'View Profile' : 'Try again',
+                    onAction: requiresKyc
+                        ? () {
+                            if (widget.onNavigateTab != null) {
+                              widget.onNavigateTab!(4);
+                            } else {
+                              _openScreen(const ProfileScreen());
+                            }
+                          }
+                        : () => _refresh(),
                   );
                 }
 
@@ -828,131 +872,103 @@ class _WalletScreenState extends State<WalletScreen> {
                     ? Map<String, dynamic>.from(accounts.first as Map)
                     : <String, dynamic>{};
                 final bankName = (account['bank_name'] ?? 'Paystack-Titan')
-                    .toString();
-                final accountNumber = (account['account_number'] ?? '').toString();
-                final accountName = (account['account_name'] ?? name).toString();
-                final hasAccount =
-                    accountNumber.isNotEmpty && accountNumber != 'Not generated yet';
+                    .toString()
+                    .trim();
+                final accountNumber = (account['account_number'] ?? '')
+                    .toString()
+                    .trim();
+                final accountName = (account['account_name'] ?? name)
+                    .toString()
+                    .trim();
+                if (accountNumber.isEmpty) {
+                  return _WalletAccountUnavailable(
+                    message: 'Wallet details will appear shortly.',
+                    actionLabel: 'Try again',
+                    onAction: _refresh,
+                  );
+                }
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        final itemWidth = (constraints.maxWidth - 10) / 2;
+                        final narrow = constraints.maxWidth < 380;
+                        final actions = [
+                          _WalletActionPill(
+                            icon: Icons.copy_rounded,
+                            label: 'Copy Account',
+                            accent: const Color(0xFF3B82F6),
+                            onTap: () => _copyText(
+                              accountNumber,
+                              'Account number',
+                            ),
+                          ),
+                          _WalletActionPill(
+                            icon: Icons.wifi_rounded,
+                            label: 'Buy Data',
+                            accent: const Color(0xFF3B82F6),
+                            onTap: () {
+                              if (widget.onNavigateTab != null) {
+                                widget.onNavigateTab!(2);
+                              } else {
+                                _openScreen(const DataScreen());
+                              }
+                            },
+                          ),
+                          _WalletActionPill(
+                            icon: Icons.phone_iphone_rounded,
+                            label: 'Airtime',
+                            accent: const Color(0xFF10B981),
+                            onTap: () => _openScreen(const AirtimeScreen()),
+                          ),
+                          _WalletActionPill(
+                            icon: Icons.flash_on_rounded,
+                            label: 'Bills',
+                            accent: const Color(0xFFF59E0B),
+                            onTap: () => _openScreen(const ElectricityScreen()),
+                          ),
+                        ];
+                        if (narrow) {
+                          return Column(
+                            children: [
+                              for (var i = 0; i < actions.length; i++) ...[
+                                if (i > 0) const SizedBox(height: 8),
+                                actions[i],
+                              ],
+                            ],
+                          );
+                        }
                         return Wrap(
                           spacing: 10,
                           runSpacing: 10,
                           children: [
-                            SizedBox(
-                              width: itemWidth,
-                              child: _WalletActionPill(
-                                icon: Icons.copy_rounded,
-                                label: 'Copy Account',
-                                accent: const Color(0xFF3B82F6),
-                                onTap: hasAccount
-                                    ? () => _copyText(
-                                          accountNumber,
-                                          'Account number',
-                                        )
-                                    : null,
-                              ),
-                            ),
-                            SizedBox(
-                              width: itemWidth,
-                            child: _WalletActionPill(
-                              icon: Icons.wifi_rounded,
-                              label: 'Buy Data',
-                              accent: const Color(0xFF3B82F6),
-                              onTap: () {
-                                if (widget.onNavigateTab != null) {
-                                  widget.onNavigateTab!(2);
-                                } else {
-                                  _openScreen(const DataScreen());
-                                }
-                              },
-                            ),
-                          ),
-                            SizedBox(
-                              width: itemWidth,
-                            child: _WalletActionPill(
-                              icon: Icons.phone_iphone_rounded,
-                              label: 'Airtime',
-                              accent: const Color(0xFF10B981),
-                              onTap: () => _openScreen(const AirtimeScreen()),
-                            ),
-                          ),
-                            SizedBox(
-                              width: itemWidth,
-                            child: _WalletActionPill(
-                              icon: Icons.flash_on_rounded,
-                              label: 'Bills',
-                              accent: const Color(0xFFF59E0B),
-                              onTap: () =>
-                                  _openScreen(const ElectricityScreen()),
-                            ),
-                          ),
+                            SizedBox(width: (constraints.maxWidth - 10) / 2, child: actions[0]),
+                            SizedBox(width: (constraints.maxWidth - 10) / 2, child: actions[1]),
+                            SizedBox(width: (constraints.maxWidth - 10) / 2, child: actions[2]),
+                            SizedBox(width: (constraints.maxWidth - 10) / 2, child: actions[3]),
                           ],
                         );
                       },
                     ),
-                    const SizedBox(height: 12),
-                    if (!hasAccount)
-                      GlassCard(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              requiresKyc
-                                  ? 'Generate your dedicated account to start receiving transfers.'
-                                  : 'No dedicated account is available yet.',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.1,
-                                  ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Once the account is created, transfer money here and your wallet updates automatically.',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: muted,
-                                    height: 1.45,
-                                  ),
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              child: PrimaryButton(
-                                label: _generating
-                                    ? 'Generating...'
-                                    : 'Generate Account',
-                                icon: Icons.add_card_rounded,
-                                loading: _generating,
-                                onPressed: _generating ? null : _generateAccount,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      _BankCard(
-                        bankName: bankName,
+                    SizedBox(height: compact ? 10 : 12),
+                    _BankCard(
+                      bankName: bankName.isEmpty ? 'Paystack-Titan' : bankName,
+                      accountNumber: accountNumber,
+                      accountName: accountName.isEmpty ? name : accountName,
+                      onCopyAccount: () =>
+                          _copyText(accountNumber, 'Account number'),
+                      onShareAccount: () => _shareAccountDetails(
+                        bankName: bankName.isEmpty ? 'Paystack-Titan' : bankName,
                         accountNumber: accountNumber,
-                        accountName: accountName,
-                        onCopyAccount: () =>
-                            _copyText(accountNumber, 'Account number'),
-                        onShareAccount: () => _shareAccountDetails(
-                          bankName: bankName,
-                          accountNumber: accountNumber,
-                          accountName: accountName,
-                        ),
+                        accountName: accountName.isEmpty ? name : accountName,
                       ),
+                    ),
                   ],
                 );
               },
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: compact ? 14 : 16),
             Row(
               children: [
                 Expanded(
@@ -973,7 +989,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: compact ? 8 : 10),
             FutureBuilder<List<Map<String, dynamic>>>(
               future: _transactionsFuture,
               builder: (context, snapshot) {
@@ -985,44 +1001,93 @@ class _WalletScreenState extends State<WalletScreen> {
                 final totalSpentWeek = _spentLabel(rows, days: 7);
                 final transactionCount = rows.length.toString();
                 final mostUsed = _mostUsedService(rows);
-
-                return GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.58,
-                  children: [
-                    _InsightCard(
-                      label: 'Spent today',
-                      value: totalSpentToday,
-                      subtitle: 'Across purchases',
-                      icon: Icons.today_rounded,
-                      accent: const Color(0xFF3B82F6),
-                    ),
-                    _InsightCard(
-                      label: 'Spent this week',
-                      value: totalSpentWeek,
-                      subtitle: 'Rolling 7 days',
-                      icon: Icons.date_range_rounded,
-                      accent: const Color(0xFF10B981),
-                    ),
-                    _InsightCard(
-                      label: 'Transactions',
-                      value: transactionCount,
-                      subtitle: 'Recorded here',
-                      icon: Icons.receipt_long_rounded,
-                      accent: const Color(0xFFF59E0B),
-                    ),
-                    _InsightCard(
-                      label: 'Most used',
-                      value: mostUsed,
-                      subtitle: 'Top service',
-                      icon: Icons.auto_graph_rounded,
-                      accent: const Color(0xFF8B5CF6),
-                    ),
-                  ],
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final useList = width < 430;
+                    if (useList) {
+                      return Column(
+                        children: [
+                          _InsightCard(
+                            label: 'Spent today',
+                            value: totalSpentToday,
+                            subtitle: 'Across purchases',
+                            icon: Icons.today_rounded,
+                            accent: const Color(0xFF3B82F6),
+                          ),
+                          SizedBox(height: compact ? 8 : 10),
+                          _InsightCard(
+                            label: 'Spent this week',
+                            value: totalSpentWeek,
+                            subtitle: 'Rolling 7 days',
+                            icon: Icons.date_range_rounded,
+                            accent: const Color(0xFF10B981),
+                          ),
+                          SizedBox(height: compact ? 8 : 10),
+                          _InsightCard(
+                            label: 'Transactions',
+                            value: transactionCount,
+                            subtitle: 'Recorded here',
+                            icon: Icons.receipt_long_rounded,
+                            accent: const Color(0xFFF59E0B),
+                          ),
+                          SizedBox(height: compact ? 8 : 10),
+                          _InsightCard(
+                            label: 'Most used',
+                            value: mostUsed,
+                            subtitle: 'Top service',
+                            icon: Icons.auto_graph_rounded,
+                            accent: const Color(0xFF8B5CF6),
+                          ),
+                        ],
+                      );
+                    }
+                    final extent = _walletInsightExtentForWidth(width);
+                    final columns = _walletInsightColumnsForWidth(width);
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 4,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        mainAxisExtent: extent,
+                      ),
+                      itemBuilder: (context, index) {
+                        return switch (index) {
+                          0 => _InsightCard(
+                              label: 'Spent today',
+                              value: totalSpentToday,
+                              subtitle: 'Across purchases',
+                              icon: Icons.today_rounded,
+                              accent: const Color(0xFF3B82F6),
+                            ),
+                          1 => _InsightCard(
+                              label: 'Spent this week',
+                              value: totalSpentWeek,
+                              subtitle: 'Rolling 7 days',
+                              icon: Icons.date_range_rounded,
+                              accent: const Color(0xFF10B981),
+                            ),
+                          2 => _InsightCard(
+                              label: 'Transactions',
+                              value: transactionCount,
+                              subtitle: 'Recorded here',
+                              icon: Icons.receipt_long_rounded,
+                              accent: const Color(0xFFF59E0B),
+                            ),
+                          _ => _InsightCard(
+                              label: 'Most used',
+                              value: mostUsed,
+                              subtitle: 'Top service',
+                              icon: Icons.auto_graph_rounded,
+                              accent: const Color(0xFF8B5CF6),
+                            ),
+                        };
+                      },
+                    );
+                  },
                 );
               },
             ),
@@ -1133,6 +1198,7 @@ class _WalletActionPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final enabled = onTap != null;
+    final compact = MediaQuery.sizeOf(context).width < 360;
     final surface = Theme.of(context).colorScheme.surface.withValues(
           alpha: isDark ? 0.95 : 0.88,
         );
@@ -1146,7 +1212,10 @@ class _WalletActionPill extends StatelessWidget {
           duration: const Duration(milliseconds: 160),
           opacity: enabled ? 1 : 0.58,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 10 : 12,
+              vertical: compact ? 10 : 12,
+            ),
             decoration: BoxDecoration(
               color: surface,
               borderRadius: BorderRadius.circular(18),
@@ -1158,23 +1227,23 @@ class _WalletActionPill extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: isDark ? 0.08 : 0.03),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
             child: Row(
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: compact ? 28 : 32,
+                  height: compact ? 28 : 32,
                   decoration: BoxDecoration(
                     color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(icon, size: 18, color: accent),
+                  child: Icon(icon, size: compact ? 16 : 18, color: accent),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: compact ? 8 : 10),
                 Expanded(
                   child: Text(
                     label,
@@ -1213,8 +1282,10 @@ class _InsightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 360 || size.height < 760;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(compact ? 11 : 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface.withValues(
               alpha: isDark ? 0.94 : 0.9,
@@ -1258,7 +1329,7 @@ class _InsightCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 8 : 10),
           Text(
             label,
             maxLines: 1,
@@ -1302,45 +1373,51 @@ class _WalletInsightsSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tiles = List.generate(4, (index) => index);
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 1.58,
-      children: tiles
-          .map(
-            (_) => Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.06),
-                ),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        _SkeletonBox(width: 30, height: 30, radius: 10),
-                        Spacer(),
-                        _SkeletonBox(width: 8, height: 8, radius: 999),
-                      ],
-                    ),
-                    _SkeletonBox(width: 84, height: 10, radius: 999),
-                    _SkeletonBox(width: 96, height: 18, radius: 999),
-                    _SkeletonBox(width: 72, height: 10, radius: 999),
-                  ],
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final extent = _walletInsightExtentForWidth(width);
+        final columns = _walletInsightColumnsForWidth(width);
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: tiles.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            mainAxisExtent: extent,
+          ),
+          itemBuilder: (context, index) => Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.06),
               ),
             ),
-          )
-          .toList(),
+            child: const Padding(
+              padding: EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      _SkeletonBox(width: 30, height: 30, radius: 10),
+                      Spacer(),
+                      _SkeletonBox(width: 8, height: 8, radius: 999),
+                    ],
+                  ),
+                  _SkeletonBox(width: 84, height: 10, radius: 999),
+                  _SkeletonBox(width: 96, height: 18, radius: 999),
+                  _SkeletonBox(width: 72, height: 10, radius: 999),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1579,9 +1656,10 @@ class _BankCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final compact = MediaQuery.sizeOf(context).height < 760;
     final displayNumber = _formatAccountNumber(accountNumber);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(compact ? 12 : 16),
       decoration: BoxDecoration(
         gradient: isDark
             ? const LinearGradient(
@@ -1603,8 +1681,8 @@ class _BankCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -1641,7 +1719,7 @@ class _BankCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 10 : 16),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onCopyAccount,
@@ -1649,20 +1727,25 @@ class _BankCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Center(
-                    child: Text(
-                      displayNumber.isEmpty ? '—' : displayNumber,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: isDark ? Colors.white : Colors.black87,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 4.4,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                            height: 1.1,
-                          ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        displayNumber.isEmpty ? '—' : displayNumber,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: compact ? 2.8 : 4.4,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                              height: 1.1,
+                              fontSize: compact ? 28 : null,
+                            ),
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: compact ? 6 : 8),
                 Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context)
@@ -1682,19 +1765,22 @@ class _BankCard extends StatelessWidget {
                     icon: const Icon(Icons.copy_rounded, size: 17),
                     tooltip: 'Copy account number',
                     visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.all(10),
-                    constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                    padding: EdgeInsets.all(compact ? 8 : 10),
+                    constraints: BoxConstraints.tightFor(
+                      width: compact ? 34 : 40,
+                      height: compact ? 34 : 40,
+                    ),
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 6 : 12),
           Text(
             accountName,
             textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: compact ? 1 : 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: isDark ? Colors.white : Colors.black87,
@@ -1703,30 +1789,35 @@ class _BankCard extends StatelessWidget {
                 ),
           ),
           if (onShareAccount != null) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: compact ? 6 : 8),
             Center(
               child: TextButton.icon(
                 onPressed: onShareAccount,
                 icon: const Icon(Icons.share_rounded, size: 16),
-                label: const Text('Share details'),
+                label: Text(compact ? 'Share' : 'Share details'),
                 style: TextButton.styleFrom(
                   foregroundColor: Theme.of(context).colorScheme.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compact ? 12 : 14,
+                    vertical: compact ? 6 : 8,
+                  ),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
             ),
           ],
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 6 : 10),
           Text(
             'Transfer to this account to fund your wallet.',
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
                       .withValues(alpha: 0.58),
-                  height: 1.35,
+                  height: 1.25,
                 ),
           ),
         ],
@@ -1746,6 +1837,186 @@ class _BankCard extends StatelessWidget {
       buffer.write(digits[i]);
     }
     return buffer.toString();
+  }
+}
+
+class _WalletAccountSkeleton extends StatelessWidget {
+  const _WalletAccountSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fill = isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : const Color(0xFFE8EEF9);
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 140,
+            height: 14,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            height: 42,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: 180,
+            height: 14,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            height: 48,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(22),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WalletAccountUnavailable extends StatelessWidget {
+  const _WalletAccountUnavailable({
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String message;
+  final String actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64);
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.1,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your dedicated account will show up here as soon as it is ready.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: muted,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: actionLabel,
+              icon: Icons.refresh_rounded,
+              onPressed: onAction,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardBalanceSkeleton extends StatelessWidget {
+  const _DashboardBalanceSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fill = isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : const Color(0xFFE8EEF9);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 110,
+          height: 12,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: 180,
+          height: 34,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: 220,
+          height: 11,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DashboardBalanceError extends StatelessWidget {
+  const _DashboardBalanceError({required this.onRefresh});
+
+  final Future<void> Function() onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Wallet details are temporarily unavailable.',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.1,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'We’ll refresh them as soon as the connection is ready.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: () => onRefresh(),
+          child: const Text('Refresh now'),
+        ),
+      ],
+    );
   }
 }
 

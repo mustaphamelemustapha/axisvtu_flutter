@@ -5,8 +5,8 @@ import '../services/transaction_pin_service.dart';
 import '../widgets/auth_backdrop.dart';
 import '../widgets/auth_chrome.dart';
 import '../widgets/primary_button.dart';
-import 'login_screen.dart';
 import 'reset_pin_screen.dart';
+import 'welcome_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key, required this.token});
@@ -255,7 +255,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               label: 'Back to Login',
               icon: Icons.login_rounded,
               onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                 (route) => false,
               ),
             ),

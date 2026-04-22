@@ -8,15 +8,19 @@ import '../services/auth_service.dart';
 class SessionController extends ChangeNotifier {
   SessionController();
 
+  static const String lastIdentifierKey = 'axisvtu_last_identifier';
+
   String? _token;
   Map<String, dynamic>? _user;
   bool _loading = false;
   String? _error;
+  bool _bootstrapped = false;
 
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
   bool get isLoading => _loading;
   String? get error => _error;
+  bool get isBootstrapped => _bootstrapped;
   bool get isAuthenticated => _token != null && _token!.isNotEmpty;
 
   Map<String, dynamic>? _asMap(dynamic value) {
@@ -65,6 +69,7 @@ class SessionController extends ChangeNotifier {
         _user = null;
       }
     }
+    _bootstrapped = true;
     notifyListeners();
   }
 
@@ -83,6 +88,10 @@ class SessionController extends ChangeNotifier {
       }
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('axisvtu_token', _token!);
+      final trimmedIdentifier = email.trim();
+      if (trimmedIdentifier.isNotEmpty) {
+        await prefs.setString(lastIdentifierKey, trimmedIdentifier);
+      }
       _setError(null);
       notifyListeners();
       return true;
@@ -133,6 +142,12 @@ class SessionController extends ChangeNotifier {
       }
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('axisvtu_token', _token!);
+      final preferredIdentifier = normalizedEmail.isNotEmpty
+          ? normalizedEmail
+          : phone.trim();
+      if (preferredIdentifier.isNotEmpty) {
+        await prefs.setString(lastIdentifierKey, preferredIdentifier);
+      }
       _setError(null);
       notifyListeners();
       return true;

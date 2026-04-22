@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_client.dart';
 import '../services/purchase_auth_service.dart';
+import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
 import '../widgets/primary_button.dart';
@@ -29,6 +30,7 @@ class _ExamScreenState extends State<ExamScreen> {
   int _quantity = 1;
   List<String> _examTypes = const ['waec', 'neco', 'jamb'];
   bool _loading = false;
+  String? _activeRequestId;
   bool _saveBeneficiary = true;
   List<Map<String, dynamic>> _beneficiaries = [];
   String? _error;
@@ -36,12 +38,14 @@ class _ExamScreenState extends State<ExamScreen> {
   @override
   void initState() {
     super.initState();
+    _phoneCtrl.addListener(_invalidateRequestId);
     _loadCatalog();
     _loadPreferences();
   }
 
   @override
   void dispose() {
+    _phoneCtrl.removeListener(_invalidateRequestId);
     _phoneCtrl.dispose();
     super.dispose();
   }
@@ -59,6 +63,7 @@ class _ExamScreenState extends State<ExamScreen> {
             .toList();
         if (!mounted) return;
         setState(() {
+          _invalidateRequestId();
           _examTypes = items;
           if (!_examTypes.contains(_exam)) {
             _exam = _examTypes.first;
@@ -88,6 +93,10 @@ class _ExamScreenState extends State<ExamScreen> {
       _saveBeneficiary = enabled;
       _beneficiaries = list;
     });
+  }
+
+  void _invalidateRequestId() {
+    _activeRequestId = null;
   }
 
   Future<void> _savePreference(bool value) async {
@@ -165,9 +174,15 @@ class _ExamScreenState extends State<ExamScreen> {
     PurchaseLoadingOverlay.show(context, title: 'Buying exam pin');
 
     try {
+      _activeRequestId ??= buildRequestId("exam");
       final res = await ServicesService(
         token: token,
-      ).purchaseExam(exam: _exam, quantity: _quantity, phoneNumber: phone);
+      ).purchaseExam(
+        exam: _exam,
+        quantity: _quantity,
+        phoneNumber: phone,
+        clientRequestId: _activeRequestId,
+      );
       final status = _resolveResultStatus(res);
       if (!mounted) return;
       if (status != 'failed') {
@@ -191,6 +206,9 @@ class _ExamScreenState extends State<ExamScreen> {
           ),
         ],
       );
+      if (status != 'pending') {
+        _activeRequestId = null;
+      }
     } catch (e) {
       if (!mounted) return;
       final message = e is ApiException ? e.message : e.toString();
@@ -206,6 +224,7 @@ class _ExamScreenState extends State<ExamScreen> {
           ReceiptField(label: 'Failure', value: message),
         ],
       );
+      _activeRequestId = null;
     } finally {
       PurchaseLoadingOverlay.hide();
       if (mounted) {
@@ -312,6 +331,7 @@ class _ExamScreenState extends State<ExamScreen> {
                       selected: _exam == exam,
                       onTap: () {
                         HapticFeedback.selectionClick();
+                        _invalidateRequestId();
                         setState(() => _exam = exam);
                       },
                     ),
@@ -328,6 +348,7 @@ class _ExamScreenState extends State<ExamScreen> {
                   icon: Icons.remove_rounded,
                   onTap: () {
                     HapticFeedback.selectionClick();
+                    _invalidateRequestId();
                     setState(() {
                       if (_quantity > 1) _quantity--;
                     });
@@ -346,6 +367,7 @@ class _ExamScreenState extends State<ExamScreen> {
                   icon: Icons.add_rounded,
                   onTap: () {
                     HapticFeedback.selectionClick();
+                    _invalidateRequestId();
                     setState(() {
                       if (_quantity < 10) _quantity++;
                     });

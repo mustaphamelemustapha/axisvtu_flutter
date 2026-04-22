@@ -21,6 +21,16 @@ class DataService {
     'youtube',
     'unlimited',
   ];
+  static const Set<String> _airtelVisibleCapacities = <String>{
+    '2GB',
+    '3GB',
+    '4GB',
+    '8GB',
+    '10GB',
+    '13GB',
+    '18GB',
+    '25GB',
+  };
 
   ApiClient get _client => ApiClient(baseUrl: AppConfig.baseUrl, token: token);
 
@@ -30,6 +40,11 @@ class DataService {
       _cacheAt != null && DateTime.now().difference(_cacheAt!) < _cacheTtl;
 
   static List<dynamic> get cachedPlans => List<dynamic>.from(_cachedPlans);
+
+  static void clearCache() {
+    _cachedPlans = [];
+    _cacheAt = null;
+  }
 
   Future<List<dynamic>> getPlans({bool forceRefresh = false}) async {
     if (!forceRefresh && hasCache && isCacheFresh) {
@@ -58,13 +73,32 @@ class DataService {
     }
 
     final curated = <dynamic>[];
-    grouped.forEach((_, networkPlans) {
+    grouped.forEach((networkKey, networkPlans) {
       final clean = networkPlans.where((plan) => !_isNoisyPlan(plan)).toList();
-      final source = clean.length >= 4 ? clean : networkPlans;
+      List<dynamic> source;
+      if (networkKey == 'airtel') {
+        source = _filterAirtelPlans(clean.isNotEmpty ? clean : networkPlans);
+        if (source.isEmpty) return;
+      } else {
+        source = clean.length >= 4 ? clean : networkPlans;
+        if (source.isEmpty) return;
+      }
       source.sort((a, b) => _planPrice(a).compareTo(_planPrice(b)));
       curated.addAll(source.take(_maxPerNetwork));
     });
     return curated;
+  }
+
+  List<dynamic> _filterAirtelPlans(List<dynamic> plans) {
+    return plans.where((plan) {
+      if (plan is! Map) return false;
+      final network = (plan['network'] ?? '').toString().trim().toLowerCase();
+      if (network != 'airtel') return true;
+      final capacity = _capacityKey(plan['data_size'] ?? plan['plan_name']);
+      if (!_airtelVisibleCapacities.contains(capacity)) return false;
+      final validity = _validityDays(plan['validity'] ?? plan['plan_name']);
+      return validity == 30;
+    }).toList();
   }
 
   bool _isNoisyPlan(dynamic plan) {
@@ -75,8 +109,6 @@ class DataService {
     if (_blockKeywords.any((keyword) => label.contains(keyword))) {
       return true;
     }
-    final days = _validityDays(plan);
-    if (days != null && days < 7) return true;
     return false;
   }
 
@@ -85,6 +117,31 @@ class DataService {
     map['plan_name'] = _sanitizePlanText(map['plan_name']);
     map['data_size'] = _sanitizePlanText(map['data_size']);
     return map;
+  }
+
+  String _capacityKey(dynamic value) {
+    final text = (value ?? '').toString().toUpperCase().replaceAll(' ', '');
+    if (text.isEmpty) return '';
+    if (text.contains('GB') || text.contains('MB')) {
+      final match = RegExp(r'(\d+(?:\.\d+)?)(GB|MB)').firstMatch(text);
+      if (match != null) {
+        return '${match.group(1)}${match.group(2)}';
+      }
+    }
+    return text;
+  }
+
+  int? _validityDays(dynamic value) {
+    final text = (value ?? '').toString().toLowerCase();
+    if (text.isEmpty) return null;
+    final match = RegExp(r'(\d+)\s*(d|day|days|month|months|week|weeks)').firstMatch(text);
+    if (match == null) return null;
+    final amount = int.tryParse(match.group(1) ?? '');
+    if (amount == null) return null;
+    final unit = match.group(2) ?? '';
+    if (unit.startsWith('month')) return amount * 30;
+    if (unit.startsWith('week')) return amount * 7;
+    return amount;
   }
 
   String _sanitizePlanText(dynamic value) {
@@ -102,22 +159,6 @@ class DataService {
         .trim();
   }
 
-  int? _validityDays(dynamic plan) {
-    if (plan is! Map) return null;
-    final raw = '${plan['validity'] ?? plan['plan_name'] ?? ''}'.toLowerCase();
-    final match = RegExp(
-      r'(\d+)\s*(day|days|month|months|week|weeks|d)',
-      caseSensitive: false,
-    ).firstMatch(raw);
-    if (match == null) return null;
-    final amount = int.tryParse(match.group(1) ?? '');
-    if (amount == null) return null;
-    final unit = (match.group(2) ?? '').toLowerCase();
-    if (unit.startsWith('month')) return amount * 30;
-    if (unit.startsWith('week')) return amount * 7;
-    return amount;
-  }
-
   num _planPrice(dynamic plan) {
     if (plan is! Map) return 1e15;
     final value = num.tryParse('${plan['price'] ?? ''}');
@@ -128,11 +169,14 @@ class DataService {
     required String planCode,
     required String phoneNumber,
     required bool ported,
+    String? clientRequestId,
   }) async {
     return _client.post('/data/purchase', {
       'plan_code': planCode,
       'phone_number': phoneNumber,
       'ported_number': ported,
+      if (clientRequestId != null && clientRequestId.trim().isNotEmpty)
+        'client_request_id': clientRequestId.trim(),
     });
   }
 }

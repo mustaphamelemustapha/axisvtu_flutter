@@ -4,27 +4,15 @@ import 'api_client.dart';
 class TransactionPinStatus {
   TransactionPinStatus({
     required this.isSet,
-    required this.isLocked,
-    required this.failedAttempts,
-    required this.maxAttempts,
     required this.pinLength,
-    this.lockedUntil,
   });
 
   final bool isSet;
-  final bool isLocked;
-  final DateTime? lockedUntil;
-  final int failedAttempts;
-  final int maxAttempts;
   final int pinLength;
 
   factory TransactionPinStatus.fromJson(Map<String, dynamic> data) {
     return TransactionPinStatus(
       isSet: data['is_set'] == true,
-      isLocked: data['is_locked'] == true,
-      lockedUntil: DateTime.tryParse((data['locked_until'] ?? '').toString()),
-      failedAttempts: (data['failed_attempts'] as num?)?.toInt() ?? 0,
-      maxAttempts: (data['max_attempts'] as num?)?.toInt() ?? 5,
       pinLength: (data['pin_length'] as num?)?.toInt() ?? 4,
     );
   }

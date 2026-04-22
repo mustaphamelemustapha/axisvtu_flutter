@@ -1,14 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/dashboard_snapshot_cache.dart';
 import '../services/notifications_service.dart';
+import '../services/transactions_service.dart';
 import '../services/wallet_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/primary_button.dart';
 import 'notification_center_screen.dart';
 import '../widgets/theme_toggle_button.dart';
 import 'airtime_screen.dart';
@@ -28,10 +33,16 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const _hideBalanceKey = 'wallet_hide_balance';
+  static const _homeServiceAspectRatio = 1.12;
   Future<Map<String, dynamic>>? _walletFuture;
   Future<Map<String, dynamic>>? _accountsFuture;
+  Future<List<dynamic>>? _transactionsFuture;
   Future<List<Map<String, dynamic>>>? _notificationsFuture;
+  Map<String, dynamic>? _cachedWalletData;
+  Map<String, dynamic>? _cachedAccountsData;
+  List<dynamic>? _cachedTransactionsData;
   String _activeToken = '';
+  String _activeDashboardKey = '';
   bool _hideBalance = false;
 
   @override
@@ -44,11 +55,26 @@ class _HomeScreenState extends State<HomeScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final token = (context.watch<SessionController>().token ?? '').trim();
+    final dashboardKey =
+        DashboardSnapshotCache.identityFromUser(
+          context.read<SessionController>().user,
+        ) ??
+        token;
     if (token.isNotEmpty &&
+        dashboardKey.isNotEmpty &&
         (token != _activeToken ||
             _walletFuture == null ||
-            _accountsFuture == null)) {
-      _reloadDashboard(token);
+            _accountsFuture == null ||
+            _transactionsFuture == null ||
+            dashboardKey != _activeDashboardKey)) {
+      if (dashboardKey != _activeDashboardKey) {
+        _cachedWalletData = null;
+        _cachedAccountsData = null;
+        _cachedTransactionsData = null;
+      }
+      _activeDashboardKey = dashboardKey;
+      _reloadDashboard(token, dashboardKey);
+      _loadCachedDashboard(dashboardKey);
       _activeToken = token;
     }
   }
@@ -68,22 +94,84 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setBool(_hideBalanceKey, next);
   }
 
-  void _reloadDashboard(String token) {
+  Future<void> _loadCachedDashboard(String dashboardKey) async {
+    final cached = await DashboardSnapshotCache.load(dashboardKey);
+    if (!mounted || dashboardKey != _activeDashboardKey) return;
+      setState(() {
+        _cachedWalletData = _asMap(cached?['wallet']);
+        _cachedAccountsData = _asMap(cached?['accounts']);
+        final cachedTransactions = cached?['transactions'];
+        if (cachedTransactions is List) {
+          _cachedTransactionsData = cachedTransactions
+              .whereType<Map>()
+              .map(
+                (item) => item.map(
+                  (k, v) => MapEntry(k.toString(), v),
+                ),
+            )
+            .toList();
+      }
+    });
+  }
+
+  void _reloadDashboard(String token, String dashboardKey) {
     final service = WalletService(token: token);
+    final txService = TransactionsService(token: token);
     _walletFuture = service.getWallet();
     _accountsFuture = service.getBankAccounts();
+    _transactionsFuture = txService.getTransactions();
     _notificationsFuture = _loadNotifications(token);
+    _walletFuture!.then((data) {
+      if (!mounted || dashboardKey != _activeDashboardKey) return;
+      unawaited(DashboardSnapshotCache.save(dashboardKey, wallet: data));
+    }).catchError((_) {});
+    _accountsFuture!.then((data) {
+      if (!mounted || dashboardKey != _activeDashboardKey) return;
+      unawaited(DashboardSnapshotCache.save(dashboardKey, accounts: data));
+    }).catchError((_) {});
+    _transactionsFuture!.then((data) {
+      if (!mounted || dashboardKey != _activeDashboardKey) return;
+      final normalized = data
+          .whereType<Map>()
+          .map(
+            (item) => item.map((k, v) => MapEntry(k.toString(), v)),
+          )
+          .toList();
+      _cachedTransactionsData = normalized;
+      unawaited(
+        DashboardSnapshotCache.save(
+          dashboardKey,
+          transactions: normalized,
+        ),
+      );
+    }).catchError((_) {});
+  }
+
+  Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map(
+        (key, item) => MapEntry(key.toString(), item),
+      );
+    }
+    return null;
   }
 
   Future<void> _refresh() async {
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) return;
+    final dashboardKey =
+        DashboardSnapshotCache.identityFromUser(
+          context.read<SessionController>().user,
+        ) ??
+        token;
     setState(() {
-      _reloadDashboard(token);
+      _reloadDashboard(token, dashboardKey);
     });
     await Future.wait([
       _walletFuture!,
       _accountsFuture!,
+      _transactionsFuture ?? Future.value(<dynamic>[]),
       _notificationsFuture ?? Future.value(<Map<String, dynamic>>[]),
     ]);
   }
@@ -128,6 +216,117 @@ class _HomeScreenState extends State<HomeScreen> {
     return parsed.toStringAsFixed(2);
   }
 
+  List<Map<String, dynamic>> _normalizeTransactions(List<dynamic> raw) {
+    return raw
+        .whereType<Map>()
+        .map((item) => item.map((key, value) => MapEntry(key.toString(), value)))
+        .toList();
+  }
+
+  String _txStatusOf(Map<String, dynamic> tx) {
+    return (tx['status'] ?? 'pending').toString().trim().toLowerCase();
+  }
+
+  String _txTypeOf(Map<String, dynamic> tx) {
+    return (tx['tx_type'] ?? 'transaction').toString().trim().toLowerCase();
+  }
+
+  bool _txIsCredit(Map<String, dynamic> tx) => _txTypeOf(tx) == 'wallet_fund';
+
+  Color _txStatusColor(BuildContext context, String status) {
+    final s = status.toLowerCase();
+    if (s == 'success') return const Color(0xFF16A34A);
+    if (s == 'pending' || s == 'processing' || s == 'queued') {
+      return const Color(0xFFF59E0B);
+    }
+    if (s == 'refunded') return const Color(0xFF0EA5E9);
+    return Theme.of(context).colorScheme.error;
+  }
+
+  String _txAmountLabel(Map<String, dynamic> tx) {
+    final amount = double.tryParse(tx['amount']?.toString() ?? '') ?? 0;
+    final sign = _txIsCredit(tx) ? '+' : '-';
+    return '$sign₦${amount.toStringAsFixed(2)}';
+  }
+
+  String _txTitleFor(Map<String, dynamic> tx) {
+    return switch (_txTypeOf(tx)) {
+      'data' => 'Data Purchase',
+      'wallet_fund' => 'Wallet Funding',
+      'airtime' => 'Airtime Purchase',
+      'cable' => 'Cable Subscription',
+      'electricity' => 'Electricity Payment',
+      'exam' => 'Exam Pin Purchase',
+      _ => 'Transaction',
+    };
+  }
+
+  String _txSubtitleFor(Map<String, dynamic> tx) {
+    final meta = tx['meta'];
+    if (meta is Map) {
+      final recipient =
+          meta['recipient_phone'] ??
+          meta['phone_number'] ??
+          meta['meter_number'];
+      if ((recipient ?? '').toString().trim().isNotEmpty) {
+        return recipient.toString();
+      }
+      final package = meta['package_code'];
+      if ((package ?? '').toString().trim().isNotEmpty) {
+        return package.toString();
+      }
+    }
+    final network = (tx['network'] ?? '').toString().trim();
+    if (network.isNotEmpty) return network.toUpperCase();
+    return (tx['reference'] ?? '').toString();
+  }
+
+  DateTime? _txCreatedAt(Map<String, dynamic> tx) {
+    final raw = tx['created_at'];
+    if (raw is DateTime) return raw;
+    return DateTime.tryParse(raw?.toString() ?? '');
+  }
+
+  String _txDateLabel(Map<String, dynamic> tx) {
+    final date = _txCreatedAt(tx);
+    if (date == null) return '—';
+    final now = DateTime.now();
+    final day = DateTime(now.year, now.month, now.day);
+    final txDay = DateTime(date.year, date.month, date.day);
+    final time = TimeOfDay.fromDateTime(date.toLocal()).format(context);
+    if (txDay == day) return 'Today • $time';
+    return '${date.day} ${_monthShort(date.month)} • $time';
+  }
+
+  String _monthShort(int month) {
+    switch (month) {
+      case 1:
+        return 'Jan';
+      case 2:
+        return 'Feb';
+      case 3:
+        return 'Mar';
+      case 4:
+        return 'Apr';
+      case 5:
+        return 'May';
+      case 6:
+        return 'Jun';
+      case 7:
+        return 'Jul';
+      case 8:
+        return 'Aug';
+      case 9:
+        return 'Sep';
+      case 10:
+        return 'Oct';
+      case 11:
+        return 'Nov';
+      default:
+        return 'Dec';
+    }
+  }
+
   double _extractBalance(Map<String, dynamic>? data) {
     if (data == null) return 0;
     final direct = data['balance'];
@@ -157,8 +356,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  double _homeServiceAspectRatioForWidth(double width) {
+    if (width < 340) return 0.98;
+    if (width < 380) return 1.04;
+    if (width < 430) return 1.08;
+    return _homeServiceAspectRatio;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 360 || size.height < 760;
     final user = context.watch<SessionController>().user ?? {};
     final name = (user['full_name'] ?? user['name'] ?? 'AxisVTU User')
         .toString()
@@ -298,32 +506,22 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 18),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(compact ? 14 : 16),
               decoration: BoxDecoration(
-                gradient: isDark
-                    ? const LinearGradient(
-                        colors: [Color(0xFF0C1624), Color(0xFF13253B)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : const LinearGradient(
-                        colors: [Color(0xFFF7FAFF), Color(0xFFEAF2FF)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                borderRadius: BorderRadius.circular(28),
+                color: isDark ? const Color(0xFF0F1724) : const Color(0xFFF8FBFF),
+                borderRadius: BorderRadius.circular(compact ? 24 : 28),
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: isDark ? 0.18 : 0.9),
+                  color: Theme.of(context).colorScheme.outline.withValues(
+                    alpha: isDark ? 0.14 : 0.10,
+                  ),
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: isDark
-                        ? Colors.black.withValues(alpha: 0.24)
-                        : const Color(0xFF2457F5).withValues(alpha: 0.08),
-                    blurRadius: 22,
-                    offset: const Offset(0, 10),
+                        ? Colors.black.withValues(alpha: 0.16)
+                        : const Color(0xFF2457F5).withValues(alpha: 0.05),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -331,21 +529,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                        width: 42,
-                        height: 42,
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
                           color: isDark
-                              ? Colors.white.withValues(alpha: 0.2)
-                              : Colors.white.withValues(alpha: 0.96),
-                          borderRadius: BorderRadius.circular(14),
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : const Color(0xFFEAF1FF),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
                           Icons.account_balance_wallet_rounded,
                           color: Color(0xFF2457F5),
-                          size: 22,
+                          size: 18,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -355,93 +553,35 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Text(
                               'Wallet balance',
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    color: heroSoftText,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.2,
-                                  ),
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: heroSoftText,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
                             ),
-                            const SizedBox(height: 4),
-                            FutureBuilder<Map<String, dynamic>>(
-                              future: _walletFuture,
-                              builder: (context, snapshot) {
-                                final balance = _extractBalance(snapshot.data);
-                                return AnimatedSwitcher(
-                                  duration: AxisDurations.normal,
-                                  switchInCurve: Curves.easeOut,
-                                  switchOutCurve: Curves.easeIn,
-                                  layoutBuilder: (currentChild, previousChildren) {
-                                    return Stack(
-                                      alignment: Alignment.centerLeft,
-                                      children: [
-                                        ...previousChildren,
-                                        if (currentChild != null) currentChild,
-                                      ],
-                                    );
-                                  },
-                                  transitionBuilder: (child, animation) {
-                                    return FadeTransition(
-                                      opacity: animation,
-                                      child: SlideTransition(
-                                        position: Tween<Offset>(
-                                          begin: const Offset(0, 0.08),
-                                          end: Offset.zero,
-                                        ).animate(
-                                          CurvedAnimation(
-                                            parent: animation,
-                                            curve: Curves.easeOut,
-                                          ),
-                                        ),
-                                        child: child,
-                                      ),
-                                    );
-                                  },
-                                  child: _hideBalance
-                                      ? Text(
-                                          '₦ ••••••',
-                                          key: const ValueKey('hidden_home_balance'),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .displayLarge
-                                              ?.copyWith(
-                                                color: heroText,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 2.2,
-                                              ),
-                                        )
-                                      : Text(
-                                          '₦${_formatNaira(balance)}',
-                                          key: const ValueKey('visible_home_balance'),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .displayLarge
-                                              ?.copyWith(
-                                                color: heroText,
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                        ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(
-                              'Use this balance for data, airtime, bills, and exam pins.',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: heroSoftText,
-                                  ),
+                              'Available for data, airtime, bills, and exam pins.',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: heroSoftText,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(width: 8),
-                      GlassCard(
-                        padding: const EdgeInsets.all(4),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : const Color(0xFFF1F5FF),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+                          ),
+                        ),
                         child: IconButton(
                           onPressed: _toggleBalanceVisibility,
                           icon: AnimatedSwitcher(
@@ -450,13 +590,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               return FadeTransition(
                                 opacity: animation,
                                 child: ScaleTransition(
-                                  scale: Tween<double>(begin: 0.88, end: 1.0)
-                                      .animate(
-                                        CurvedAnimation(
-                                          parent: animation,
-                                          curve: Curves.easeOut,
-                                        ),
-                                      ),
+                                  scale: Tween<double>(begin: 0.88, end: 1.0).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOut,
+                                    ),
+                                  ),
                                   child: child,
                                 ),
                               );
@@ -471,9 +610,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           tooltip: _hideBalance ? 'Show balance' : 'Hide balance',
                           style: IconButton.styleFrom(
-                            backgroundColor: isDark
-                                ? Colors.white.withValues(alpha: 0.12)
-                                : const Color(0xFFF3F7FE),
                             padding: const EdgeInsets.all(9),
                             minimumSize: const Size(40, 40),
                           ),
@@ -481,103 +617,192 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   FutureBuilder<Map<String, dynamic>>(
-                    future: _accountsFuture,
+                    future: _walletFuture,
                     builder: (context, snapshot) {
-                      String bankName = 'Dedicated account';
-                      String accountName = name;
-                      String accountNumber = 'Not generated yet';
-                      if (snapshot.hasData) {
-                        final accounts =
-                            (snapshot.data?['accounts'] as List?) ?? const [];
-                        if (accounts.isNotEmpty && accounts.first is Map) {
-                          final item = Map<String, dynamic>.from(
-                            accounts.first as Map,
+                      final isLoading =
+                          snapshot.connectionState == ConnectionState.waiting;
+                      final walletData = snapshot.data ??
+                          ((isLoading || snapshot.hasError) &&
+                                  _cachedWalletData != null
+                              ? _cachedWalletData
+                              : null);
+                      if (walletData == null) {
+                        if (snapshot.hasError) {
+                          return _DashboardBalanceError(
+                            onRefresh: _refresh,
                           );
-                          final rawName = (item['bank_name'] ?? 'Bank')
-                              .toString()
-                              .trim();
-                          final rawAccountName = (item['account_name'] ?? name)
-                              .toString()
-                              .trim();
-                          final rawNumber = (item['account_number'] ?? '')
-                              .toString()
-                              .trim();
-                          bankName = rawName.isEmpty ? 'Bank' : rawName;
-                          accountName = rawAccountName.isEmpty ? name : rawAccountName;
-                          if (rawNumber.isNotEmpty) accountNumber = rawNumber;
-                          }
+                        }
+                        return const _DashboardBalanceSkeleton();
                       }
-
-                      final formattedNumber = _formatAccountNumber(accountNumber);
-
-                      return _FundingAccountBlock(
-                        bankName: bankName,
-                        accountNumber: formattedNumber,
-                        accountName: accountName,
-                        onCopyAccount: accountNumber == 'Not generated yet'
-                            ? null
-                            : () => _copyAccountNumber(accountNumber),
+                      final balance = _extractBalance(walletData);
+                      return AnimatedSwitcher(
+                        duration: AxisDurations.normal,
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        layoutBuilder: (currentChild, previousChildren) {
+                          return Stack(
+                            alignment: Alignment.centerLeft,
+                            children: [
+                              ...previousChildren,
+                              if (currentChild != null) currentChild,
+                            ],
+                          );
+                        },
+                        transitionBuilder: (child, animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.06),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOut,
+                                ),
+                              ),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: _hideBalance
+                            ? Text(
+                                '₦ ••••••',
+                                key: const ValueKey('hidden_home_balance'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                  color: heroText,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.8,
+                                  fontSize: compact ? 28 : 32,
+                                ),
+                              )
+                            : Text(
+                                '₦${_formatNaira(balance)}',
+                                key: const ValueKey('visible_home_balance'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                  color: heroText,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: compact ? 28 : 32,
+                                ),
+                              ),
                       );
                     },
                   ),
                   const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _HomeActionChip(
-                          label: 'Manage Wallet',
-                          icon: Icons.account_balance_wallet_rounded,
-                          filled: true,
-                          onTap: () => widget.onNavigateTab?.call(1),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _HomeActionChip(
-                          label: 'Buy Data',
-                          icon: Icons.wifi_rounded,
-                          onTap: () => _openScreen(const DataScreen()),
-                        ),
-                      ),
-                    ],
+                  FutureBuilder<Map<String, dynamic>>(
+                    future: _accountsFuture,
+                    builder: (context, snapshot) {
+                      final isLoading =
+                          snapshot.connectionState == ConnectionState.waiting;
+                      final accountsData = snapshot.data ??
+                          ((isLoading || snapshot.hasError) &&
+                                  _cachedAccountsData != null
+                              ? _cachedAccountsData
+                              : null);
+                      if (accountsData == null) {
+                        if (snapshot.hasError) {
+                          return _FundingAccountUnavailable(
+                            message: 'Wallet details are temporarily unavailable.',
+                            actionLabel: 'Open Wallet',
+                            onAction: () => widget.onNavigateTab?.call(1),
+                          );
+                        }
+                        return const _FundingAccountSkeleton();
+                      }
+
+                      final accounts =
+                          (accountsData['accounts'] as List?) ?? const [];
+                      if (accounts.isEmpty) {
+                        return _FundingAccountUnavailable(
+                          message: 'Wallet details will appear shortly.',
+                          actionLabel: 'Open Wallet',
+                          onAction: () => widget.onNavigateTab?.call(1),
+                        );
+                      }
+                      final item = accounts.first is Map
+                          ? Map<String, dynamic>.from(accounts.first as Map)
+                          : <String, dynamic>{};
+                      final rawName = (item['bank_name'] ?? 'Paystack-Titan')
+                          .toString()
+                          .trim();
+                      final rawAccountName = (item['account_name'] ?? name)
+                          .toString()
+                          .trim();
+                      final rawNumber = (item['account_number'] ?? '')
+                          .toString()
+                          .trim();
+                      if (rawNumber.isEmpty) {
+                        return _FundingAccountUnavailable(
+                          message: 'Wallet details will appear shortly.',
+                          actionLabel: 'Open Wallet',
+                          onAction: () => widget.onNavigateTab?.call(1),
+                        );
+                      }
+
+                      final formattedNumber = _formatAccountNumber(rawNumber);
+
+                      return _FundingAccountBlock(
+                        bankName: rawName.isEmpty ? 'Paystack-Titan' : rawName,
+                        accountNumber: formattedNumber,
+                        accountName:
+                            rawAccountName.isEmpty ? name : rawAccountName,
+                        onCopyAccount: () => _copyAccountNumber(rawNumber),
+                      );
+                    },
                   ),
+                  SizedBox(height: compact ? 12 : 14),
+                  compact
+                      ? Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: _HomeActionChip(
+                                label: 'Manage Wallet',
+                                icon: Icons.account_balance_wallet_rounded,
+                                filled: true,
+                                onTap: () => widget.onNavigateTab?.call(1),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: _HomeActionChip(
+                                label: 'Buy Data',
+                                icon: Icons.wifi_rounded,
+                                onTap: () => _openScreen(const DataScreen()),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: _HomeActionChip(
+                                label: 'Manage Wallet',
+                                icon: Icons.account_balance_wallet_rounded,
+                                filled: true,
+                                onTap: () => widget.onNavigateTab?.call(1),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _HomeActionChip(
+                                label: 'Buy Data',
+                                icon: Icons.wifi_rounded,
+                                onTap: () => _openScreen(const DataScreen()),
+                              ),
+                            ),
+                          ],
+                        ),
                 ],
               ),
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: _CompactMetric(
-                    title: 'Instant',
-                    subtitle: 'Fast delivery',
-                    icon: Icons.flash_on_rounded,
-                    color: const Color(0xFF10B981),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _CompactMetric(
-                    title: 'Secure',
-                    subtitle: 'Protected flow',
-                    icon: Icons.lock_outline_rounded,
-                    color: const Color(0xFF3B82F6),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _CompactMetric(
-                    title: 'Support',
-                    subtitle: 'Always here',
-                    icon: Icons.headset_mic_rounded,
-                    color: const Color(0xFFF59E0B),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -596,20 +821,19 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: services.take(4).length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 1.12,
+            SizedBox(
+              height: compact ? 108 : 112,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: services.length,
+                padding: const EdgeInsets.only(right: 2),
+                separatorBuilder: (context, index) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final item = services[index];
+                  return _ServiceCard(item: item);
+                },
               ),
-              itemBuilder: (context, index) {
-                final item = services[index];
-                return _ServiceCard(item: item);
-              },
             ),
             const SizedBox(height: 16),
             Row(
@@ -630,69 +854,48 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            GlassCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                children: [
-                  _ActivityRow(
-                    title: 'Wallet funding',
-                    subtitle: 'Access bank transfer update',
-                    meta: 'Bank transfer • Pending',
-                    amount: '₦0.00',
-                    accent: const Color(0xFF3B82F6),
-                  ),
-                  const Divider(height: 22),
-                  _ActivityRow(
-                    title: 'Data purchase',
-                    subtitle: 'MTN 1GB to 0814•••647',
-                    meta: 'Today • 12:42',
-                    amount: '-₦850.00',
-                    accent: const Color(0xFF10B981),
-                  ),
-                  const Divider(height: 22),
-                  _ActivityRow(
-                    title: 'Airtime purchase',
-                    subtitle: 'Airtel recharge',
-                    meta: 'Success • Today',
-                    amount: '-₦200.00',
-                    accent: const Color(0xFFF59E0B),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            GlassCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Trust & support',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: const [
-                      _TrustChip(
-                        icon: Icons.verified_rounded,
-                        label: 'Verified transfers',
-                      ),
-                      _TrustChip(
-                        icon: Icons.flash_on_rounded,
-                        label: 'Instant delivery',
-                      ),
-                      _TrustChip(
-                        icon: Icons.headset_mic_rounded,
-                        label: 'Live support',
-                      ),
+            FutureBuilder<List<dynamic>>(
+              future: _transactionsFuture,
+              initialData: _cachedTransactionsData,
+              builder: (context, snapshot) {
+                final isLoading = snapshot.connectionState == ConnectionState.waiting;
+                final hasError = snapshot.hasError;
+                final raw = snapshot.data ?? const <dynamic>[];
+                final items = _normalizeTransactions(raw);
+                final recent = items.take(10).toList();
+                if (recent.isEmpty && isLoading && _cachedTransactionsData == null) {
+                  return const _RecentActivityLoadingState();
+                }
+                if (recent.isEmpty && hasError && _cachedTransactionsData == null) {
+                  return _RecentActivityErrorState(
+                    onRetry: _refresh,
+                  );
+                }
+                if (recent.isEmpty) {
+                  return const _RecentActivityEmptyState();
+                }
+                return GlassCard(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < recent.length; i++) ...[
+                        _RealActivityRow(
+                          title: _txTitleFor(recent[i]),
+                          subtitle: _txSubtitleFor(recent[i]),
+                          meta:
+                              '${_txStatusOf(recent[i]).toUpperCase()} • ${_txDateLabel(recent[i])}',
+                          amount: _txAmountLabel(recent[i]),
+                          accent: _txStatusColor(
+                            context,
+                            _txStatusOf(recent[i]),
+                          ),
+                        ),
+                        if (i != recent.length - 1) const Divider(height: 22),
+                      ],
                     ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ],
         ),
@@ -717,13 +920,17 @@ class _HomeActionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
+    final compact = MediaQuery.sizeOf(context).width < 360;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 14,
+            vertical: compact ? 7 : 10,
+          ),
           decoration: BoxDecoration(
             color: filled ? color : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(999),
@@ -736,13 +943,14 @@ class _HomeActionChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: filled ? Colors.white : color),
-              const SizedBox(width: 6),
+              Icon(icon, size: compact ? 14 : 16, color: filled ? Colors.white : color),
+              SizedBox(width: compact ? 5 : 6),
               Text(
                 label,
                 style: TextStyle(
                   color: filled ? Colors.white : color,
                   fontWeight: FontWeight.w700,
+                  fontSize: compact ? 12 : 14,
                 ),
               ),
             ],
@@ -753,64 +961,8 @@ class _HomeActionChip extends StatelessWidget {
   }
 }
 
-class _CompactMetric extends StatelessWidget {
-  const _CompactMetric({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.1,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.62),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({
+class _RealActivityRow extends StatelessWidget {
+  const _RealActivityRow({
     required this.title,
     required this.subtitle,
     required this.meta,
@@ -826,89 +978,248 @@ class _ActivityRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.62);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    final amountColor = amount.startsWith('-')
+        ? Theme.of(context).colorScheme.onSurface
+        : accent;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.receipt_long_rounded, size: 20, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  meta,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: muted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            amount,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: amountColor,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentActivityLoadingState extends StatelessWidget {
+  const _RecentActivityLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: List.generate(
+        3,
+        (index) => const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: _RecentActivitySkeleton(),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentActivitySkeleton extends StatelessWidget {
+  const _RecentActivitySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final base = isDark ? const Color(0xFF1A2433) : const Color(0xFFEAF0F7);
+    final shimmer = isDark ? const Color(0xFF243244) : const Color(0xFFF4F7FB);
     return Row(
       children: [
         Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.14),
+            color: base,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(Icons.receipt_long_rounded, size: 20, color: accent),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              Container(
+                height: 12,
+                width: 120,
+                decoration: BoxDecoration(
+                  color: base,
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: muted),
+              const SizedBox(height: 8),
+              Container(
+                height: 10,
+                width: 160,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                meta,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelMedium?.copyWith(color: muted),
+              const SizedBox(height: 8),
+              Container(
+                height: 10,
+                width: 94,
+                decoration: BoxDecoration(
+                  color: shimmer,
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(width: 10),
-        Text(
-          amount,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: amount.startsWith('-')
-                ? Theme.of(context).colorScheme.onSurface
-                : accent,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Container(
+              height: 12,
+              width: 72,
+              decoration: BoxDecoration(
+                color: base,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              height: 18,
+              width: 54,
+              decoration: BoxDecoration(
+                color: base.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _TrustChip extends StatelessWidget {
-  const _TrustChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
+class _RecentActivityEmptyState extends StatelessWidget {
+  const _RecentActivityEmptyState();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
         children: [
-          Icon(icon, size: 15, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
               color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No recent transactions yet',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Your recent purchases and wallet activity will appear here as soon as you start using AxisVTU.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentActivityErrorState extends StatelessWidget {
+  const _RecentActivityErrorState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.sync_problem_rounded,
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Recent activity is unavailable',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'We could not load the latest wallet activity just now. You can try again in a moment.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: 160,
+            child: OutlinedButton(
+              onPressed: onRetry,
+              child: const Text('Try again'),
             ),
           ),
         ],
@@ -1057,6 +1368,8 @@ class _FundingAccountBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 360 || size.height < 760;
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final heroText = isDark ? Colors.white : const Color(0xFF0F172A);
     final softText = isDark
@@ -1068,7 +1381,7 @@ class _FundingAccountBlock extends StatelessWidget {
     final formattedNumber = accountNumber.trim().isEmpty ? '—' : accountNumber;
 
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: EdgeInsets.all(compact ? 12 : 15),
       decoration: BoxDecoration(
         gradient: isDark
             ? const LinearGradient(
@@ -1130,7 +1443,7 @@ class _FundingAccountBlock extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 10 : 16),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onCopyAccount,
@@ -1138,19 +1451,31 @@ class _FundingAccountBlock extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  child: Text(
-                    formattedNumber,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: heroText,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 3.2,
-                          height: 1.1,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        formattedNumber,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
+                              color: heroText,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: compact ? 2.6 : 3.2,
+                              height: 1.1,
+                              fontSize: compact ? 27 : null,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: compact ? 6 : 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
@@ -1166,18 +1491,21 @@ class _FundingAccountBlock extends StatelessWidget {
                     tooltip: 'Copy account number',
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                    constraints: BoxConstraints.tightFor(
+                      width: compact ? 30 : 32,
+                      height: compact ? 30 : 32,
+                    ),
                     color: heroText,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 8 : 10),
           Text(
             accountName,
             textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: compact ? 1 : 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: heroText,
@@ -1185,13 +1513,15 @@ class _FundingAccountBlock extends StatelessWidget {
                   letterSpacing: -0.05,
                 ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: compact ? 6 : 8),
           Text(
             'Transfer to this account to fund your wallet.',
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: softText.withValues(alpha: isDark ? 0.78 : 0.72),
-                  height: 1.35,
+                  height: 1.25,
                 ),
           ),
         ],
@@ -1214,103 +1544,273 @@ class _ServiceCardState extends State<_ServiceCard> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _pressed ? 0.98 : 1,
-      duration: const Duration(milliseconds: 130),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            widget.item.onTap();
-          },
-          onHighlightChanged: (value) => setState(() => _pressed = value),
-          borderRadius: BorderRadius.circular(18),
-          child: Ink(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.16),
+    return SizedBox(
+      width: 108,
+      child: AnimatedScale(
+        scale: _pressed ? 0.98 : 1,
+        duration: const Duration(milliseconds: 130),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              widget.item.onTap();
+            },
+            onHighlightChanged: (value) => setState(() => _pressed = value),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.12),
+                ),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
-                  children: [
-                    const Spacer(),
-                    Icon(
-                      Icons.arrow_outward_rounded,
-                      size: 14,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.38),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: widget.item.accent.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                  ],
-                ),
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: widget.item.accent.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: widget.item.accent.withValues(alpha: 0.28),
+                    child: Icon(
+                      widget.item.icon,
+                      size: 22,
+                      color: widget.item.accent,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: widget.item.accent.withValues(alpha: 0.18),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
                   ),
-                  child: Icon(
-                    widget.item.icon,
-                    size: 28,
-                    color: widget.item.accent,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.item.label,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Expanded(
-                  child: Text(
-                    widget.item.subtitle,
+                  const SizedBox(height: 10),
+                  Text(
+                    widget.item.label,
                     textAlign: TextAlign.center,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.62),
-                    ),
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.1,
+                        ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DashboardBalanceSkeleton extends StatelessWidget {
+  const _DashboardBalanceSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fill = isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : const Color(0xFFE8EEF9);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 110,
+          height: 12,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: 180,
+          height: 34,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: 220,
+          height: 11,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DashboardBalanceError extends StatelessWidget {
+  const _DashboardBalanceError({required this.onRefresh});
+
+  final Future<void> Function() onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Wallet details are temporarily unavailable.',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'We’ll refresh them as soon as the connection is ready.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: () => onRefresh(),
+          child: const Text('Refresh now'),
+        ),
+      ],
+    );
+  }
+}
+
+class _FundingAccountSkeleton extends StatelessWidget {
+  const _FundingAccountSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fill = isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : const Color(0xFFE8EEF9);
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0E1624) : const Color(0xFFFEFFFF),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(
+                alpha: isDark ? 0.12 : 0.14,
+              ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: fill,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: fill,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            height: 18,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 40,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 12,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 12,
+            width: 160,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FundingAccountUnavailable extends StatelessWidget {
+  const _FundingAccountUnavailable({
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String message;
+  final String actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64);
+    return GlassCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            message,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.1,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your dedicated account details will appear here once they are ready.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: muted,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: actionLabel,
+              icon: Icons.account_balance_wallet_rounded,
+              onPressed: onAction,
+            ),
+          ),
+        ],
       ),
     );
   }
