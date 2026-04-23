@@ -704,10 +704,6 @@ class _DataScreenState extends State<DataScreen> {
                                                   _invalidateRequestId();
                                                   setState(() => _selectedPlanCode = selectedCode);
                                                   Navigator.of(context).pop();
-                                                  if (_normalizePhone(_phoneCtrl.text)
-                                                      .isNotEmpty) {
-                                                    Future.microtask(_openPurchaseSummary);
-                                                  }
                                                 },
                                           icon: const Icon(Icons.check_circle_outline_rounded),
                                           label: const Text('Confirm'),
@@ -734,10 +730,6 @@ class _DataScreenState extends State<DataScreen> {
                                                 _invalidateRequestId();
                                                 setState(() => _selectedPlanCode = selectedCode);
                                                 Navigator.of(context).pop();
-                                                if (_normalizePhone(_phoneCtrl.text)
-                                                    .isNotEmpty) {
-                                                  Future.microtask(_openPurchaseSummary);
-                                                }
                                               },
                                         icon: const Icon(Icons.check_circle_outline_rounded),
                                         label: const Text('Confirm'),
@@ -761,165 +753,6 @@ class _DataScreenState extends State<DataScreen> {
     );
   }
 
-  Future<void> _openPurchaseSummary() async {
-    FocusManager.instance.primaryFocus?.unfocus();
-    final normalizedPhone = _normalizePhone(_phoneCtrl.text);
-    final selected = _selectedPlan;
-    if (selected == null || normalizedPhone.isEmpty) {
-      setState(() => _error = 'Enter phone number and select a plan.');
-      return;
-    }
-
-    double totalAmount = _planPriceValue(selected);
-    if (!totalAmount.isFinite) {
-      totalAmount = _toDouble(_planPrice(selected)) ?? 0;
-    }
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        var usingPin = false;
-
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return Container(
-              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0B1424), Color(0xFF0E1B34), Color(0xFF112645)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.22),
-                    blurRadius: 20,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                    Container(
-                      width: 52,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.22),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 18),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'Purchase Summary',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () => Navigator.of(context).pop(),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Ink(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-                            ),
-                            child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-                      ),
-                      child: Column(
-                        children: [
-                          _SummaryLine(label: 'Recipient', value: normalizedPhone),
-                          const SizedBox(height: 8),
-                          _SummaryLine(label: 'Network', value: _planNetwork(selected)),
-                          const SizedBox(height: 8),
-                          _SummaryLine(
-                            label: 'Plan',
-                            value: '${_planCapacity(selected)} • ${_planValidity(selected)}',
-                          ),
-                          const SizedBox(height: 8),
-                          _SummaryLine(
-                            label: 'Amount',
-                            value: '₦${totalAmount.toStringAsFixed(2)}',
-                            highlight: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: usingPin
-                            ? null
-                            : () async {
-                                setSheetState(() => usingPin = true);
-                                final authorized =
-                                    await PurchaseAuthService.authorizePin(
-                                  context: context,
-                                  reason: 'data purchase',
-                                );
-                                if (!mounted) return;
-                                setSheetState(() => usingPin = false);
-                                if (!authorized) return;
-                                Navigator.of(this.context).pop();
-                                await _buy();
-                              },
-                        icon: usingPin
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.lock_outline_rounded),
-                        label: const Text('Use PIN'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF4C8DFF),
-                        ),
-                      ),
-                    ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   Future<void> _buy() async {
     FocusManager.instance.primaryFocus?.unfocus();
     final normalizedPhone = _normalizePhone(_phoneCtrl.text);
@@ -930,6 +763,12 @@ class _DataScreenState extends State<DataScreen> {
 
     final token = context.read<SessionController>().token;
     if (token == null || token.isEmpty) return;
+
+    final authorized = await PurchaseAuthService.authorizePin(
+      context: context,
+      reason: 'data purchase',
+    );
+    if (!mounted || !authorized) return;
 
     setState(() {
       _error = null;
@@ -1103,17 +942,6 @@ class _DataScreenState extends State<DataScreen> {
       subtitle: 'Enter a number, choose a network, pick a plan, and confirm.',
       icon: Icons.wifi_rounded,
       scrollController: _scrollController,
-      footer: _StickyCheckoutBar(
-        recipient: hasPhone ? _normalizePhone(_phoneCtrl.text) : 'Enter recipient number',
-        network: _network.toUpperCase(),
-        plan: selected == null
-            ? 'Select plan'
-            : '${_planCapacity(selected)} • ${_planValidity(selected)}',
-        amount: selected == null ? '₦0.00' : '₦${_planPrice(selected)}',
-        active: canBuy,
-        loading: _submitting,
-        onBuy: canBuy ? _openPurchaseSummary : null,
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1205,14 +1033,14 @@ class _DataScreenState extends State<DataScreen> {
           ),
           ServiceSectionCard(
             title: 'Plan',
-            subtitle: 'Choose a bundle. The sticky bar keeps the final summary.',
+            subtitle: 'Choose a bundle. The button below completes the flow.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   selected == null
-                      ? 'Choose one bundle, then confirm.'
-                      : '${_planCapacity(selected)} • ${_planValidity(selected)} • ₦${_planPrice(selected)}',
+                      ? 'Choose one bundle to continue.'
+                      : 'Selected plan: ${_planCapacity(selected)} • ${_planValidity(selected)} • ₦${_planPrice(selected)}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -1258,7 +1086,7 @@ class _DataScreenState extends State<DataScreen> {
                   Text(
                     selected == null
                         ? 'Open the picker to choose a bundle.'
-                        : 'Selected: ${_planCapacity(selected)} • ${_planValidity(selected)} • ₦${_planPrice(selected)}',
+                        : 'Selected plan: ${_planCapacity(selected)} • ${_planValidity(selected)} • ₦${_planPrice(selected)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: Theme.of(context)
@@ -1270,6 +1098,13 @@ class _DataScreenState extends State<DataScreen> {
                 ],
               ],
             ),
+          ),
+          const SizedBox(height: 4),
+          PrimaryButton(
+            label: 'Buy Data',
+            icon: Icons.send_rounded,
+            loading: _submitting,
+            onPressed: canBuy ? _buy : null,
           ),
         ],
       ),
