@@ -762,55 +762,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final compactActions = constraints.maxWidth < 380;
-                return Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compactActions ? 8 : 10,
-                    vertical: compactActions ? 8 : 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _HomeActionChip(
-                          label: 'Fund',
-                          icon: Icons.account_balance_wallet_rounded,
-                          filled: true,
-                          onTap: () => widget.onNavigateTab?.call(1),
-                        ),
-                      ),
-                      SizedBox(width: compactActions ? 8 : 10),
-                      Expanded(
-                        child: _HomeActionChip(
-                          label: 'Data',
-                          icon: Icons.wifi_rounded,
-                          onTap: () => _openScreen(const DataScreen()),
-                        ),
-                      ),
-                      if (!compactActions) ...[
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _HomeActionChip(
-                            label: 'Airtime',
-                            icon: Icons.phone_iphone_rounded,
-                            onTap: () => _openScreen(const AirtimeScreen()),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -918,63 +869,6 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeActionChip extends StatelessWidget {
-  const _HomeActionChip({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.filled = false,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
-    final compact = MediaQuery.sizeOf(context).width < 360;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Ink(
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 10 : 14,
-            vertical: compact ? 7 : 10,
-          ),
-          decoration: BoxDecoration(
-            color: filled ? color : Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withValues(alpha: 0.22),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: compact ? 14 : 16, color: filled ? Colors.white : color),
-              SizedBox(width: compact ? 5 : 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: filled ? Colors.white : color,
-                  fontWeight: FontWeight.w700,
-                  fontSize: compact ? 12 : 14,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
