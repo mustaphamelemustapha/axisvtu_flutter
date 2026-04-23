@@ -1041,7 +1041,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Tell us what happened and we will help you continue in the right channel.',
+                  'Write a short summary and we will route it to the mmtechglobe support team.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.66),
                   ),
@@ -1050,7 +1050,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 TextField(
                   controller: subjectCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Subject',
+                    labelText: 'Short summary',
                     prefixIcon: Icon(Icons.subject_rounded),
                   ),
                 ),
@@ -1060,21 +1060,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   minLines: 4,
                   maxLines: 6,
                   decoration: const InputDecoration(
-                    labelText: 'What happened?',
+                    labelText: 'Describe what happened',
                     prefixIcon: Icon(Icons.chat_bubble_outline_rounded),
                     alignLabelWithHint: true,
                   ),
                 ),
                 const SizedBox(height: 14),
                 PrimaryButton(
-                  label: 'Send to support',
+                  label: 'Email support',
                   icon: Icons.mail_outline_rounded,
                   onPressed: () async {
                     final subject = subjectCtrl.text.trim().isEmpty
                         ? 'AxisVTU issue report'
                         : subjectCtrl.text.trim();
                     final body = detailsCtrl.text.trim().isEmpty
-                        ? 'Hello AxisVTU team,\n\nI need help with an issue in the app.'
+                        ? 'Hello mmtechglobe team,\n\nI need help with an issue in the app.'
                         : detailsCtrl.text.trim();
                     Navigator.pop(context);
                     await _launchSupportEmail(
