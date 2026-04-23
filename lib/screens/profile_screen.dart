@@ -864,7 +864,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _showComingSoon(String title, String subtitle) async {
+  Future<void> _showComingSoon(
+String title, String subtitle) async {
     await _showFeatureSheet(
       title: title,
       subtitle: subtitle,
@@ -1737,6 +1738,7 @@ class _InfoTile extends StatelessWidget {
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: compact ? 34 : 36,
@@ -1757,10 +1759,11 @@ class _InfoTile extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   label,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(
                     context,
@@ -1769,11 +1772,10 @@ class _InfoTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                   style: Theme.of(
                     context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, height: 1.35),
                 ),
               ],
             ),
@@ -1785,6 +1787,7 @@ class _InfoTile extends StatelessWidget {
 }
 
 class _ActionTile extends StatelessWidget {
+
   const _ActionTile({
     required this.label,
     required this.subtitle,
