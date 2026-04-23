@@ -953,15 +953,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _openFaqSheet() async {
     await _showFeatureSheet(
       title: 'Help center',
-      subtitle: 'Quick answers',
+      subtitle: 'Common questions',
       icon: Icons.help_outline_rounded,
-      helperText: 'A few quick answers while the full help center is being expanded.',
+      helperText: 'If these do not solve it, contact support from below.',
       actions: [
-        _InfoTile(label: 'How do I fund my wallet?', value: 'Transfer to your dedicated account and the wallet updates automatically.', icon: Icons.account_balance_wallet_outlined),
+        _InfoTile(
+          label: 'How do I fund my wallet?',
+          value: 'Transfer to your dedicated account and the wallet updates automatically.',
+          icon: Icons.account_balance_wallet_outlined,
+        ),
         const SizedBox(height: 8),
-        _InfoTile(label: 'Why is a purchase pending?', value: 'Some providers confirm a little later. We keep the record visible in History.', icon: Icons.schedule_outlined),
+        _InfoTile(
+          label: 'Why is a purchase pending?',
+          value: 'Some providers confirm a little later. We keep the record visible in History.',
+          icon: Icons.schedule_outlined,
+        ),
         const SizedBox(height: 8),
-        _InfoTile(label: 'Where is my receipt?', value: 'Open the transaction and use View Receipt or Share Receipt.', icon: Icons.receipt_long_outlined),
+        _InfoTile(
+          label: 'Where is my receipt?',
+          value: 'Open the transaction and use View Receipt or Share Receipt.',
+          icon: Icons.receipt_long_outlined,
+        ),
         const SizedBox(height: 16),
         PrimaryButton(
           label: 'Contact support',
@@ -1479,28 +1491,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
-            title: 'Help and support',
-            subtitle: 'Get help quickly when needed',
+            title: 'Help & support',
+            subtitle: 'Quick answers and contact options',
             icon: Icons.support_agent_rounded,
             child: Column(
               children: [
                 _ActionTile(
                   label: 'Contact support',
-                  subtitle: 'Reach the AxisVTU team',
+                  subtitle: 'Email the AxisVTU team',
                   icon: Icons.headset_mic_outlined,
                   onTap: _contactSupport,
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
-                  label: 'FAQ / Help center',
-                  subtitle: 'Answers to common questions',
+                  label: 'Help center',
+                  subtitle: 'Browse common answers',
                   icon: Icons.help_outline_rounded,
                   onTap: _openFaqSheet,
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
                   label: 'Report an issue',
-                  subtitle: 'Flag a failed transaction or app bug',
+                  subtitle: 'Flag an issue or failed transaction',
                   icon: Icons.bug_report_outlined,
                   onTap: _openIssueSheet,
                 ),
