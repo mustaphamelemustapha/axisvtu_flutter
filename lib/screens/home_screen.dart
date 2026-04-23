@@ -756,82 +756,84 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                   ),
-                  SizedBox(height: compact ? 12 : 14),
-                  compact
-                      ? Column(
-                          children: [
-                            SizedBox(
-                              width: double.infinity,
-                              child: _HomeActionChip(
-                                label: 'Manage Wallet',
-                                icon: Icons.account_balance_wallet_rounded,
-                                filled: true,
-                                onTap: () => widget.onNavigateTab?.call(1),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: _HomeActionChip(
-                                label: 'Buy Data',
-                                icon: Icons.wifi_rounded,
-                                onTap: () => _openScreen(const DataScreen()),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          children: [
-                            Expanded(
-                              child: _HomeActionChip(
-                                label: 'Manage Wallet',
-                                icon: Icons.account_balance_wallet_rounded,
-                                filled: true,
-                                onTap: () => widget.onNavigateTab?.call(1),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _HomeActionChip(
-                                label: 'Buy Data',
-                                icon: Icons.wifi_rounded,
-                                onTap: () => _openScreen(const DataScreen()),
-                              ),
-                            ),
-                          ],
-                        ),
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final stackActions = constraints.maxWidth < 380;
+                final manageWallet = _HomeActionChip(
+                  label: 'Fund Wallet',
+                  icon: Icons.account_balance_wallet_rounded,
+                  filled: true,
+                  onTap: () => widget.onNavigateTab?.call(1),
+                );
+                final buyData = _HomeActionChip(
+                  label: 'Buy Data',
+                  icon: Icons.wifi_rounded,
+                  onTap: () => _openScreen(const DataScreen()),
+                );
+                if (stackActions) {
+                  return Column(
+                    children: [
+                      SizedBox(width: double.infinity, child: manageWallet),
+                      const SizedBox(height: 8),
+                      SizedBox(width: double.infinity, child: buyData),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: manageWallet),
+                    const SizedBox(width: 8),
+                    Expanded(child: buyData),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Quick actions',
+                    'Services',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       letterSpacing: 0.2,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-                TextButton(
-                  onPressed: () => widget.onNavigateTab?.call(2),
-                  child: const Text('Data'),
-                ),
               ],
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              height: compact ? 108 : 112,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                itemCount: services.length,
-                padding: const EdgeInsets.only(right: 2),
-                separatorBuilder: (context, index) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final item = services[index];
-                  return _ServiceCard(item: item);
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+                ),
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth < 430 ? 3 : 4;
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: services.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      mainAxisExtent: compact ? 98 : 104,
+                    ),
+                    itemBuilder: (context, index) {
+                      final item = services[index];
+                      return _ServiceCard(item: item);
+                    },
+                  );
                 },
               ),
             ),
@@ -1544,59 +1546,63 @@ class _ServiceCardState extends State<_ServiceCard> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 108,
-      child: AnimatedScale(
-        scale: _pressed ? 0.98 : 1,
-        duration: const Duration(milliseconds: 130),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              widget.item.onTap();
-            },
-            onHighlightChanged: (value) => setState(() => _pressed = value),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: 0.12),
-                ),
+    final compact = MediaQuery.sizeOf(context).width < 360;
+    return AnimatedScale(
+      scale: _pressed ? 0.98 : 1,
+      duration: const Duration(milliseconds: 130),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            widget.item.onTap();
+          },
+          onHighlightChanged: (value) => setState(() => _pressed = value),
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: widget.item.accent.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(14),
+            ),
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 8 : 10,
+                  vertical: compact ? 8 : 10,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: compact ? 34 : 38,
+                      height: compact ? 34 : 38,
+                      decoration: BoxDecoration(
+                        color: widget.item.accent.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Icon(
+                        widget.item.icon,
+                        size: compact ? 18 : 20,
+                        color: widget.item.accent,
+                      ),
                     ),
-                    child: Icon(
-                      widget.item.icon,
-                      size: 22,
-                      color: widget.item.accent,
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.item.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.1,
+                            height: 1.05,
+                          ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    widget.item.label,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.1,
-                        ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
