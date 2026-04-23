@@ -444,16 +444,16 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 Container(
-                  height: 54,
-                  width: 54,
+                  height: 46,
+                  width: 46,
                   decoration: BoxDecoration(
                     gradient: AxisPalette.gradient,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.18),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
+                        color: Colors.black.withValues(alpha: 0.14),
+                        blurRadius: 14,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
@@ -463,12 +463,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
-                        fontSize: 18,
+                        fontSize: 15,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -479,10 +479,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w800,
-                          letterSpacing: -0.2,
+                          letterSpacing: -0.35,
+                          fontSize: compact ? 18 : 19,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 1),
                       Text(
                         'AxisVTU ${role.isEmpty ? 'Member' : role}',
                         maxLines: 1,
@@ -495,16 +496,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 _HeaderIconButton(
                   icon: Icons.notifications_none_rounded,
+                  size: 40,
                   onTap: _openNotificationsCenter,
                 ),
-                const SizedBox(width: 8),
-                const ThemeToggleButton(size: 44),
+                const SizedBox(width: 6),
+                const ThemeToggleButton(size: 40),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 12),
             Container(
               padding: EdgeInsets.all(compact ? 14 : 16),
               decoration: BoxDecoration(
@@ -1231,29 +1233,30 @@ class _RecentActivityErrorState extends StatelessWidget {
 }
 
 class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon, this.onTap});
+  const _HeaderIconButton({required this.icon, this.onTap, this.size = 44});
 
   final IconData icon;
   final VoidCallback? onTap;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(13),
       child: Container(
-        width: 44,
-        height: 44,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(13),
           border: Border.all(
             color: Theme.of(
               context,
             ).colorScheme.outline.withValues(alpha: 0.22),
           ),
         ),
-        child: Icon(icon, size: 21),
+        child: Icon(icon, size: size <= 40 ? 19 : 21),
       ),
     );
   }
