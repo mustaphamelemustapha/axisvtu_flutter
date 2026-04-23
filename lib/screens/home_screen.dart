@@ -764,33 +764,49 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             LayoutBuilder(
               builder: (context, constraints) {
-                final stackActions = constraints.maxWidth < 380;
-                final manageWallet = _HomeActionChip(
-                  label: 'Fund Wallet',
-                  icon: Icons.account_balance_wallet_rounded,
-                  filled: true,
-                  onTap: () => widget.onNavigateTab?.call(1),
-                );
-                final buyData = _HomeActionChip(
-                  label: 'Buy Data',
-                  icon: Icons.wifi_rounded,
-                  onTap: () => _openScreen(const DataScreen()),
-                );
-                if (stackActions) {
-                  return Column(
+                final compactActions = constraints.maxWidth < 380;
+                return Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compactActions ? 8 : 10,
+                    vertical: compactActions ? 8 : 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
+                    ),
+                  ),
+                  child: Row(
                     children: [
-                      SizedBox(width: double.infinity, child: manageWallet),
-                      const SizedBox(height: 8),
-                      SizedBox(width: double.infinity, child: buyData),
+                      Expanded(
+                        child: _HomeActionChip(
+                          label: 'Fund',
+                          icon: Icons.account_balance_wallet_rounded,
+                          filled: true,
+                          onTap: () => widget.onNavigateTab?.call(1),
+                        ),
+                      ),
+                      SizedBox(width: compactActions ? 8 : 10),
+                      Expanded(
+                        child: _HomeActionChip(
+                          label: 'Data',
+                          icon: Icons.wifi_rounded,
+                          onTap: () => _openScreen(const DataScreen()),
+                        ),
+                      ),
+                      if (!compactActions) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _HomeActionChip(
+                            label: 'Airtime',
+                            icon: Icons.phone_iphone_rounded,
+                            onTap: () => _openScreen(const AirtimeScreen()),
+                          ),
+                        ),
+                      ],
                     ],
-                  );
-                }
-                return Row(
-                  children: [
-                    Expanded(child: manageWallet),
-                    const SizedBox(width: 8),
-                    Expanded(child: buyData),
-                  ],
+                  ),
                 );
               },
             ),
