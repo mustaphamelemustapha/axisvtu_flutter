@@ -181,11 +181,9 @@ class _DataScreenState extends State<DataScreen> {
           _error = null;
           final plans = _sortedNetworkPlans;
           final current = _selectedPlanCode;
-          _selectedPlanCode = plans.isEmpty
-              ? null
-              : (plans.any((plan) => plan['plan_code']?.toString() == current)
-                    ? current
-                    : plans.first['plan_code']?.toString());
+          _selectedPlanCode = plans.any((plan) => plan['plan_code']?.toString() == current)
+              ? current
+              : null;
         });
       } catch (e) {
         if (!mounted) return;
@@ -516,9 +514,6 @@ class _DataScreenState extends State<DataScreen> {
                   selectedCode = currentPlans.first['plan_code']?.toString();
                 }
 
-                if (selectedCode == null && currentPlans.isNotEmpty) {
-                  selectedCode = currentPlans.first['plan_code']?.toString();
-                }
 
                 final planCountLabel = isLoading
                     ? 'Loading plans…'
