@@ -21,6 +21,7 @@ import 'cable_screen.dart';
 import 'data_screen.dart';
 import 'electricity_screen.dart';
 import 'exam_screen.dart';
+import 'referral_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onNavigateTab});
@@ -423,6 +424,13 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.school_rounded,
         accent: const Color(0xFFEF4444),
         onTap: () => _openScreen(const ExamScreen()),
+      ),
+      _HomeService(
+        label: 'Referrals',
+        subtitle: 'Invite and earn rewards',
+        icon: Icons.card_giftcard_rounded,
+        accent: const Color(0xFFEC4899),
+        onTap: () => _openScreen(const ReferralScreen()),
       ),
       _HomeService(
         label: 'Wallet',
