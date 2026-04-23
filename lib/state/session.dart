@@ -108,6 +108,7 @@ class SessionController extends ChangeNotifier {
     String email,
     String phone,
     String password,
+    {String? referralCode}
   ) async {
     _setLoading(true);
     try {
@@ -117,6 +118,7 @@ class SessionController extends ChangeNotifier {
         email: normalizedEmail,
         phone: phone,
         password: password,
+        referralCode: referralCode,
       );
       _token = _extractToken(data);
       _user = _extractUser(data);

@@ -28,13 +28,17 @@ class AuthService {
     required String email,
     required String phone,
     required String password,
+    String? referralCode,
   }) async {
-    final data = await _client.post('/auth/register', {
+    final code = referralCode?.trim() ?? '';
+    final body = {
       'full_name': fullName.trim(),
       'email': email.trim(),
       'phone_number': phone.trim(),
       'password': password,
-    });
+      if (code.isNotEmpty) 'referral_code': code,
+    };
+    final data = await _client.post('/auth/register', body);
     return data;
   }
 

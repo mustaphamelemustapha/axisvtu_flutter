@@ -107,6 +107,10 @@ class AppNotification {
     ]).toUpperCase();
     final meta = tx['meta'];
     final metaMap = meta is Map ? meta.map((k, v) => MapEntry(k.toString(), v)) : const <String, dynamic>{};
+    final ledgerDescription = _firstNonEmpty([
+      metaMap['ledger_description'],
+      tx['description'],
+    ]);
     final recipient = _firstNonEmpty([
       metaMap['recipient_phone'],
       metaMap['phone_number'],
@@ -129,6 +133,7 @@ class AppNotification {
     ]);
     final timestamp = _parseTimestamp(tx);
     final baseTitle = switch (type) {
+      'wallet_fund' when ledgerDescription.toLowerCase().contains('referral') => 'Referral reward',
       'data' => 'Data purchase',
       'airtime' => 'Airtime top-up',
       'cable' => 'Cable payment',
@@ -149,6 +154,8 @@ class AppNotification {
       if (plan != '—') plan,
     ];
     final description = switch (type) {
+      'wallet_fund' when ledgerDescription.toLowerCase().contains('referral') =>
+        ledgerDescription.isNotEmpty ? ledgerDescription : 'Referral reward credited.',
       'wallet_fund' => 'Wallet credited with ₦$amount.',
       'data' => detailBits.isEmpty ? 'Data purchase update' : detailBits.join(' • '),
       'airtime' => detailBits.isEmpty ? 'Airtime purchase update' : detailBits.join(' • '),

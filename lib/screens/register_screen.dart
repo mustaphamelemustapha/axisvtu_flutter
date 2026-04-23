@@ -11,11 +11,17 @@ import 'shell_screen.dart';
 import 'welcome_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key, this.initialPhone, this.initialEmail});
+  const RegisterScreen({
+    super.key,
+    this.initialPhone,
+    this.initialEmail,
+    this.initialReferralCode,
+  });
   static const String route = '/register';
 
   final String? initialPhone;
   final String? initialEmail;
+  final String? initialReferralCode;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -25,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _referralCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
   bool _obscure = true;
@@ -40,6 +47,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
       _emailCtrl.text = widget.initialEmail!;
     }
+    if (widget.initialReferralCode != null && widget.initialReferralCode!.isNotEmpty) {
+      _referralCtrl.text = widget.initialReferralCode!;
+    }
   }
 
   @override
@@ -47,6 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
+    _referralCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmPasswordCtrl.dispose();
     super.dispose();
@@ -57,6 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final phone = _phoneCtrl.text.trim();
+    final referralCode = _referralCtrl.text.trim();
     final password = _passwordCtrl.text;
     final confirmPassword = _confirmPasswordCtrl.text;
 
@@ -81,7 +93,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _localError = null);
     final session = context.read<SessionController>();
-    final ok = await session.register(name, email, phone, password);
+    final ok = await session.register(
+      name,
+      email,
+      phone,
+      password,
+      referralCode: referralCode.isEmpty ? null : referralCode,
+    );
     if (!mounted) return;
     if (ok) {
       Navigator.of(context).pushReplacementNamed(ShellScreen.route);
@@ -138,6 +156,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hint: 'Phone number',
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 10),
+                    _AuthInput(
+                      controller: _referralCtrl,
+                      hint: 'Referral code (optional)',
+                      icon: Icons.local_offer_outlined,
                     ),
                     const SizedBox(height: 10),
                     _AuthInput(

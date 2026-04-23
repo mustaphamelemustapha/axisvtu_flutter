@@ -17,6 +17,7 @@ import '../widgets/primary_button.dart';
 import '../widgets/theme_toggle_button.dart';
 import '../services/transaction_pin_service.dart';
 import 'welcome_screen.dart';
+import 'referral_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -639,8 +640,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _setupTransactionPin(TransactionPinService service) async {
     final status = await service.statusOrNull();
     final pinLength = status?.pinLength == 6 ? 6 : 4;
+    final sheetContext = context;
     final first = await PinEntrySheet.show(
-      context,
+      sheetContext,
       title: 'Create Transaction PIN',
       subtitle: 'Set a $pinLength-digit PIN to protect wallet debits.',
       confirmLabel: 'Continue',
@@ -649,7 +651,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted || first == null) return;
 
     final confirm = await PinEntrySheet.show(
-      context,
+      sheetContext,
       title: 'Confirm Transaction PIN',
       subtitle: 'Re-enter your $pinLength-digit PIN.',
       confirmLabel: 'Save PIN',
@@ -657,7 +659,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (!mounted || confirm == null) return;
     if (first != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
         const SnackBar(content: Text('PIN mismatch. Please try again.')),
       );
       return;
@@ -666,12 +668,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await service.setup(pin: first, confirmPin: confirm);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
         const SnackBar(content: Text('Transaction PIN created successfully.')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
     }
@@ -680,8 +682,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _changeTransactionPin(TransactionPinService service) async {
     final status = await service.statusOrNull();
     final pinLength = status?.pinLength == 6 ? 6 : 4;
+    final sheetContext = context;
     final current = await PinEntrySheet.show(
-      context,
+      sheetContext,
       title: 'Enter Current PIN',
       subtitle: 'Confirm your identity before changing the PIN.',
       confirmLabel: 'Continue',
@@ -690,7 +693,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted || current == null) return;
 
     final next = await PinEntrySheet.show(
-      context,
+      sheetContext,
       title: 'Set New PIN',
       subtitle: 'Choose a fresh $pinLength-digit PIN.',
       confirmLabel: 'Continue',
@@ -699,7 +702,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted || next == null) return;
 
     final confirm = await PinEntrySheet.show(
-      context,
+      sheetContext,
       title: 'Confirm New PIN',
       subtitle: 'Re-enter the new $pinLength-digit PIN.',
       confirmLabel: 'Save PIN',
@@ -708,7 +711,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted || confirm == null) return;
 
     if (next != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
         const SnackBar(content: Text('PIN mismatch. Please try again.')),
       );
       return;
@@ -721,12 +724,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         confirmPin: confirm,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
         const SnackBar(content: Text('Transaction PIN updated successfully.')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
     }
@@ -735,17 +738,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _requestTransactionPinReset(
     TransactionPinService service,
   ) async {
+    final sheetContext = context;
     try {
       await service.requestReset();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
         const SnackBar(
           content: Text('Reset link sent to your email. Open it to reset your PIN.'),
         ),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
     }
@@ -1106,6 +1110,8 @@ String title, String subtitle) async {
   }
 
   Future<void> _launchSupportEmail({required String subject, required String body}) async {
+    final sheetContext = context;
+    final messenger = ScaffoldMessenger.of(sheetContext);
     final uri = Uri(
       scheme: 'mailto',
       path: 'mmtechglobe@gmail.com',
@@ -1118,7 +1124,7 @@ String title, String subtitle) async {
       final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
         await Clipboard.setData(const ClipboardData(text: 'mmtechglobe@gmail.com'));
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Support email copied. Send your issue to mmtechglobe@gmail.com.'),
           ),
@@ -1127,7 +1133,7 @@ String title, String subtitle) async {
     } catch (_) {
       if (!mounted) return;
       await Clipboard.setData(const ClipboardData(text: 'mmtechglobe@gmail.com'));
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Support email copied. Send your issue to mmtechglobe@gmail.com.'),
         ),
@@ -1372,6 +1378,20 @@ String title, String subtitle) async {
                   onPressed: _updatingProfile ? null : _openEditProfileSheet,
                 ),
               ],
+            ),
+          ),
+          SizedBox(height: compact ? 10 : 12),
+          _ProfileSection(
+            title: 'Referrals',
+            subtitle: 'Invite friends and earn rewards',
+            icon: Icons.group_add_rounded,
+            child: _ActionTile(
+              label: 'Open referrals',
+              subtitle: 'Copy, share, and track progress',
+              icon: Icons.redeem_rounded,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ReferralScreen()),
+              ),
             ),
           ),
           SizedBox(height: compact ? 10 : 12),
