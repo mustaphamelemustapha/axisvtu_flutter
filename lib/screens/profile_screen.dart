@@ -768,6 +768,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.86,
+              ),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(28),
@@ -784,72 +787,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 46,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.28),
-                        borderRadius: BorderRadius.circular(999),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 46,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.28),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(14),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(
+                            icon,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
-                        child: Icon(
-                          icon,
-                          color: Theme.of(context).colorScheme.primary,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                subtitle,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64),
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                      ],
+                    ),
+                    if (helperText != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        helperText,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                              height: 1.45,
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              subtitle,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64),
-                                  ),
-                            ),
-                          ],
-                        ),
                       ),
                     ],
-                  ),
-                  if (helperText != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      helperText,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
-                            height: 1.45,
-                          ),
-                    ),
+                    const SizedBox(height: 16),
+                    ...actions,
                   ],
-                  const SizedBox(height: 16),
-                  ...actions,
-                ],
+                ),
               ),
             ),
           ),
@@ -1110,16 +1116,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
-        await _showComingSoon(
-          'Support email',
-          'Please write to mmtechglobe@gmail.com with your subject and issue details.',
+        await Clipboard.setData(const ClipboardData(text: 'mmtechglobe@gmail.com'));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Support email copied. Send your issue to mmtechglobe@gmail.com.'),
+          ),
         );
       }
     } catch (_) {
       if (!mounted) return;
-      await _showComingSoon(
-        'Support email',
-        'Please write to mmtechglobe@gmail.com with your subject and issue details.',
+      await Clipboard.setData(const ClipboardData(text: 'mmtechglobe@gmail.com'));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Support email copied. Send your issue to mmtechglobe@gmail.com.'),
+        ),
       );
     }
   }
