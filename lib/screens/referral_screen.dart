@@ -57,15 +57,6 @@ class _ReferralScreenState extends State<ReferralScreen> {
     );
   }
 
-  String _gbLabel(int mb) {
-    if (mb <= 0) return '0GB';
-    final gb = mb / 1024.0;
-    if ((gb - gb.roundToDouble()).abs() < 0.05) {
-      return '${gb.round()}GB';
-    }
-    return '${gb.toStringAsFixed(1)}GB';
-  }
-
   String _money(dynamic value) {
     final parsed = double.tryParse(value?.toString() ?? '') ?? 0;
     return '₦${parsed.toStringAsFixed(2)}';
@@ -101,9 +92,6 @@ class _ReferralScreenState extends State<ReferralScreen> {
               final totalReferrals = (data?['total_referrals'] ?? 0).toString();
               final rewardedReferrals = (data?['rewarded_referrals'] ?? 0).toString();
               final totalEarned = _money(data?['total_earned']);
-              final rewardAmount = _money(data?['reward_amount']);
-              final targetMb = int.tryParse((data?['target_mb'] ?? 51200).toString()) ?? 51200;
-              final progressPercent = (data?['progress_percent'] ?? 0).toString();
 
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -236,21 +224,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Earn ₦2,000 when your friend buys 50GB of data.',
+                          'Earn 2% of your friend\'s first deposit.',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                         ),
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            minHeight: 8,
-                            value: ((data?['progress_percent'] ?? 0) as num).toDouble() / 100.0,
-                            backgroundColor: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
                         Text(
-                          '${_gbLabel((data?['total_accumulated_mb'] ?? 0) is int ? (data?['total_accumulated_mb'] ?? 0) as int : int.tryParse((data?['total_accumulated_mb'] ?? 0).toString()) ?? 0)} / ${_gbLabel(targetMb)} • $progressPercent%',
+                          'Reward is credited after the first successful wallet funding only.',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
                         ),
                       ],
@@ -299,10 +277,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       final item = raw.map((k, v) => MapEntry(k.toString(), v));
                       final status = (item['status'] ?? 'pending').toString();
                       final itemName = (item['referred_user_name'] ?? 'Referral').toString();
-                      final accumulatedMb = int.tryParse((item['accumulated_mb'] ?? 0).toString()) ?? 0;
-                      final itemTargetMb = int.tryParse((item['target_mb'] ?? targetMb).toString()) ?? targetMb;
-                      final percent = int.tryParse((item['progress_percent'] ?? 0).toString()) ?? 0;
-                      final reward = _money(item['reward_amount'] ?? rewardAmount);
+                      final firstDeposit = _money(item['first_deposit_amount'] ?? 0);
+                      final reward = _money(item['reward_amount'] ?? 0);
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Container(
@@ -341,30 +317,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
                                 ],
                               ),
                               const SizedBox(height: 10),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(999),
-                                child: LinearProgressIndicator(
-                                  minHeight: 7,
-                                  value: (percent.clamp(0, 100)) / 100.0,
-                                  backgroundColor: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
-                                ),
+                              Text(
+                                'First deposit $firstDeposit',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                               ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${_gbLabel(accumulatedMb)} / ${_gbLabel(itemTargetMb)}',
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-                                    ),
-                                  ),
-                                  Text(
-                                    '$percent%',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 4),
                               Text(
                                 'Reward $reward',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
