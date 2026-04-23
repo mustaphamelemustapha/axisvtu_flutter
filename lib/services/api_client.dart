@@ -28,6 +28,8 @@ class ApiClient {
       throw ApiException(408, 'Request timed out. Please try again.');
     } on http.ClientException {
       throw ApiException(503, 'Network unavailable. Please check your connection.');
+    } on ApiException {
+      rethrow;
     } catch (_) {
       throw ApiException(500, 'Request failed. Please try again.');
     }
@@ -49,6 +51,8 @@ class ApiClient {
       throw ApiException(408, 'Request timed out. Please try again.');
     } on http.ClientException {
       throw ApiException(503, 'Network unavailable. Please check your connection.');
+    } on ApiException {
+      rethrow;
     } catch (_) {
       throw ApiException(500, 'Request failed. Please try again.');
     }
@@ -70,6 +74,8 @@ class ApiClient {
       throw ApiException(408, 'Request timed out. Please try again.');
     } on http.ClientException {
       throw ApiException(503, 'Network unavailable. Please check your connection.');
+    } on ApiException {
+      rethrow;
     } catch (_) {
       throw ApiException(500, 'Request failed. Please try again.');
     }
@@ -84,6 +90,8 @@ class ApiClient {
       throw ApiException(408, 'Request timed out. Please try again.');
     } on http.ClientException {
       throw ApiException(503, 'Network unavailable. Please check your connection.');
+    } on ApiException {
+      rethrow;
     } catch (_) {
       throw ApiException(500, 'Request failed. Please try again.');
     }
@@ -102,7 +110,34 @@ class ApiClient {
     final message = data is Map<String, dynamic>
         ? (data['detail'] ?? data['message'] ?? 'Request failed')
         : 'Request failed';
-    throw ApiException(resp.statusCode, message.toString());
+    throw ApiException(resp.statusCode, _formatErrorMessage(message));
+  }
+
+  String _formatErrorMessage(Object? message) {
+    if (message is String) {
+      return message;
+    }
+    if (message is List) {
+      final parts = <String>[];
+      for (final item in message) {
+        if (item is Map) {
+          final loc = item['loc'];
+          final field = loc is List && loc.isNotEmpty ? loc.last?.toString() : null;
+          final msg = item['msg']?.toString();
+          if (field != null && msg != null && msg.isNotEmpty) {
+            parts.add('$field: $msg');
+          } else if (msg != null && msg.isNotEmpty) {
+            parts.add(msg);
+          }
+        } else if (item != null) {
+          parts.add(item.toString());
+        }
+      }
+      if (parts.isNotEmpty) {
+        return parts.join(', ');
+      }
+    }
+    return message?.toString() ?? 'Request failed';
   }
 }
 
