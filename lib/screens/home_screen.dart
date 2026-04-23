@@ -816,7 +816,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 TextButton(
                   onPressed: () => widget.onNavigateTab?.call(2),
-                  child: const Text('All services'),
+                  child: const Text('Data'),
                 ),
               ],
             ),
