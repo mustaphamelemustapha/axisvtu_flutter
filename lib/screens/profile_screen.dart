@@ -955,7 +955,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       title: 'Help center',
       subtitle: 'Common questions',
       icon: Icons.help_outline_rounded,
-      helperText: 'If these do not solve it, contact support from below.',
+      helperText: 'These notes cover the most common questions so you can move quickly without leaving the page.',
       actions: [
         _InfoTile(
           label: 'How do I fund my wallet?',
@@ -973,6 +973,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           label: 'Where is my receipt?',
           value: 'Open the transaction and use View Receipt or Share Receipt.',
           icon: Icons.receipt_long_outlined,
+        ),
+        const SizedBox(height: 8),
+        _InfoTile(
+          label: 'Why did my PIN fail?',
+          value: 'Wrong PIN attempts return a calm retry message so you can try again right away.',
+          icon: Icons.pin_outlined,
+        ),
+        const SizedBox(height: 8),
+        _InfoTile(
+          label: 'What if a payment is pending?',
+          value: 'Pending transactions stay visible in History until the provider gives a final result.',
+          icon: Icons.hourglass_bottom_rounded,
         ),
         const SizedBox(height: 16),
         PrimaryButton(
@@ -1082,7 +1094,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _contactSupport() async {
     await _launchSupportEmail(
       subject: 'AxisVTU support request',
-      body: 'Hello AxisVTU team,\n\nI need help with my account.',
+      body: 'Hello mmtechglobe team,\n\nI need help with my AxisVTU account.',
     );
   }
 
