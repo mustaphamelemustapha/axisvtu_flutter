@@ -386,6 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final heroSoftText = isDark
         ? Colors.white.withValues(alpha: 0.84)
         : const Color(0xFF5B6B82);
+    final balance = _extractBalance(_cachedWalletData);
 
     final services = <_HomeService>[
       _HomeService(
@@ -550,76 +551,115 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              'Wallet balance',
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: heroSoftText,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.2,
-                              ),
+                            AnimatedSwitcher(
+                              duration: AxisDurations.normal,
+                              switchInCurve: Curves.easeOut,
+                              switchOutCurve: Curves.easeIn,
+                              layoutBuilder: (currentChild, previousChildren) {
+                                return Stack(
+                                  alignment: Alignment.centerLeft,
+                                  children: [
+                                    ...previousChildren,
+                                    if (currentChild != null) currentChild,
+                                  ],
+                                );
+                              },
+                              transitionBuilder: (child, animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.06),
+                                      end: Offset.zero,
+                                    ).animate(
+                                      CurvedAnimation(
+                                        parent: animation,
+                                        curve: Curves.easeOut,
+                                      ),
+                                    ),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: _hideBalance
+                                  ? Text(
+                                      '₦ ••••••',
+                                      key: const ValueKey('hidden_home_balance'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                            color: heroText,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 1.8,
+                                            fontSize: compact ? 28 : 32,
+                                          ),
+                                    )
+                                  : Text(
+                                      '₦${_formatNaira(balance)}',
+                                      key: const ValueKey('visible_home_balance'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                            color: heroText,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: compact ? 28 : 32,
+                                          ),
+                                    ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Available for data, airtime, bills, and exam pins.',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: heroSoftText,
+                            const SizedBox(width: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : const Color(0xFFF1F5FF),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+                                ),
+                              ),
+                              child: IconButton(
+                                onPressed: _toggleBalanceVisibility,
+                                icon: AnimatedSwitcher(
+                                  duration: AxisDurations.normal,
+                                  transitionBuilder: (child, animation) {
+                                    return FadeTransition(
+                                      opacity: animation,
+                                      child: ScaleTransition(
+                                        scale: Tween<double>(begin: 0.88, end: 1.0).animate(
+                                          CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeOut,
+                                          ),
+                                        ),
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: Icon(
+                                    _hideBalance
+                                        ? Icons.visibility_off_rounded
+                                        : Icons.visibility_rounded,
+                                    key: ValueKey(_hideBalance),
+                                    color: heroText,
+                                  ),
+                                ),
+                                tooltip: _hideBalance ? 'Show balance' : 'Hide balance',
+                                style: IconButton.styleFrom(
+                                  padding: const EdgeInsets.all(9),
+                                  minimumSize: const Size(40, 40),
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : const Color(0xFFF1F5FF),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
-                          ),
-                        ),
-                        child: IconButton(
-                          onPressed: _toggleBalanceVisibility,
-                          icon: AnimatedSwitcher(
-                            duration: AxisDurations.normal,
-                            transitionBuilder: (child, animation) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: ScaleTransition(
-                                  scale: Tween<double>(begin: 0.88, end: 1.0).animate(
-                                    CurvedAnimation(
-                                      parent: animation,
-                                      curve: Curves.easeOut,
-                                    ),
-                                  ),
-                                  child: child,
-                                ),
-                              );
-                            },
-                            child: Icon(
-                              _hideBalance
-                                  ? Icons.visibility_off_rounded
-                                  : Icons.visibility_rounded,
-                              key: ValueKey(_hideBalance),
-                              color: heroText,
-                            ),
-                          ),
-                          tooltip: _hideBalance ? 'Show balance' : 'Hide balance',
-                          style: IconButton.styleFrom(
-                            padding: const EdgeInsets.all(9),
-                            minimumSize: const Size(40, 40),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   FutureBuilder<Map<String, dynamic>>(
                     future: _walletFuture,
                     builder: (context, snapshot) {
