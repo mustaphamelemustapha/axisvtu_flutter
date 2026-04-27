@@ -42,15 +42,23 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     'kaduna',
   ];
   bool _loading = false;
+  bool _verifying = false;
   String? _activeRequestId;
   bool _saveBeneficiary = true;
   List<Map<String, dynamic>> _beneficiaries = [];
   String? _error;
 
+  // Verification state
+  bool _verificationChecked = false;
+  bool _verificationOk = false;
+  String _verifiedCustomerName = '';
+  String _verificationMessage = '';
+
   @override
   void initState() {
     super.initState();
     _meterNumberCtrl.addListener(_invalidateRequestId);
+    _meterNumberCtrl.addListener(_clearVerification);
     _phoneCtrl.addListener(_invalidateRequestId);
     _amountCtrl.addListener(_invalidateRequestId);
     _loadCatalog();
@@ -60,6 +68,7 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
   @override
   void dispose() {
     _meterNumberCtrl.removeListener(_invalidateRequestId);
+    _meterNumberCtrl.removeListener(_clearVerification);
     _phoneCtrl.removeListener(_invalidateRequestId);
     _amountCtrl.removeListener(_invalidateRequestId);
     _meterNumberCtrl.dispose();
@@ -117,6 +126,63 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     _activeRequestId = null;
   }
 
+  void _clearVerification() {
+    if (_verificationChecked || _verificationOk) {
+      setState(() {
+        _verificationChecked = false;
+        _verificationOk = false;
+        _verifiedCustomerName = '';
+        _verificationMessage = '';
+      });
+    }
+  }
+
+  Future<void> _verifyMeter() async {
+    final token = (context.read<SessionController>().token ?? '').trim();
+    if (token.isEmpty) return;
+
+    final meterNumber = _meterNumberCtrl.text.replaceAll(RegExp(r'\D'), '');
+    if (meterNumber.length < 5) {
+      setState(() => _error = 'Enter a valid meter number to verify.');
+      return;
+    }
+
+    setState(() {
+      _verifying = true;
+      _verificationChecked = false;
+      _verificationOk = false;
+      _verifiedCustomerName = '';
+      _verificationMessage = '';
+      _error = null;
+    });
+
+    try {
+      final res = await ServicesService(token: token).verifyElectricity(
+        disco: _disco,
+        meterType: _meterType,
+        meterNumber: meterNumber,
+      );
+      final ok = res['ok'] == true;
+      setState(() {
+        _verificationChecked = true;
+        _verificationOk = ok;
+        _verifiedCustomerName = ok ? (res['customer_name'] ?? '').toString().trim() : '';
+        _verificationMessage = ok
+            ? 'Meter verified successfully.'
+            : (res['message'] ?? 'Unable to verify meter number.').toString();
+      });
+    } catch (e) {
+      final msg = e is ApiException ? e.message : e.toString();
+      setState(() {
+        _verificationChecked = true;
+        _verificationOk = false;
+        _verificationMessage = msg.isNotEmpty ? msg : 'Unable to verify meter number right now.';
+      });
+    } finally {
+      if (mounted) setState(() => _verifying = false);
+    }
+  }
+
   Future<void> _savePreference(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_saveBeneficiaryKey, value);
@@ -165,6 +231,10 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     HapticFeedback.mediumImpact();
     setState(() {
       _invalidateRequestId();
+      _verificationChecked = false;
+      _verificationOk = false;
+      _verifiedCustomerName = '';
+      _verificationMessage = '';
       if (_discos.contains(disco)) {
         _disco = disco;
       }
@@ -187,6 +257,10 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     final phone = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
     final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
 
+    if (!_verificationOk) {
+      setState(() => _error = 'Please verify your meter number before paying.');
+      return;
+    }
     if (meterNumber.length < 6 || meterNumber.length > 13) {
       setState(() => _error = 'Enter a valid meter number.');
       return;
@@ -236,6 +310,8 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
           ReceiptField(label: 'Disco', value: _disco.toUpperCase()),
           ReceiptField(label: 'Meter Number', value: meterNumber),
           ReceiptField(label: 'Meter Type', value: _meterType.toUpperCase()),
+          if (_verifiedCustomerName.isNotEmpty)
+            ReceiptField(label: 'Customer Name', value: _verifiedCustomerName),
           ReceiptField(label: 'Phone', value: phone),
           ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
           ReceiptField(label: 'Token', value: (res['token'] ?? '').toString()),
@@ -369,13 +445,19 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                   .map(
                     (n) => ServiceChoiceChip(
                       label: n.toUpperCase(),
-                  selected: _disco == n,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _invalidateRequestId();
-                    setState(() => _disco = n);
-                  },
-                ),
+                      selected: _disco == n,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _invalidateRequestId();
+                        setState(() {
+                          _disco = n;
+                          _verificationChecked = false;
+                          _verificationOk = false;
+                          _verifiedCustomerName = '';
+                          _verificationMessage = '';
+                        });
+                      },
+                    ),
                   )
                   .toList(),
             ),
@@ -391,7 +473,13 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                   onTap: () {
                     HapticFeedback.selectionClick();
                     _invalidateRequestId();
-                    setState(() => _meterType = 'prepaid');
+                    setState(() {
+                      _meterType = 'prepaid';
+                      _verificationChecked = false;
+                      _verificationOk = false;
+                      _verifiedCustomerName = '';
+                      _verificationMessage = '';
+                    });
                   },
                 ),
                 ServiceChoiceChip(
@@ -400,7 +488,13 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                   onTap: () {
                     HapticFeedback.selectionClick();
                     _invalidateRequestId();
-                    setState(() => _meterType = 'postpaid');
+                    setState(() {
+                      _meterType = 'postpaid';
+                      _verificationChecked = false;
+                      _verificationOk = false;
+                      _verifiedCustomerName = '';
+                      _verificationMessage = '';
+                    });
                   },
                 ),
               ],
@@ -419,6 +513,68 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                     prefixIcon: Icon(Icons.pin_outlined),
                   ),
                 ),
+                const SizedBox(height: 10),
+                // --- Verify Meter button & feedback ---
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _verifying ? null : _verifyMeter,
+                        icon: _verifying
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.search_rounded, size: 18),
+                        label: Text(_verifying ? 'Verifying...' : 'Verify Meter'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_verificationChecked) ...
+                  [
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: _verificationOk
+                            ? Colors.green.withValues(alpha: 0.12)
+                            : Colors.red.withValues(alpha: 0.10),
+                        border: Border.all(
+                          color: _verificationOk
+                              ? Colors.green.withValues(alpha: 0.5)
+                              : Colors.red.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _verificationOk
+                                ? Icons.check_circle_outline_rounded
+                                : Icons.cancel_outlined,
+                            size: 18,
+                            color: _verificationOk ? Colors.green : Colors.red,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _verificationOk && _verifiedCustomerName.isNotEmpty
+                                  ? 'Customer: $_verifiedCustomerName'
+                                  : _verificationMessage,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: _verificationOk ? Colors.green[800] : Colors.red[800],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 const SizedBox(height: 12),
                 TextField(
                   controller: _phoneCtrl,
@@ -578,7 +734,7 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
             label: 'Buy Electricity',
             icon: Icons.flash_on_rounded,
             loading: _loading,
-            onPressed: _submit,
+            onPressed: _verificationOk && !_loading ? _submit : null,
           ),
         ],
       ),

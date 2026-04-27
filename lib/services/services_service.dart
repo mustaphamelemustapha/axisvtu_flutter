@@ -46,6 +46,18 @@ class ServicesService {
     });
   }
 
+  Future<Map<String, dynamic>> verifyElectricity({
+    required String disco,
+    required String meterType,
+    required String meterNumber,
+  }) {
+    return _client.post('/services/electricity/verify-meter', {
+      'disco': disco,
+      'meter_type': meterType,
+      'meter_number': meterNumber,
+    });
+  }
+
   Future<Map<String, dynamic>> purchaseElectricity({
     required String disco,
     required String meterType,
