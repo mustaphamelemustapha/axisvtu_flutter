@@ -124,9 +124,9 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
 
   void _openRoute(AppNotification item) {
     final tab = switch (item.action) {
-      AppNotificationAction.history => 3,
+      AppNotificationAction.history => 2,
       AppNotificationAction.wallet => 1,
-      AppNotificationAction.profile => 4,
+      AppNotificationAction.profile => 3,
       AppNotificationAction.none => null,
     };
 
@@ -592,7 +592,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                           'Updates from wallet funding, purchases, and security events will appear here.',
                       actionLabel: 'View History',
                       onAction: () {
-                        widget.onNavigateTab?.call(3);
+                        widget.onNavigateTab?.call(2);
                         Navigator.of(context).pop();
                       },
                     )

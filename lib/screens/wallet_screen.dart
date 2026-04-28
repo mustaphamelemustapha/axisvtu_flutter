@@ -859,7 +859,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     onAction: requiresKyc
                         ? () {
                             if (widget.onNavigateTab != null) {
-                              widget.onNavigateTab!(4);
+                              widget.onNavigateTab!(3);
                             } else {
                               _openScreen(const ProfileScreen());
                             }
@@ -908,13 +908,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             icon: Icons.wifi_rounded,
                             label: 'Buy Data',
                             accent: const Color(0xFF3B82F6),
-                            onTap: () {
-                              if (widget.onNavigateTab != null) {
-                                widget.onNavigateTab!(2);
-                              } else {
-                                _openScreen(const DataScreen());
-                              }
-                            },
+                            onTap: () => _openScreen(const DataScreen()),
                           ),
                           _WalletActionPill(
                             icon: Icons.phone_iphone_rounded,
@@ -1104,7 +1098,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => widget.onNavigateTab?.call(3),
+                  onPressed: () => widget.onNavigateTab?.call(2),
                   child: const Text('View all'),
                 ),
               ],

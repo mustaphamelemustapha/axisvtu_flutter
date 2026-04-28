@@ -8,13 +8,13 @@ import 'axis_tokens.dart';
 class AppTheme {
   static const _seed = Color(0xFF2457F5);
   static const _secondary = Color(0xFF14B8A6);
-  static const _lightBg = Color(0xFFF1F5FA);
-  static const _darkBg = Color(0xFF07111D);
+  static const _lightBg = Color(0xFFF8FAFC);
+  static const _darkBg = Color(0xFF0F172A);
   static const _lightSurface = Colors.white;
-  static const _darkSurface = Color(0xFF0E1624);
-  static const _lightSurfaceSoft = Color(0xFFF7F9FD);
-  static const _lightSurfaceElevated = Color(0xFFFFFFFF);
-  static const _darkSurfaceSoft = Color(0xFF152033);
+  static const _darkSurface = Color(0xFF152033);
+  static const _lightSurfaceSoft = Color(0xFFF1F5F9);
+  static const _lightSurfaceElevated = Colors.white;
+  static const _darkSurfaceSoft = Color(0xFF1E293B);
 
   static ThemeData light() => _build(Brightness.light);
 
@@ -33,8 +33,8 @@ class AppTheme {
           surface: isDark ? _darkSurface : _lightSurface,
           onSurface: isDark ? const Color(0xFFE7EEF9) : const Color(0xFF0B1220),
           onSurfaceVariant: isDark ? const Color(0xFFB8C4D6) : const Color(0xFF475569),
-          outline: isDark ? const Color(0xFF2A3446) : const Color(0xFFCBD5E1),
-          outlineVariant: isDark ? const Color(0xFF1A2232) : const Color(0xFFE2E8F0),
+          outline: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+          outlineVariant: isDark ? const Color(0xFF152033) : const Color(0xFFF1F5F9),
           background: isDark ? _darkBg : _lightBg,
           onPrimary: Colors.white,
           onSecondary: Colors.white,
@@ -43,7 +43,7 @@ class AppTheme {
           tertiary: const Color(0xFFF59E0B),
           onTertiary: Colors.white,
           surfaceTint: Colors.transparent,
-          surfaceVariant: isDark ? const Color(0xFF132034) : const Color(0xFFF1F5FB),
+          surfaceVariant: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
           shadow: Colors.black,
         );
 
@@ -144,7 +144,7 @@ class AppTheme {
       visualDensity: VisualDensity.standard,
       scaffoldBackgroundColor: isDark ? _darkBg : _lightBg,
       textTheme: textTheme,
-      shadowColor: Colors.black.withValues(alpha: isDark ? 0.28 : 0.12),
+      shadowColor: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
       splashFactory: InkSparkle.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
@@ -283,7 +283,7 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: isDark ? const Color(0xFF0B121B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         height: 72,
         labelTextStyle: WidgetStateProperty.all(
           textTheme.labelMedium?.copyWith(
@@ -359,7 +359,7 @@ class AxisPalette extends ThemeExtension<AxisPalette> {
   );
 
   static const softBackgroundGradient = LinearGradient(
-    colors: [Color(0xFF0B1320), Color(0xFF10233D), Color(0xFF0B1320)],
+    colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

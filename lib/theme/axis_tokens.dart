@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class AxisSpacing {
   static const double xxs = 4;
   static const double xs = 8;
@@ -20,4 +22,32 @@ class AxisDurations {
   static const Duration fast = Duration(milliseconds: 120);
   static const Duration normal = Duration(milliseconds: 180);
   static const Duration slow = Duration(milliseconds: 260);
+}
+
+class AxisShadows {
+  static const List<BoxShadow> softGlow = [
+    BoxShadow(
+      color: Color(0x0A000000),
+      blurRadius: 12.0,
+      offset: Offset(0, 4),
+    ),
+    BoxShadow(
+      color: Color(0x05000000),
+      blurRadius: 4.0,
+      offset: Offset(0, 2),
+    ),
+  ];
+
+  static const List<BoxShadow> premiumGlow = [
+    BoxShadow(
+      color: Color(0x122457F5),
+      blurRadius: 24.0,
+      offset: Offset(0, 8),
+    ),
+    BoxShadow(
+      color: Color(0x082457F5),
+      blurRadius: 8.0,
+      offset: Offset(0, 4),
+    ),
+  ];
 }
