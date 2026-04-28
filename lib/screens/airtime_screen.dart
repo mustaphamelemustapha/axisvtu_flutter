@@ -353,30 +353,12 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         amount: '₦${amount.toStringAsFixed(2)}',
         onProceed: () {
           Navigator.pop(context);
-          _showPinEntry();
+          _submit();
         },
       ),
     );
   }
 
-  void _showPinEntry() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _PinEntrySheet(
-        onComplete: (pin) {
-          Navigator.pop(context);
-          _buyWithPin(pin);
-        },
-      ),
-    );
-  }
-
-  Future<void> _buyWithPin(String pin) async {
-    // Similar to DataScreen, call the API with the PIN
-    _submit();
-  }
 
   void _showResult({
     required String status,
@@ -952,80 +934,6 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _PinEntrySheet extends StatefulWidget {
-  final Function(String) onComplete;
-  const _PinEntrySheet({required this.onComplete});
-
-  @override
-  State<_PinEntrySheet> createState() => _PinEntrySheetState();
-}
-
-class _PinEntrySheetState extends State<_PinEntrySheet> {
-  String _pin = '';
-  void _onKey(String key) {
-    if (_pin.length < 4) {
-      HapticFeedback.lightImpact();
-      setState(() => _pin += key);
-      if (_pin.length == 4) Future.delayed(const Duration(milliseconds: 200), () => widget.onComplete(_pin));
-    }
-  }
-  void _onDelete() {
-    if (_pin.isNotEmpty) {
-      HapticFeedback.lightImpact();
-      setState(() => _pin = _pin.substring(0, _pin.length - 1));
-    }
-  }
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Enter Transaction PIN', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.black87)),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(4, (i) => Container(
-              margin: const EdgeInsets.symmetric(horizontal: 10),
-              width: 20, height: 20,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: i < _pin.length ? Colors.grey[700] : Colors.grey[300]),
-            )),
-          ),
-          const SizedBox(height: 48),
-          GridView.count(
-            shrinkWrap: true, crossAxisCount: 3, mainAxisSpacing: 20, crossAxisSpacing: 20,
-            children: [
-              ...['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((k) => _PinKey(label: k, onTap: () => _onKey(k))),
-              _PinKey(icon: Icons.arrow_back_rounded, onTap: _onDelete),
-              _PinKey(label: '0', onTap: () => _onKey('0')),
-              _PinKey(icon: Icons.check_rounded, onTap: () {}),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PinKey extends StatelessWidget {
-  final String? label;
-  final IconData? icon;
-  final VoidCallback onTap;
-  const _PinKey({this.label, this.icon, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap, borderRadius: BorderRadius.circular(100),
-      child: Container(
-        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.grey[100]),
-        alignment: Alignment.center,
-        child: label != null ? Text(label!, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600)) : Icon(icon, size: 30),
-      ),
-    );
-  }
-}
 
 class _SuccessModal extends StatefulWidget {
   final bool ok;
@@ -1062,7 +970,18 @@ class _SuccessModalState extends State<_SuccessModal> {
         children: [
           Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 32),
-          Container(padding: const EdgeInsets.all(16), decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF22C55E)), child: const Icon(Icons.check_rounded, color: Colors.white, size: 48)),
+          Container(
+            padding: const EdgeInsets.all(16), 
+            decoration: BoxDecoration(
+              shape: BoxShape.circle, 
+              color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444)
+            ), 
+            child: Icon(
+              widget.ok ? Icons.check_rounded : Icons.close_rounded, 
+              color: Colors.white, 
+              size: 48
+            )
+          ),
           const SizedBox(height: 20),
           Text(widget.ok ? 'Purchase Successful' : 'Purchase Failed', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
           const SizedBox(height: 32),
@@ -1074,7 +993,21 @@ class _SuccessModalState extends State<_SuccessModal> {
                 Row(children: [
                   const Icon(Icons.receipt_long_outlined, size: 18), const SizedBox(width: 8), const Text('Transfer Receipt', style: TextStyle(fontWeight: FontWeight.w700)),
                   const Spacer(),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: const Color(0xFF22C55E).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)), child: const Text('Successful', style: TextStyle(color: Color(0xFF22C55E), fontSize: 12, fontWeight: FontWeight.w800))),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
+                    decoration: BoxDecoration(
+                      color: (widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withValues(alpha: 0.1), 
+                      borderRadius: BorderRadius.circular(20)
+                    ), 
+                    child: Text(
+                      widget.ok ? 'Successful' : 'Failed', 
+                      style: TextStyle(
+                        color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444), 
+                        fontSize: 12, 
+                        fontWeight: FontWeight.w800
+                      )
+                    )
+                  ),
                 ]),
                 const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
                 _ReceiptRow(label: 'Time', value: widget.time),
@@ -1093,7 +1026,19 @@ class _SuccessModalState extends State<_SuccessModal> {
           _SuccessToggle(icon: Icons.bolt_outlined, label: 'Axis Bolt', value: _bolt, onChanged: (v) => setState(() => _bolt = v)),
           const SizedBox(height: 32),
           Row(children: [
-            Expanded(flex: 2, child: FilledButton.icon(onPressed: widget.onSave, icon: const Icon(Icons.download_rounded), label: const Text('Save Receipt', style: TextStyle(fontWeight: FontWeight.w800)), style: FilledButton.styleFrom(backgroundColor: const Color(0xFF22C55E), padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))))),
+            Expanded(
+              flex: 2, 
+              child: FilledButton.icon(
+                onPressed: widget.onSave, 
+                icon: const Icon(Icons.download_rounded), 
+                label: const Text('Save Receipt', style: TextStyle(fontWeight: FontWeight.w800)), 
+                style: FilledButton.styleFrom(
+                  backgroundColor: widget.ok ? const Color(0xFF22C55E) : const Color(0xFF64748B), 
+                  padding: const EdgeInsets.symmetric(vertical: 20), 
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
+                )
+              )
+            ),
             const SizedBox(width: 12),
             Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.w700)))),
           ]),
@@ -1139,8 +1084,78 @@ class _ShareableReceipt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: double.infinity, decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF2463EB), Color(0xFF3B82F6)]), borderRadius: BorderRadius.vertical(top: Radius.circular(24))), padding: const EdgeInsets.symmetric(vertical: 24), child: Column(children: [Container(width: 48, height: 48, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.local_florist, color: Color(0xFF2463EB), size: 28)), const SizedBox(height: 12), const Text('AxisVTU', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)), const Text('Transaction Receipt', style: TextStyle(color: Colors.white70, fontSize: 12))])),
-      Container(color: Colors.white, padding: const EdgeInsets.all(24), child: Column(children: [Center(child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(20)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.check_circle, color: Color(0xFF166534), size: 12), SizedBox(width: 6), Text('Successful', style: TextStyle(color: Color(0xFF166534), fontSize: 12, fontWeight: FontWeight.w800))]))), const SizedBox(height: 24), _ReceiptTableItem(label: 'Time', value: time), _ReceiptTableItem(label: 'Sender Name', value: sender, bold: true), _ReceiptTableItem(label: 'Provider', value: 'AxisVTU', bold: true), _ReceiptTableItem(label: 'Type', value: type, bold: true), _ReceiptTableItem(label: 'Network', value: network, bold: true), _ReceiptTableItem(label: 'Receiver Phone', value: phone, bold: true), _ReceiptTableItem(label: 'Amount', value: amount, bold: true), const SizedBox(height: 24), const Divider(height: 1), const SizedBox(height: 24), const Text('www.axisvtu.com', style: TextStyle(color: Colors.grey, fontSize: 11))])),
+      Container(
+        width: double.infinity, 
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: ok ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)] : [const Color(0xFF64748B), const Color(0xFF94A3B8)]
+          ), 
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24))
+        ), 
+        padding: const EdgeInsets.symmetric(vertical: 24), 
+        child: Column(
+          children: [
+            Container(
+              width: 48, height: 48, 
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), 
+              child: ClipOval(
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Image.asset(
+                    'assets/brand/axisvtu-logo.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (c, e, s) => Icon(
+                      ok ? Icons.local_florist : Icons.error_outline_rounded, 
+                      color: ok ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
+                      size: 24
+                    ),
+                  ),
+                ),
+              ),
+            ), 
+            const SizedBox(height: 12), 
+            const Text('AxisVTU', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)), 
+            const Text('Transaction Receipt', style: TextStyle(color: Colors.white70, fontSize: 12))
+          ]
+        )
+      ),
+      Container(
+        color: Colors.white, 
+        padding: const EdgeInsets.all(24), 
+        child: Column(
+          children: [
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), 
+                decoration: BoxDecoration(
+                  color: ok ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2), 
+                  borderRadius: BorderRadius.circular(20)
+                ), 
+                child: Row(
+                  mainAxisSize: MainAxisSize.min, 
+                  children: [
+                    Icon(ok ? Icons.check_circle : Icons.cancel, color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B), size: 12), 
+                    const SizedBox(width: 6), 
+                    Text(ok ? 'Successful' : 'Failed', style: TextStyle(color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B), fontSize: 12, fontWeight: FontWeight.w800))
+                  ]
+                )
+              )
+            ), 
+            const SizedBox(height: 24), 
+            _ReceiptTableItem(label: 'Time', value: time), 
+            _ReceiptTableItem(label: 'Sender Name', value: sender, bold: true), 
+            _ReceiptTableItem(label: 'Provider', value: 'AxisVTU', bold: true), 
+            _ReceiptTableItem(label: 'Type', value: type, bold: true), 
+            _ReceiptTableItem(label: 'Network', value: network, bold: true), 
+            _ReceiptTableItem(label: 'Receiver Phone', value: phone, bold: true), 
+            _ReceiptTableItem(label: 'Amount', value: amount, bold: true), 
+            const SizedBox(height: 24), 
+            const Divider(height: 1), 
+            const SizedBox(height: 24), 
+            const Text('www.axisvtu.com', style: TextStyle(color: Colors.grey, fontSize: 11))
+          ]
+        )
+      ),
       CustomPaint(size: const Size(double.infinity, 20), painter: _ZigZagPainter()),
     ]);
   }

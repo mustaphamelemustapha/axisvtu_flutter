@@ -619,14 +619,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               Container(
                                 width: 42,
                                 height: 42,
-                                decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.10),
-                                  borderRadius: BorderRadius.circular(14),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
                                 ),
-                                child: Icon(
-                                  _iconFor(tx),
-                                  color: color,
-                                  size: 20,
+                                child: ClipOval(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(6),
+                                    child: Image.asset(
+                                      'assets/brand/axisvtu-logo.png',
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (c, e, s) => Icon(
+                                        _iconFor(tx),
+                                        color: color,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 10),

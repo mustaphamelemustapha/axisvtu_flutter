@@ -44,7 +44,10 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
   bool _autoShareTriggered = false;
 
   bool get _busy => _downloading || _sharing;
-  bool get _isSuccess => widget.status.toLowerCase() == 'success';
+  bool get _isSuccess {
+    final s = widget.status.toLowerCase();
+    return s == 'success' || s == 'successful' || s == 'delivered' || s == 'completed' || s == 'order_completed';
+  }
   bool get _isPending => widget.status.toLowerCase() == 'pending';
 
   @override
@@ -135,13 +138,15 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                   children: [
                     Container(
                       width: double.infinity,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Color(0xFF2463EB), Color(0xFF3B82F6)],
+                          colors: _isSuccess 
+                            ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)] 
+                            : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Column(
@@ -149,7 +154,20 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                           Container(
                             width: 48, height: 48,
                             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                            child: const Icon(Icons.local_florist, color: Color(0xFF2463EB), size: 28),
+                            child: ClipOval(
+                              child: Padding(
+                                padding: const EdgeInsets.all(6),
+                                child: Image.asset(
+                                  'assets/brand/axisvtu-logo.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (c, e, s) => Icon(
+                                    _isSuccess ? Icons.local_florist : Icons.error_outline_rounded, 
+                                    color: _isSuccess ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
+                                    size: 24
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           const Text(

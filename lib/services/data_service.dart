@@ -5,7 +5,7 @@ class DataService {
   DataService({required this.token});
 
   final String token;
-  static const Duration _cacheTtl = Duration(minutes: 10);
+  static const Duration _cacheTtl = Duration(seconds: 30); // Reduced from 10 mins to 30s to stay closer to live data
   static List<dynamic> _cachedPlans = [];
   static DateTime? _cacheAt;
   static const int _maxPerNetwork = 8;

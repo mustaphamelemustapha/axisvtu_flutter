@@ -382,71 +382,30 @@ class _DataScreenState extends State<DataScreen> {
     return names[month - 1];
   }
 
+  String _formatMoney(dynamic value) {
+    return _formatMoneyValue(value);
+  }
+
+  double? _toDouble(dynamic value) {
+    return _toDoubleValue(value);
+  }
+
   String _planCapacity(dynamic plan) {
-    final raw =
-        plan['data_capacity'] ??
-        plan['size'] ??
-        plan['capacity'] ??
-        plan['name'] ??
-        plan['plan_name'] ??
-        '';
-    return _formatCapacity(raw);
+    return _planCapacityValue(plan);
   }
 
   String _planPrice(dynamic plan) {
-    return _formatMoney(plan['price'] ?? plan['amount'] ?? 0);
+    return _planPriceValueFormatted(plan);
   }
 
   double _planPriceValue(dynamic plan) {
-    final value = _toDouble(plan['price'] ?? plan['amount'] ?? 0);
-    return value ?? double.infinity;
+    final val = plan['price'] ?? plan['amount'] ?? 0;
+    return _toDoubleValue(val) ?? 0;
   }
 
   String _planValidity(dynamic plan) {
     final validity = (plan['validity'] ?? '').toString().trim();
     return validity.isEmpty ? '—' : validity;
-  }
-
-  String _planNetwork(dynamic plan) {
-    return (plan['network'] ?? '').toString().toUpperCase();
-  }
-
-  String _formatCapacity(dynamic raw) {
-    if (raw == null) return '';
-    if (raw is Map || raw is List) return 'Plan';
-    final value = raw.toString().trim();
-    if (value.isEmpty) return '';
-
-    final upper = value.toUpperCase();
-    if (upper.contains('GB') || upper.contains('MB')) {
-      return upper.replaceAll(' ', '');
-    }
-
-    final parsed = _toDouble(value);
-    if (parsed == null) return value;
-
-    if (parsed < 1) {
-      final mb = (parsed * 1000).round();
-      return '${mb}MB';
-    }
-
-    final gb = parsed % 1 == 0 ? parsed.toInt().toString() : parsed.toStringAsFixed(1);
-    return '${gb}GB';
-  }
-
-  String _formatMoney(dynamic value) {
-    final number = _toDouble(value);
-    if (number == null) return value.toString();
-    if (number % 1 == 0) return number.toInt().toString();
-    return number.toStringAsFixed(2);
-  }
-
-  double? _toDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is num) return value.toDouble();
-    final cleaned = value.toString().replaceAll(RegExp(r'[^0-9.]'), '');
-    if (cleaned.isEmpty) return null;
-    return double.tryParse(cleaned);
   }
 
   double _capacityToGb(String capacity) {
@@ -552,7 +511,7 @@ class _DataScreenState extends State<DataScreen> {
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
-                                  childAspectRatio: 1.1,
+                                  childAspectRatio: 0.92,
                                 ),
                                 itemCount: currentPlans.length,
                                 itemBuilder: (context, index) {
@@ -634,67 +593,12 @@ class _DataScreenState extends State<DataScreen> {
         price: price,
         onProceed: () {
           Navigator.pop(context);
-          _showPinEntry();
+          _buy();
         },
       ),
     );
   }
 
-  void _showPinEntry() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _PinEntrySheet(
-        onComplete: (pin) {
-          Navigator.pop(context);
-          _buyWithPin(pin);
-        },
-      ),
-    );
-  }
-
-  Future<void> _buyWithPin(String pin) async {
-    final normalizedPhone = _normalizePhone(_phoneCtrl.text);
-    final token = context.read<SessionController>().token;
-    if (token == null || token.isEmpty) return;
-
-    setState(() {
-      _error = null;
-      _submitting = true;
-    });
-    
-    PurchaseLoadingOverlay.show(context, title: 'Processing Purchase');
-
-    try {
-      _activeRequestId ??= "DATA_${DateTime.now().microsecondsSinceEpoch}";
-      // Use the existing PurchaseAuthService logic if needed, 
-      // but here we are using our custom PIN UI.
-      // We'll assume the purchase logic can take the PIN if required, 
-      // or we just call the API since PIN was verified by user input.
-      
-      final response = await DataService(token: token).purchase(
-        planCode: _selectedPlanCode!,
-        phoneNumber: normalizedPhone,
-        ported: _ported,
-        clientRequestId: _activeRequestId,
-      );
-      
-      if (!mounted) return;
-      await _saveRecentNumber(normalizedPhone);
-      PurchaseLoadingOverlay.hide();
-      _showResult(response);
-      _activeRequestId = null;
-    } catch (e) {
-      if (!mounted) return;
-      final message = e is ApiException ? e.message : e.toString();
-      setState(() => _error = message);
-      PurchaseLoadingOverlay.hide();
-      _showResult({'status': 'failed', 'message': message});
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
 
   Future<void> _buy() async {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -2025,108 +1929,6 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _PinEntrySheet extends StatefulWidget {
-  final Function(String) onComplete;
-  const _PinEntrySheet({required this.onComplete});
-
-  @override
-  State<_PinEntrySheet> createState() => _PinEntrySheetState();
-}
-
-class _PinEntrySheetState extends State<_PinEntrySheet> {
-  String _pin = '';
-
-  void _onKey(String key) {
-    if (_pin.length < 4) {
-      HapticFeedback.lightImpact();
-      setState(() => _pin += key);
-      if (_pin.length == 4) {
-        Future.delayed(const Duration(milliseconds: 200), () => widget.onComplete(_pin));
-      }
-    }
-  }
-
-  void _onDelete() {
-    if (_pin.isNotEmpty) {
-      HapticFeedback.lightImpact();
-      setState(() => _pin = _pin.substring(0, _pin.length - 1));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Enter Transaction PIN',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.black87),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(4, (i) {
-              final active = i < _pin.length;
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: active ? Colors.grey[700] : Colors.grey[300],
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 48),
-          GridView.count(
-            shrinkWrap: true,
-            crossAxisCount: 3,
-            mainAxisSpacing: 20,
-            crossAxisSpacing: 20,
-            children: [
-              ...['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((k) => _PinKey(label: k, onTap: () => _onKey(k))),
-              _PinKey(icon: Icons.arrow_back_rounded, onTap: _onDelete),
-              _PinKey(label: '0', onTap: () => _onKey('0')),
-              _PinKey(icon: Icons.check_rounded, onTap: () {}),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PinKey extends StatelessWidget {
-  final String? label;
-  final IconData? icon;
-  final VoidCallback onTap;
-  const _PinKey({this.label, this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(100),
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.grey[100],
-        ),
-        alignment: Alignment.center,
-        child: label != null 
-          ? Text(label!, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: Colors.black54))
-          : Icon(icon, color: Colors.black54, size: 30),
-      ),
-    );
-  }
-}
 
 class _PlanShimmerGrid extends StatelessWidget {
   const _PlanShimmerGrid();
@@ -2163,6 +1965,10 @@ class _PlanGridTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
+    final capacity = _planCapacityValue(plan);
+    final price = _planPriceValueFormatted(plan);
+    final validity = plan['validity']?.toString() ?? '30 Days';
+    final network = (plan['network'] ?? '').toString().toLowerCase();
     
     return InkWell(
       onTap: onTap,
@@ -2171,42 +1977,73 @@ class _PlanGridTile extends StatelessWidget {
         duration: 200.ms,
         decoration: BoxDecoration(
           color: selected 
-            ? primary.withValues(alpha: 0.1) 
-            : (isDark ? Colors.white10 : Colors.grey[50]),
+            ? primary.withValues(alpha: 0.15) 
+            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: selected ? primary : Colors.transparent,
-            width: 2,
+            color: selected ? primary : (isDark ? Colors.white10 : Colors.grey[200]!),
+            width: selected ? 2.5 : 1.2,
           ),
-          boxShadow: selected ? [BoxShadow(color: primary.withValues(alpha: 0.2), blurRadius: 10)] : null,
+          boxShadow: selected 
+            ? [BoxShadow(color: primary.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8))] 
+            : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
         ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            Text(
-              plan['data_capacity'] ?? 'Plan',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: selected ? primary : (isDark ? Colors.white : Colors.black87),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Opacity(
+                opacity: selected ? 0.2 : 0.1,
+                child: _buildNetworkIcon(network, size: 32),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              plan['validity'] ?? '1 month',
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.white60 : Colors.black45,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '₦${plan['price']}',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: selected ? primary : (isDark ? Colors.white : Colors.black87),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: selected ? primary : Colors.grey[400]!.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      validity.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        color: selected ? Colors.white : Colors.grey[600],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      capacity,
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: selected ? primary : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                        letterSpacing: -1.5,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '₦$price',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: selected ? primary : (isDark ? Colors.white70 : const Color(0xFF475569)),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -2214,6 +2051,83 @@ class _PlanGridTile extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildNetworkIcon(String network, {double size = 24}) {
+    String asset = 'assets/networks/mtn.svg';
+    if (network.contains('airtel')) asset = 'assets/networks/airtel.svg';
+    if (network.contains('glo')) asset = 'assets/networks/glo.svg';
+    if (network.contains('9mobile')) asset = 'assets/networks/9mobile.svg';
+    
+    return SvgPicture.asset(
+      asset,
+      width: size,
+      height: size,
+      placeholderBuilder: (context) => Icon(Icons.wifi, size: size, color: Colors.grey),
+    );
+  }
+}
+
+// File-level utility functions for DataScreen
+String _planCapacityValue(dynamic plan) {
+  final raw = plan['data_capacity'] ?? plan['size'] ?? plan['capacity'] ?? plan['name'] ?? plan['plan_name'] ?? '';
+  return _formatCapacityValue(raw);
+}
+
+String _planPriceValueFormatted(dynamic plan) {
+  return _formatMoneyValue(plan['price'] ?? plan['amount'] ?? 0);
+}
+
+String _formatCapacityValue(dynamic raw) {
+  if (raw == null) return '';
+  if (raw is Map || raw is List) return 'Plan';
+  final value = raw.toString().trim();
+  if (value.isEmpty) return '';
+
+  final upper = value.toUpperCase();
+  if (upper.contains('GB') || upper.contains('MB')) {
+    return upper.replaceAll(' ', '');
+  }
+
+  final parsed = _toDoubleValue(value);
+  if (parsed == null) return value;
+
+  if (parsed < 1) {
+    final mb = (parsed * 1000).round();
+    return '${mb}MB';
+  }
+
+  final gb = parsed % 1 == 0 ? parsed.toInt().toString() : parsed.toStringAsFixed(1);
+  return '${gb}GB';
+}
+
+String _formatMoneyValue(dynamic value) {
+  final number = _toDoubleValue(value);
+  if (number == null) return value.toString();
+  
+  // Format with commas for thousands
+  String base;
+  if (number % 1 == 0) {
+    base = number.toInt().toString();
+  } else {
+    base = number.toStringAsFixed(2);
+  }
+  
+  final parts = base.split('.');
+  final main = parts[0];
+  final decimal = parts.length > 1 ? '.${parts[1]}' : '';
+  
+  final reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+  final formattedMain = main.replaceAllMapped(reg, (Match m) => '${m[1]},');
+  
+  return '$formattedMain$decimal';
+}
+
+double? _toDoubleValue(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  final cleaned = value.toString().replaceAll(RegExp(r'[^0-9.]'), '');
+  if (cleaned.isEmpty) return null;
+  return double.tryParse(cleaned);
 }
 
 class _EmptyPlansState extends StatelessWidget {
@@ -2286,8 +2200,15 @@ class _SuccessModalState extends State<_SuccessModal> {
           const SizedBox(height: 32),
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF22C55E)),
-            child: const Icon(Icons.check_rounded, color: Colors.white, size: 48),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle, 
+              color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444)
+            ),
+            child: Icon(
+              widget.ok ? Icons.check_rounded : Icons.close_rounded, 
+              color: Colors.white, 
+              size: 48
+            ),
           ),
           const SizedBox(height: 20),
           Text(
@@ -2313,10 +2234,17 @@ class _SuccessModalState extends State<_SuccessModal> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF22C55E).withValues(alpha: 0.1),
+                        color: (widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text('Successful', style: TextStyle(color: Color(0xFF22C55E), fontSize: 12, fontWeight: FontWeight.w800)),
+                      child: Text(
+                        widget.ok ? 'Successful' : 'Failed', 
+                        style: TextStyle(
+                          color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444), 
+                          fontSize: 12, 
+                          fontWeight: FontWeight.w800
+                        )
+                      ),
                     ),
                   ],
                 ),
@@ -2331,8 +2259,18 @@ class _SuccessModalState extends State<_SuccessModal> {
                     ? Container(
                         margin: const EdgeInsets.only(left: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(4)),
-                        child: Text(widget.validity, style: TextStyle(fontSize: 10, color: Colors.green[800], fontWeight: FontWeight.w800)),
+                        decoration: BoxDecoration(
+                          color: (widget.ok ? Colors.green[100] : Colors.red[100]), 
+                          borderRadius: BorderRadius.circular(4)
+                        ),
+                        child: Text(
+                          widget.validity, 
+                          style: TextStyle(
+                            fontSize: 10, 
+                            color: widget.ok ? Colors.green[800] : Colors.red[800], 
+                            fontWeight: FontWeight.w800
+                          )
+                        ),
                       )
                     : null,
                 ),
@@ -2365,7 +2303,7 @@ class _SuccessModalState extends State<_SuccessModal> {
                   icon: const Icon(Icons.download_rounded),
                   label: const Text('Save Receipt', style: TextStyle(fontWeight: FontWeight.w800)),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF22C55E),
+                    backgroundColor: widget.ok ? const Color(0xFF22C55E) : const Color(0xFF64748B),
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
@@ -2469,9 +2407,15 @@ class _ShareableReceipt extends StatelessWidget {
       children: [
         Container(
           width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF2463EB), Color(0xFF3B82F6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: ok 
+                ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)] 
+                : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
+              begin: Alignment.topLeft, 
+              end: Alignment.bottomRight
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: Column(
@@ -2479,7 +2423,20 @@ class _ShareableReceipt extends StatelessWidget {
               Container(
                 width: 48, height: 48,
                 decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: const Icon(Icons.local_florist, color: Color(0xFF2463EB), size: 28),
+                child: ClipOval(
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Image.asset(
+                      'assets/brand/axisvtu-logo.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (c, e, s) => Icon(
+                        ok ? Icons.local_florist : Icons.error_outline_rounded, 
+                        color: ok ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
+                        size: 24
+                      ),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               const Text('AxisVTU', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
@@ -2495,13 +2452,27 @@ class _ShareableReceipt extends StatelessWidget {
               Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(20)),
-                  child: const Row(
+                  decoration: BoxDecoration(
+                    color: ok ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2), 
+                    borderRadius: BorderRadius.circular(20)
+                  ),
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, color: Color(0xFF166534), size: 12),
-                      SizedBox(width: 6),
-                      Text('Successful', style: TextStyle(color: Color(0xFF166534), fontSize: 12, fontWeight: FontWeight.w800)),
+                      Icon(
+                        ok ? Icons.check_circle : Icons.cancel, 
+                        color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B), 
+                        size: 12
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        ok ? 'Successful' : 'Failed', 
+                        style: TextStyle(
+                          color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B), 
+                          fontSize: 12, 
+                          fontWeight: FontWeight.w800
+                        )
+                      ),
                     ],
                   ),
                 ),
@@ -2518,8 +2489,18 @@ class _ShareableReceipt extends StatelessWidget {
                   ? Container(
                       margin: const EdgeInsets.only(left: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(4)),
-                      child: Text(planValidity, style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.w900)),
+                      decoration: BoxDecoration(
+                        color: ok ? Colors.green[100] : Colors.red[100], 
+                        borderRadius: BorderRadius.circular(4)
+                      ),
+                      child: Text(
+                        planValidity, 
+                        style: TextStyle(
+                          fontSize: 10, 
+                          color: ok ? Colors.green : Colors.red, 
+                          fontWeight: FontWeight.w900
+                        )
+                      ),
                     )
                   : null,
               ),

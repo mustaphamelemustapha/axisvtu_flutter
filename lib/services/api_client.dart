@@ -21,16 +21,21 @@ class ApiClient {
 
   Future<Map<String, dynamic>> get(String path) async {
     final uri = Uri.parse('$baseUrl$path');
+    print('API GET: $uri');
     try {
       final resp = await http.get(uri, headers: _headers());
-      return _decode(resp);
-    } on TimeoutException {
+      print('API RESP [$path]: ${resp.statusCode}');
+      return _decode(resp, path);
+    } on TimeoutException catch (e) {
+      print('API ERR [$path]: Timeout - $e');
       throw ApiException(408, 'Request timed out. Please try again.');
-    } on http.ClientException {
+    } on http.ClientException catch (e) {
+      print('API ERR [$path]: ClientException - $e');
       throw ApiException(503, 'Network unavailable. Please check your connection.');
     } on ApiException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      print('API ERR [$path]: Unexpected - $e');
       throw ApiException(500, 'Request failed. Please try again.');
     }
   }
@@ -40,20 +45,25 @@ class ApiClient {
     Map<String, dynamic> body,
   ) async {
     final uri = Uri.parse('$baseUrl$path');
+    print('API POST: $uri');
     try {
       final resp = await http.post(
         uri,
         headers: _headers(),
         body: jsonEncode(body),
       );
-      return _decode(resp);
-    } on TimeoutException {
+      print('API RESP [$path]: ${resp.statusCode}');
+      return _decode(resp, path);
+    } on TimeoutException catch (e) {
+      print('API ERR [$path]: Timeout - $e');
       throw ApiException(408, 'Request timed out. Please try again.');
-    } on http.ClientException {
+    } on http.ClientException catch (e) {
+      print('API ERR [$path]: ClientException - $e');
       throw ApiException(503, 'Network unavailable. Please check your connection.');
     } on ApiException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      print('API ERR [$path]: Unexpected - $e');
       throw ApiException(500, 'Request failed. Please try again.');
     }
   }
@@ -63,41 +73,54 @@ class ApiClient {
     Map<String, dynamic> body,
   ) async {
     final uri = Uri.parse('$baseUrl$path');
+    print('API PATCH: $uri');
     try {
       final resp = await http.patch(
         uri,
         headers: _headers(),
         body: jsonEncode(body),
       );
-      return _decode(resp);
-    } on TimeoutException {
+      print('API RESP [$path]: ${resp.statusCode}');
+      return _decode(resp, path);
+    } on TimeoutException catch (e) {
+      print('API ERR [$path]: Timeout - $e');
       throw ApiException(408, 'Request timed out. Please try again.');
-    } on http.ClientException {
+    } on http.ClientException catch (e) {
+      print('API ERR [$path]: ClientException - $e');
       throw ApiException(503, 'Network unavailable. Please check your connection.');
     } on ApiException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      print('API ERR [$path]: Unexpected - $e');
       throw ApiException(500, 'Request failed. Please try again.');
     }
   }
 
   Future<Map<String, dynamic>> delete(String path) async {
     final uri = Uri.parse('$baseUrl$path');
+    print('API DELETE: $uri');
     try {
       final resp = await http.delete(uri, headers: _headers());
-      return _decode(resp);
-    } on TimeoutException {
+      print('API RESP [$path]: ${resp.statusCode}');
+      return _decode(resp, path);
+    } on TimeoutException catch (e) {
+      print('API ERR [$path]: Timeout - $e');
       throw ApiException(408, 'Request timed out. Please try again.');
-    } on http.ClientException {
+    } on http.ClientException catch (e) {
+      print('API ERR [$path]: ClientException - $e');
       throw ApiException(503, 'Network unavailable. Please check your connection.');
     } on ApiException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      print('API ERR [$path]: Unexpected - $e');
       throw ApiException(500, 'Request failed. Please try again.');
     }
   }
 
-  Map<String, dynamic> _decode(http.Response resp) {
+  Map<String, dynamic> _decode(http.Response resp, String path) {
+    if (resp.body.isNotEmpty && resp.statusCode >= 400) {
+      print('API BODY [$path]: ${resp.body}');
+    }
     final data = resp.body.isNotEmpty
         ? jsonDecode(resp.body)
         : <String, dynamic>{};
