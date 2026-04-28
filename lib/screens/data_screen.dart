@@ -15,6 +15,7 @@ import '../widgets/primary_button.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
+import '../widgets/sticky_checkout_bar.dart';
 
 class DataScreen extends StatefulWidget {
   const DataScreen({super.key});
@@ -937,6 +938,16 @@ class _DataScreenState extends State<DataScreen> {
       subtitle: 'Enter a number, choose a network, pick a plan, and confirm.',
       icon: Icons.wifi_rounded,
       scrollController: _scrollController,
+      footer: StickyCheckoutBar(
+        title: _network.toUpperCase(),
+        subtitle: hasPhone ? _normalizePhone(_phoneCtrl.text) : 'Enter number',
+        amount: selected != null ? '₦${_planPrice(selected)}' : '₦0.00',
+        active: canBuy,
+        loading: _submitting,
+        onBuy: _buy,
+        actionLabel: 'Buy Data',
+        icon: Icons.wifi_rounded,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1094,13 +1105,7 @@ class _DataScreenState extends State<DataScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 4),
-          PrimaryButton(
-            label: 'Buy Data',
-            icon: Icons.send_rounded,
-            loading: _submitting,
-            onPressed: canBuy ? _buy : null,
-          ),
+          const SizedBox(height: 14),
         ],
       ),
     );
@@ -1183,186 +1188,7 @@ class _FlowStepHeader extends StatelessWidget {
   }
 }
 
-class _StickyCheckoutBar extends StatelessWidget {
-  const _StickyCheckoutBar({
-    required this.recipient,
-    required this.network,
-    required this.plan,
-    required this.amount,
-    required this.active,
-    required this.loading,
-    required this.onBuy,
-  });
 
-  final String recipient;
-  final String network;
-  final String plan;
-  final String amount;
-  final bool active;
-  final bool loading;
-  final VoidCallback? onBuy;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final size = MediaQuery.sizeOf(context);
-    final compact = size.width < 360 || size.height < 760;
-    return SafeArea(
-      top: false,
-      child: Container(
-        margin: EdgeInsets.fromLTRB(compact ? 8 : 10, 0, compact ? 8 : 10, 10),
-        padding: EdgeInsets.fromLTRB(
-          compact ? 10 : 12,
-          compact ? 8 : 9,
-          compact ? 10 : 12,
-          compact ? 9 : 10,
-        ),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF0D1522) : Colors.white.withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.06)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.10 : 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, -1),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (compact) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      network.isEmpty ? 'NETWORK' : network,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.78),
-                          ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    amount,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.08,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                plan.isEmpty ? 'Select plan' : plan,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.08,
-                    ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                recipient,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.54),
-                    ),
-              ),
-            ] else ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      network.isEmpty ? 'NETWORK' : network,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.78),
-                          ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    amount,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.08,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 3),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      recipient,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.54),
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                plan.isEmpty ? 'Select plan' : plan,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.54),
-                    ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            Container(
-              height: 1,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            SizedBox(height: compact ? 6 : 8),
-            SizedBox(
-              width: double.infinity,
-              child: PrimaryButton(
-                label: loading ? 'Buying...' : 'Buy Data',
-                onPressed: active ? onBuy : null,
-                loading: loading,
-                icon: loading ? Icons.hourglass_top_rounded : Icons.send_rounded,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _SummaryLine extends StatelessWidget {
   const _SummaryLine({
@@ -2490,13 +2316,7 @@ class _PlanTile extends StatelessWidget {
       curve: Curves.easeOut,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: selected ? (isDark ? 0.14 : 0.04) : (isDark ? 0.10 : 0.03)),
-            blurRadius: selected ? 18 : 12,
-            offset: const Offset(0, 7),
-          ),
-        ],
+        boxShadow: selected ? AxisShadows.premiumGlow : AxisShadows.softGlow,
       ),
       child: Material(
         color: Colors.transparent,

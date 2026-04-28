@@ -1710,13 +1710,7 @@ class _StatTile extends StatelessWidget {
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.16),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        boxShadow: AxisShadows.softGlow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

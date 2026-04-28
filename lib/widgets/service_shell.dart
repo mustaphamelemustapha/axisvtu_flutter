@@ -221,13 +221,7 @@ class ServiceSectionCard extends StatelessWidget {
         border: Border.all(
           color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.40 : 0.72),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.06 : 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AxisShadows.softGlow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

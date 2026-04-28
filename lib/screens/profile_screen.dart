@@ -783,13 +783,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         alpha: isDark ? 0.16 : 0.18,
                       ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.06),
-                    blurRadius: 26,
-                    offset: const Offset(0, 14),
-                  ),
-                ],
+                boxShadow: AxisShadows.softGlow,
               ),
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -1186,15 +1180,7 @@ String title, String subtitle) async {
                 decoration: BoxDecoration(
                   gradient: AxisPalette.gradient,
                   borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.18),
-                      blurRadius: 18,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                  boxShadow: AxisShadows.premiumGlow,
                 ),
                 child: const Icon(Icons.person_rounded, color: Colors.white),
               ),
@@ -1245,15 +1231,7 @@ String title, String subtitle) async {
                   context,
                 ).colorScheme.outline.withValues(alpha: isDark ? 0.18 : 0.9),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark
-                      ? Colors.black.withValues(alpha: 0.3)
-                      : const Color(0xFF2457F5).withValues(alpha: 0.12),
-                  blurRadius: 28,
-                  offset: const Offset(0, 14),
-                ),
-              ],
+              boxShadow: AxisShadows.softGlow,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1438,6 +1416,37 @@ String title, String subtitle) async {
             ),
           ),
           SizedBox(height: compact ? 10 : 12),
+          if (session.isAdmin) ...[
+            _ProfileSection(
+              title: 'Admin portal',
+              subtitle: 'System management and settings',
+              icon: Icons.admin_panel_settings_outlined,
+              child: Column(
+                children: [
+                  _ActionTile(
+                    label: 'Pricing & Margins',
+                    subtitle: 'Manage data plan prices and margins',
+                    icon: Icons.price_change_outlined,
+                    onTap: () => _showComingSoon(
+                      'Pricing & Margins',
+                      'This interface will allow you to adjust plan pricing and platform margins in real-time.',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _ActionTile(
+                    label: 'User management',
+                    subtitle: 'Review, block, or verify users',
+                    icon: Icons.people_outline_rounded,
+                    onTap: () => _showComingSoon(
+                      'User management',
+                      'This interface will allow you to manage the platform user base.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: compact ? 10 : 12),
+          ],
           _ProfileSection(
             title: 'Verification / KYC',
             subtitle: 'Strengthen your trust level',

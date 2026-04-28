@@ -14,6 +14,7 @@ import '../widgets/primary_button.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
+import '../widgets/sticky_checkout_bar.dart';
 
 class ElectricityScreen extends StatefulWidget {
   const ElectricityScreen({super.key});
@@ -433,6 +434,16 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
       title: 'Electricity',
       subtitle: 'Pay prepaid or postpaid meter with a polished checkout.',
       icon: Icons.flash_on_rounded,
+      footer: StickyCheckoutBar(
+        title: _disco.toUpperCase(),
+        subtitle: _meterNumberCtrl.text.trim().isEmpty ? 'Enter meter number' : _meterNumberCtrl.text.trim(),
+        amount: '₦${amount.toStringAsFixed(2)}',
+        active: _verificationOk && !_loading && amount >= 500,
+        loading: _loading,
+        onBuy: _submit,
+        actionLabel: 'Pay Bill',
+        icon: Icons.flash_on_rounded,
+      ),
       child: Column(
         children: [
           ServiceSectionCard(
@@ -614,128 +625,30 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
               ],
             ),
           ),
-          ServiceSectionCard(
-            title: 'Checkout',
-            subtitle: 'Review before buying electricity token.',
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.12),
-                    const Color(0xFF0FB5AE).withValues(alpha: 0.1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2)),
                 ),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${_disco.toUpperCase()} • ${_meterType.toUpperCase()}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Meter: ${_meterNumberCtrl.text.trim().isEmpty ? '—' : _meterNumberCtrl.text.trim()}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Amount: ₦${amount.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          ServiceSectionCard(
-            title: 'Beneficiary',
-            subtitle: 'Save meter details for one-tap next payment.',
-            child: Column(
-              children: [
-                if (_beneficiaries.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Theme.of(context).dividerColor),
-                    ),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _beneficiaries.map((item) {
-                        final disco = (item['disco'] ?? '')
-                            .toString()
-                            .toUpperCase();
-                        final meterType = (item['meter_type'] ?? '')
-                            .toString()
-                            .toUpperCase();
-                        final meter = (item['meter_number'] ?? '')
-                            .toString()
-                            .trim();
-                        return ActionChip(
-                          avatar: const Icon(Icons.bolt_rounded, size: 16),
-                          label: Text(
-                            '$disco • $meterType • ${meter.length > 6 ? '${meter.substring(0, 3)}***${meter.substring(meter.length - 3)}' : meter}',
-                          ),
-                          onPressed: () => _applyBeneficiary(item),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                if (_beneficiaries.isNotEmpty) const SizedBox(height: 10),
-                Row(
+                child: Row(
                   children: [
-                    const Icon(Icons.bookmark_added_outlined),
+                    Icon(Icons.error_outline_rounded, color: Theme.of(context).colorScheme.error, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Auto-save meter profile',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        _error!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600),
                       ),
-                    ),
-                    Switch(
-                      value: _saveBeneficiary,
-                      onChanged: (v) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _saveBeneficiary = v);
-                        _savePreference(v);
-                      },
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          if (_error != null)
-            ServiceSectionCard(
-              title: 'Validation',
-              child: Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-          PrimaryButton(
-            label: 'Buy Electricity',
-            icon: Icons.flash_on_rounded,
-            loading: _loading,
-            onPressed: _verificationOk && !_loading ? _submit : null,
-          ),
         ],
       ),
     );

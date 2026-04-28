@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../services/transactions_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
+import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/purchase_result_sheet.dart';
 
@@ -608,15 +609,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         border: Border.all(
                           color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: Theme.of(context).brightness == Brightness.dark ? 0.14 : 0.04,
-                            ),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                        boxShadow: AxisShadows.softGlow,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

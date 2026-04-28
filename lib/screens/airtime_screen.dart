@@ -9,10 +9,12 @@ import '../services/purchase_auth_service.dart';
 import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
+import '../theme/axis_tokens.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
+import '../widgets/sticky_checkout_bar.dart';
 
 class AirtimeScreen extends StatefulWidget {
   const AirtimeScreen({super.key});
@@ -444,6 +446,18 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       title: 'Airtime',
       subtitle: 'Smart network detect, quick suggestions, and instant top-up.',
       icon: Icons.phone_iphone_rounded,
+      footer: StickyCheckoutBar(
+        title: _network.toUpperCase(),
+        subtitle: _normalizePhone(_phoneCtrl.text).isNotEmpty
+            ? _normalizePhone(_phoneCtrl.text)
+            : 'Enter number',
+        amount: amount > 0 ? '₦${amount.toStringAsFixed(2)}' : '₦0.00',
+        active: !_loading && _normalizePhone(_phoneCtrl.text).isNotEmpty && amount >= 50,
+        loading: _loading,
+        onBuy: _submit,
+        actionLabel: 'Buy Airtime',
+        icon: Icons.phone_iphone_rounded,
+      ),
       child: Column(
         children: [
           ServiceSectionCard(
@@ -508,13 +522,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: Theme.of(context).dividerColor),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      boxShadow: AxisShadows.softGlow,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -602,50 +610,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
               ],
             ),
           ),
-          ServiceSectionCard(
-            title: 'Checkout',
-            subtitle: 'Confirm details before purchase.',
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.12),
-                    const Color(0xFF0FB5AE).withValues(alpha: 0.1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${_network.toUpperCase()} • ₦${amount.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _normalizePhone(_phoneCtrl.text).isEmpty
-                        ? 'Enter phone number to continue'
-                        : 'Recipient: ${_normalizePhone(_phoneCtrl.text)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Checkout card removed in favor of sticky footer
           ServiceSectionCard(
             title: 'Beneficiaries',
             subtitle: 'Same quick style as Buy Data page.',
@@ -705,12 +670,6 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-          PrimaryButton(
-            label: 'Buy Airtime',
-            icon: Icons.send_rounded,
-            loading: _loading,
-            onPressed: _submit,
-          ),
         ],
       ),
     );
@@ -825,3 +784,5 @@ class _TabChip extends StatelessWidget {
     );
   }
 }
+
+

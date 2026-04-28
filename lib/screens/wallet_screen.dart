@@ -23,12 +23,7 @@ import '../widgets/primary_button.dart';
 
 const double _walletInsightAspectRatio = 1.46;
 
-double _walletInsightAspectRatioForWidth(double width) {
-  if (width < 340) return 1.18;
-  if (width < 380) return 1.24;
-  if (width < 430) return 1.34;
-  return _walletInsightAspectRatio;
-}
+
 
 double _walletInsightExtentForWidth(double width) {
   if (width < 340) return 110;
@@ -202,10 +197,7 @@ class _WalletScreenState extends State<WalletScreen> {
     return null;
   }
 
-  String _formatNaira(dynamic value) {
-    final parsed = double.tryParse(value?.toString() ?? '') ?? 0;
-    return parsed.toStringAsFixed(2);
-  }
+
 
   double _extractBalance(Map<String, dynamic>? data) {
     if (data == null) return 0;
@@ -284,19 +276,7 @@ class _WalletScreenState extends State<WalletScreen> {
     return '$sign₦${amount.toStringAsFixed(2)}';
   }
 
-  String _formatAccountNumber(String value) {
-    final digits = value.replaceAll(RegExp(r'\s+'), '');
-    if (digits.isEmpty) return '';
-    if (digits.length == 10) {
-      return '${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}';
-    }
-    final buffer = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && i % 4 == 0) buffer.write(' ');
-      buffer.write(digits[i]);
-    }
-    return buffer.toString();
-  }
+
 
   List<Map<String, dynamic>> _sortRecentTransactions(List<Map<String, dynamic>> rows) {
     final sorted = [...rows];
@@ -356,42 +336,7 @@ class _WalletScreenState extends State<WalletScreen> {
     return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54);
   }
 
-  Future<void> _generateAccount() async {
-    if (_generating) return;
-    setState(() => _generating = true);
-    try {
-      final token = context.read<SessionController>().token;
-      if (token == null || token.isEmpty) return;
-      final service = WalletService(token: token);
-      setState(() {
-        _walletFuture = service.getWallet();
-        _accountsFuture = service.createBankAccounts();
-      });
-      await _accountsFuture;
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      if (e.message.toLowerCase().contains('phone')) {
-        await _promptPhoneNumber();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('We could not update your wallet details right now.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        const SnackBar(
-          content: Text('We could not update your wallet details right now.'),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _generating = false);
-    }
-  }
+
 
   Future<void> _promptPhoneNumber() async {
     final session = context.read<SessionController>();
@@ -560,15 +505,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   decoration: BoxDecoration(
                     gradient: AxisPalette.gradient,
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.18),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+                    boxShadow: AxisShadows.premiumGlow,
                   ),
                   child: const Icon(
                     Icons.account_balance_wallet_rounded,
@@ -628,15 +565,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     context,
                   ).colorScheme.outline.withValues(alpha: 0.18),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark
-                        ? Colors.black.withValues(alpha: 0.26)
-                        : const Color(0xFF2457F5).withValues(alpha: 0.12),
-                    blurRadius: 14,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+                boxShadow: AxisShadows.premiumGlow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -654,7 +583,7 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                         child: const Icon(
                           Icons.verified_user_rounded,
-                          color: const Color(0xFF2457F5),
+                          color: Color(0xFF2457F5),
                           size: 22,
                         ),
                       ),
@@ -1218,13 +1147,7 @@ class _WalletActionPill extends StatelessWidget {
                       alpha: isDark ? 0.12 : 0.08,
                     ),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.08 : 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+              boxShadow: AxisShadows.softGlow,
             ),
             child: Row(
               children: [
@@ -1290,13 +1213,7 @@ class _InsightCard extends StatelessWidget {
                 alpha: isDark ? 0.12 : 0.08,
               ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.08 : 0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        boxShadow: AxisShadows.softGlow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1672,13 +1589,7 @@ class _BankCard extends StatelessWidget {
                 alpha: isDark ? 0.10 : 0.08,
               ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: AxisShadows.softGlow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2052,38 +1963,4 @@ class _AnimatedBalanceState extends State<_AnimatedBalance> {
   }
 }
 
-class _WalletMiniChip extends StatelessWidget {
-  const _WalletMiniChip({required this.icon, required this.label});
 
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: isDark ? 0.08 : 0.22),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: isDark ? 0.08 : 0.26),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: Colors.white),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

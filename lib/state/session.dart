@@ -22,6 +22,10 @@ class SessionController extends ChangeNotifier {
   String? get error => _error;
   bool get isBootstrapped => _bootstrapped;
   bool get isAuthenticated => _token != null && _token!.isNotEmpty;
+  bool get isAdmin {
+    final role = (_user?['role'] ?? '').toString().toLowerCase();
+    return role == 'admin' || role == 'superadmin';
+  }
 
   Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;

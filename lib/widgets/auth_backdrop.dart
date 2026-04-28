@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/axis_tokens.dart';
 import '../theme/app_theme.dart';
 
 class AuthBackdrop extends StatelessWidget {

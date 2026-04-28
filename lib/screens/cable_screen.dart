@@ -14,6 +14,7 @@ import '../widgets/primary_button.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
+import '../widgets/sticky_checkout_bar.dart';
 
 class CableScreen extends StatefulWidget {
   const CableScreen({super.key});
@@ -359,6 +360,16 @@ class _CableScreenState extends State<CableScreen> {
       title: 'Cable TV',
       subtitle: 'Pay DStv, GOtv and StarTimes with premium checkout flow.',
       icon: Icons.tv_rounded,
+      footer: StickyCheckoutBar(
+        title: _provider.toUpperCase(),
+        subtitle: _smartcardCtrl.text.trim().isEmpty ? 'Enter decoder number' : _smartcardCtrl.text.trim(),
+        amount: '₦${amount.toStringAsFixed(2)}',
+        active: !_loading && _smartcardCtrl.text.trim().length >= 5 && amount >= 500,
+        loading: _loading,
+        onBuy: _submit,
+        actionLabel: 'Pay Cable',
+        icon: Icons.tv_rounded,
+      ),
       child: Column(
         children: [
           ServiceSectionCard(
@@ -444,127 +455,30 @@ class _CableScreenState extends State<CableScreen> {
               ],
             ),
           ),
-          ServiceSectionCard(
-            title: 'Checkout',
-            subtitle: 'Review details before payment.',
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.12),
-                    const Color(0xFF0FB5AE).withValues(alpha: 0.1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2)),
                 ),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${_provider.toUpperCase()} • ₦${amount.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Smartcard: ${_smartcardCtrl.text.trim().isEmpty ? '—' : _smartcardCtrl.text.trim()}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Package: ${_packageCtrl.text.trim().isEmpty ? '—' : _packageCtrl.text.trim()}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          ServiceSectionCard(
-            title: 'Beneficiary',
-            subtitle: 'Keep this decoder details for faster repeat payment.',
-            child: Column(
-              children: [
-                if (_beneficiaries.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Theme.of(context).dividerColor),
-                    ),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _beneficiaries.map((item) {
-                        final provider = (item['provider'] ?? '')
-                            .toString()
-                            .toUpperCase();
-                        final smartcard = (item['smartcard_number'] ?? '')
-                            .toString();
-                        final package = (item['package_code'] ?? '')
-                            .toString()
-                            .toUpperCase();
-                        return ActionChip(
-                          avatar: const Icon(Icons.live_tv_rounded, size: 16),
-                          label: Text(
-                            '$provider • $package • ${smartcard.length > 6 ? '${smartcard.substring(0, 3)}***${smartcard.substring(smartcard.length - 3)}' : smartcard}',
-                          ),
-                          onPressed: () => _applyBeneficiary(item),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                if (_beneficiaries.isNotEmpty) const SizedBox(height: 10),
-                Row(
+                child: Row(
                   children: [
-                    const Icon(Icons.bookmark_added_outlined),
+                    Icon(Icons.error_outline_rounded, color: Theme.of(context).colorScheme.error, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Auto-save smartcard and package',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        _error!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600),
                       ),
-                    ),
-                    Switch(
-                      value: _saveBeneficiary,
-                      onChanged: (v) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _saveBeneficiary = v);
-                        _savePreference(v);
-                      },
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          if (_error != null)
-            ServiceSectionCard(
-              title: 'Validation',
-              child: Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-          PrimaryButton(
-            label: 'Pay Cable',
-            icon: Icons.tv_rounded,
-            loading: _loading,
-            onPressed: _submit,
-          ),
         ],
       ),
     );
