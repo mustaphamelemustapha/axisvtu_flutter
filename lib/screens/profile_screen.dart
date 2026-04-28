@@ -16,6 +16,7 @@ import '../widgets/pin_entry_sheet.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/theme_toggle_button.dart';
 import '../services/transaction_pin_service.dart';
+import '../services/biometric_service.dart';
 import 'welcome_screen.dart';
 import 'referral_screen.dart';
 
@@ -35,6 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _changingPassword = false;
   bool _saveBeneficiaries = true;
   bool _pushNotifications = true;
+  bool _biometricEnabled = false;
 
   @override
   void initState() {
@@ -44,11 +46,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
+    final bioEnabled = await BiometricService.isAppLockEnabled;
     if (!mounted) return;
     setState(() {
       _saveBeneficiaries = prefs.getBool(_saveBeneficiariesKey) ?? _saveBeneficiaries;
       _pushNotifications = prefs.getBool(_pushNotificationsKey) ?? _pushNotifications;
       _emailAlerts = prefs.getBool(_emailAlertsKey) ?? _emailAlerts;
+      _biometricEnabled = bioEnabled;
     });
   }
 
@@ -931,6 +935,69 @@ String title, String subtitle) async {
     );
   }
 
+  Future<void> _toggleBiometric() async {
+    final supported = await BiometricService.isDeviceSupported();
+    final canCheck = await BiometricService.canCheckBiometrics();
+    if (!supported || !canCheck) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Biometrics not available on this device.')),
+      );
+      return;
+    }
+
+    if (_biometricEnabled) {
+      setState(() => _biometricEnabled = false);
+      await BiometricService.setAppLockEnabled(false);
+      return;
+    }
+
+    final authenticated = await BiometricService.authenticate(reason: 'Authenticate to enable biometric unlock');
+    if (authenticated) {
+      // Prompt for Transaction PIN to store it securely for future transactions
+      if (!mounted) return;
+      final session = context.read<SessionController>();
+      final token = (session.token ?? '').trim();
+      final pinService = TransactionPinService(token: token);
+      
+      try {
+        final status = await pinService.statusOrNull();
+        if (status != null && status.isSet) {
+          if (!mounted) return;
+          final pin = await PinEntrySheet.show(
+            context,
+            title: 'Verify Transaction PIN',
+            subtitle: 'Enter your PIN to enable biometric confirmation for purchases.',
+            confirmLabel: 'Secure & Enable',
+            pinLength: status.pinLength,
+            onSubmit: (value) async {
+              try {
+                await pinService.verify(value);
+                return null;
+              } catch (e) {
+                return 'Incorrect PIN';
+              }
+            },
+          );
+          
+          if (pin != null) {
+            await BiometricService.savePin(pin);
+          } else {
+            // User cancelled PIN entry, don't enable biometrics
+            return;
+          }
+        }
+      } catch (_) {}
+
+      setState(() => _biometricEnabled = true);
+      await BiometricService.setAppLockEnabled(true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Biometric unlock enabled.')),
+      );
+    }
+  }
+
   Future<void> _toggleThemePreference() async {
     HapticFeedback.selectionClick();
     context.read<ThemeController>().toggle();
@@ -1172,45 +1239,6 @@ String title, String subtitle) async {
       child: ListView(
         padding: EdgeInsets.fromLTRB(compact ? 14 : 16, 14, compact ? 14 : 16, 28),
         children: [
-          Row(
-            children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  gradient: AxisPalette.gradient,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: AxisShadows.premiumGlow,
-                ),
-                child: const Icon(Icons.person_rounded, color: Colors.white),
-              ),
-              SizedBox(width: compact ? 10 : 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Profile & Security',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Manage account, verification, and trusted settings',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: muted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              ThemeToggleButton(size: compact ? 40 : 44),
-            ],
-          ),
-              SizedBox(height: compact ? 14 : 16),
           Container(
             padding: EdgeInsets.all(compact ? 14 : 18),
             decoration: BoxDecoration(
@@ -1285,6 +1313,7 @@ String title, String subtitle) async {
                         ],
                       ),
                     ),
+                    ThemeToggleButton(size: compact ? 40 : 44),
                   ],
                 ),
                 SizedBox(height: compact ? 12 : 14),
@@ -1395,12 +1424,13 @@ String title, String subtitle) async {
                 const SizedBox(height: 8),
                 _ActionTile(
                   label: 'Biometric unlock',
-                  subtitle: 'Device biometrics will arrive in a future update',
+                  subtitle: _biometricEnabled ? 'Enabled for secure access' : 'Tap to enable fingerprint/face ID',
                   icon: Icons.fingerprint_rounded,
-                  onTap: () => _showComingSoon(
-                    'Biometric unlock',
-                    'Device biometrics will be supported in a future update for quicker secure access.',
+                  trailing: Switch.adaptive(
+                    value: _biometricEnabled,
+                    onChanged: (_) => _toggleBiometric(),
                   ),
+                  onTap: _toggleBiometric,
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(

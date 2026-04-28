@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import 'api_client.dart';
 
@@ -8,6 +10,7 @@ class DataService {
   static const Duration _cacheTtl = Duration(seconds: 30); // Reduced from 10 mins to 30s to stay closer to live data
   static List<dynamic> _cachedPlans = [];
   static DateTime? _cacheAt;
+  static const String _prefsKey = 'axis_data_plans_cache_v1';
   static const int _maxPerNetwork = 8;
   static const List<String> _blockKeywords = <String>[
     'night',
@@ -47,15 +50,48 @@ class DataService {
   }
 
   Future<List<dynamic>> getPlans({bool forceRefresh = false}) async {
-    if (!forceRefresh && hasCache && isCacheFresh) {
-      return cachedPlans;
+    if (!forceRefresh) {
+      if (_cachedPlans.isEmpty) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final str = prefs.getString(_prefsKey);
+          if (str != null) {
+            final decoded = jsonDecode(str);
+            if (decoded is List) {
+              _cachedPlans = decoded;
+            }
+          }
+        } catch (_) {}
+      }
+      
+      if (_cachedPlans.isNotEmpty) {
+        if (!isCacheFresh) {
+          _fetchAndCache();
+        }
+        return cachedPlans;
+      }
     }
-    final data = await _client.get('/data/plans');
-    final list = data['data'] ?? data['plans'] ?? data['items'];
-    final plans = list is List ? List<dynamic>.from(list) : <dynamic>[];
-    _cachedPlans = plans;
-    _cacheAt = DateTime.now();
-    return plans;
+    return await _fetchAndCache();
+  }
+
+  Future<List<dynamic>> _fetchAndCache() async {
+    try {
+      final data = await _client.get('/data/plans');
+      final list = data['data'] ?? data['plans'] ?? data['items'];
+      final plans = list is List ? List<dynamic>.from(list) : <dynamic>[];
+      _cachedPlans = plans;
+      _cacheAt = DateTime.now();
+      
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_prefsKey, jsonEncode(plans));
+      } catch (_) {}
+      
+      return plans;
+    } catch (e) {
+      if (_cachedPlans.isNotEmpty) return _cachedPlans;
+      rethrow;
+    }
   }
 
   List<dynamic> _curatePlans(List<dynamic> rows) {

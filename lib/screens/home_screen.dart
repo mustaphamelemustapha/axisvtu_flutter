@@ -124,6 +124,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _notificationsFuture = _loadNotifications(token);
     _walletFuture!.then((data) {
       if (!mounted || dashboardKey != _activeDashboardKey) return;
+      setState(() {
+        _cachedWalletData = _asMap(data);
+      });
       unawaited(DashboardSnapshotCache.save(dashboardKey, wallet: data));
     }).catchError((_) {});
     _accountsFuture!.then((data) {
@@ -432,13 +435,6 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.card_giftcard_rounded,
         accent: const Color(0xFFEC4899),
         onTap: () => _openScreen(const ReferralScreen()),
-      ),
-      _HomeService(
-        label: 'Wallet',
-        subtitle: 'Generate account',
-        icon: Icons.account_balance_wallet_rounded,
-        accent: const Color(0xFF0EA5E9),
-        onTap: () => widget.onNavigateTab?.call(1),
       ),
     ];
 

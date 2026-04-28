@@ -5,6 +5,7 @@ import '../state/session.dart';
 import '../widgets/pin_entry_sheet.dart';
 import 'api_client.dart';
 import 'transaction_pin_service.dart';
+import 'biometric_service.dart';
 
 class PurchaseAuthService {
   static Future<bool> authorizePin({
@@ -110,6 +111,26 @@ class PurchaseAuthService {
     required String reason,
     required int pinLength,
   }) async {
+    // 1. Check for Biometric Unlock
+    final bioEnabled = await BiometricService.isAppLockEnabled;
+    final savedPin = await BiometricService.getPin();
+
+    if (bioEnabled && savedPin != null && savedPin.length == pinLength) {
+      final success = await BiometricService.authenticate(
+        reason: 'Confirm your $reason via Biometrics',
+      );
+      if (success) {
+        try {
+          await service.verify(savedPin);
+          return true;
+        } catch (_) {
+          // If saved PIN fails, fallback to manual entry
+        }
+      }
+    }
+
+    // 2. Fallback to manual PIN entry
+    if (!context.mounted) return false;
     final pin = await _requestPinInput(
       context: context,
       title: 'Enter Transaction PIN',
