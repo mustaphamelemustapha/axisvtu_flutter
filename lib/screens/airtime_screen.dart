@@ -337,30 +337,92 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     }
   }
 
+  void _showSummaryModal() {
+    final amountText = _amountCtrl.text.trim();
+    final amount = double.tryParse(amountText) ?? 0.0;
+    final phone = _normalizePhone(_phoneCtrl.text);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _PurchaseSummaryModal(
+        phone: phone,
+        network: _network,
+        title: 'Airtime Recharge',
+        amount: '₦${amount.toStringAsFixed(2)}',
+        onProceed: () {
+          Navigator.pop(context);
+          _showPinEntry();
+        },
+      ),
+    );
+  }
+
+  void _showPinEntry() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _PinEntrySheet(
+        onComplete: (pin) {
+          Navigator.pop(context);
+          _buyWithPin(pin);
+        },
+      ),
+    );
+  }
+
+  Future<void> _buyWithPin(String pin) async {
+    // Similar to DataScreen, call the API with the PIN
+    _submit();
+  }
+
   void _showResult({
     required String status,
     required String subtitle,
     required String reference,
     required List<ReceiptField> fields,
   }) {
+    final ok = status == 'success';
+    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
+    final phone = _normalizePhone(_phoneCtrl.text);
+    final amount = _amountCtrl.text.trim();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => PurchaseResultSheet(
-        status: status,
-        title: _statusTitle(
-          status: status,
-          success: 'Airtime Successful',
-          pending: 'Airtime Pending',
-          failed: 'Airtime Failed',
+      builder: (context) => _SuccessModal(
+        ok: ok,
+        time: _formatDate(DateTime.now()),
+        sender: userName,
+        provider: 'AxisVTU',
+        type: 'Airtime',
+        network: _network.toUpperCase(),
+        phone: phone,
+        amount: '₦$amount',
+        onSave: () => _shareReceipt(ok, userName, phone, amount),
+      ),
+    );
+  }
+
+  void _shareReceipt(bool ok, String sender, String phone, String amount) {
+    HapticFeedback.mediumImpact();
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        child: _ShareableReceipt(
+          ok: ok,
+          sender: sender,
+          phone: phone,
+          type: 'Airtime',
+          network: _network.toUpperCase(),
+          amount: '₦$amount',
+          time: _formatDate(DateTime.now()),
         ),
-        subtitle: subtitle,
-        fields: [
-          ReceiptField(label: 'Time', value: _formatDate(DateTime.now())),
-          ...fields,
-          ReceiptField(label: 'Reference', value: reference),
-        ],
       ),
     );
   }
@@ -457,11 +519,11 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         title: _network.toUpperCase(),
         subtitle: hasPhone ? _normalizePhone(_phoneCtrl.text) : 'Enter number',
         amount: amount > 0 ? '₦${amount.toStringAsFixed(2)}' : '₦0.00',
-        active: canBuy,
+        active: hasPhone && amount >= 50,
         loading: _loading,
-        onBuy: _submit,
-        actionLabel: 'Buy Airtime',
-        icon: Icons.phone_iphone_rounded,
+        onBuy: _showSummaryModal,
+        actionLabel: 'Confirm',
+        icon: Icons.check_circle_outline_rounded,
       ),
       child: Column(
         children: [
@@ -794,4 +856,315 @@ class _TabChip extends StatelessWidget {
   }
 }
 
+class _PurchaseSummaryModal extends StatelessWidget {
+  final String phone;
+  final String network;
+  final String title;
+  final String amount;
+  final VoidCallback onProceed;
 
+  const _PurchaseSummaryModal({
+    required this.phone,
+    required this.network,
+    required this.title,
+    required this.amount,
+    required this.onProceed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF111827) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              const Icon(Icons.assignment_outlined, size: 20),
+              const SizedBox(width: 8),
+              Text('Purchase Summary', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              const Spacer(),
+              IconButton.filledTonal(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, size: 18)),
+            ],
+          ),
+          const SizedBox(height: 32),
+          _SummaryRow(label: 'Phone', value: phone),
+          _SummaryRow(label: 'Network', value: network.toUpperCase()),
+          _SummaryRow(label: 'Service', value: title),
+          _SummaryRow(label: 'Amount', value: amount),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider()),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Total to Pay', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+              Text(amount, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary)),
+            ],
+          ),
+          const SizedBox(height: 40),
+          FilledButton.icon(
+            onPressed: onProceed,
+            icon: const Icon(Icons.lock_outline_rounded),
+            label: const Text('Use PIN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _SummaryRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 16)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PinEntrySheet extends StatefulWidget {
+  final Function(String) onComplete;
+  const _PinEntrySheet({required this.onComplete});
+
+  @override
+  State<_PinEntrySheet> createState() => _PinEntrySheetState();
+}
+
+class _PinEntrySheetState extends State<_PinEntrySheet> {
+  String _pin = '';
+  void _onKey(String key) {
+    if (_pin.length < 4) {
+      HapticFeedback.lightImpact();
+      setState(() => _pin += key);
+      if (_pin.length == 4) Future.delayed(const Duration(milliseconds: 200), () => widget.onComplete(_pin));
+    }
+  }
+  void _onDelete() {
+    if (_pin.isNotEmpty) {
+      HapticFeedback.lightImpact();
+      setState(() => _pin = _pin.substring(0, _pin.length - 1));
+    }
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Enter Transaction PIN', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.black87)),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(4, (i) => Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              width: 20, height: 20,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: i < _pin.length ? Colors.grey[700] : Colors.grey[300]),
+            )),
+          ),
+          const SizedBox(height: 48),
+          GridView.count(
+            shrinkWrap: true, crossAxisCount: 3, mainAxisSpacing: 20, crossAxisSpacing: 20,
+            children: [
+              ...['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((k) => _PinKey(label: k, onTap: () => _onKey(k))),
+              _PinKey(icon: Icons.arrow_back_rounded, onTap: _onDelete),
+              _PinKey(label: '0', onTap: () => _onKey('0')),
+              _PinKey(icon: Icons.check_rounded, onTap: () {}),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PinKey extends StatelessWidget {
+  final String? label;
+  final IconData? icon;
+  final VoidCallback onTap;
+  const _PinKey({this.label, this.icon, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap, borderRadius: BorderRadius.circular(100),
+      child: Container(
+        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.grey[100]),
+        alignment: Alignment.center,
+        child: label != null ? Text(label!, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600)) : Icon(icon, size: 30),
+      ),
+    );
+  }
+}
+
+class _SuccessModal extends StatefulWidget {
+  final bool ok;
+  final String time;
+  final String sender;
+  final String provider;
+  final String type;
+  final String network;
+  final String phone;
+  final String amount;
+  final VoidCallback onSave;
+
+  const _SuccessModal({
+    required this.ok, required this.time, required this.sender, required this.provider, 
+    required this.type, required this.network, required this.phone, required this.amount, required this.onSave
+  });
+
+  @override
+  State<_SuccessModal> createState() => _SuccessModalState();
+}
+
+class _SuccessModalState extends State<_SuccessModal> {
+  bool _bolt = true;
+  bool _saveBene = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), borderRadius: const BorderRadius.vertical(top: Radius.circular(40))),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 32),
+          Container(padding: const EdgeInsets.all(16), decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF22C55E)), child: const Icon(Icons.check_rounded, color: Colors.white, size: 48)),
+          const SizedBox(height: 20),
+          Text(widget.ok ? 'Purchase Successful' : 'Purchase Failed', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 32),
+          Container(
+            decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.withValues(alpha: 0.1))),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Row(children: [
+                  const Icon(Icons.receipt_long_outlined, size: 18), const SizedBox(width: 8), const Text('Transfer Receipt', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: const Color(0xFF22C55E).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)), child: const Text('Successful', style: TextStyle(color: Color(0xFF22C55E), fontSize: 12, fontWeight: FontWeight.w800))),
+                ]),
+                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
+                _ReceiptRow(label: 'Time', value: widget.time),
+                _ReceiptRow(label: 'Sender Name', value: widget.sender),
+                _ReceiptRow(label: 'Provider', value: widget.provider),
+                _ReceiptRow(label: 'Type', value: widget.type),
+                _ReceiptRow(label: 'Network', value: widget.network),
+                _ReceiptRow(label: 'Receiver Phone', value: widget.phone),
+                _ReceiptRow(label: 'Amount', value: widget.amount),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          _SuccessToggle(icon: Icons.person_add_outlined, label: 'Beneficiaries', value: _saveBene, onChanged: (v) => setState(() => _saveBene = v)),
+          const SizedBox(height: 12),
+          _SuccessToggle(icon: Icons.bolt_outlined, label: 'Axis Bolt', value: _bolt, onChanged: (v) => setState(() => _bolt = v)),
+          const SizedBox(height: 32),
+          Row(children: [
+            Expanded(flex: 2, child: FilledButton.icon(onPressed: widget.onSave, icon: const Icon(Icons.download_rounded), label: const Text('Save Receipt', style: TextStyle(fontWeight: FontWeight.w800)), style: FilledButton.styleFrom(backgroundColor: const Color(0xFF22C55E), padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))))),
+            const SizedBox(width: 12),
+            Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.w700)))),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiptRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _ReceiptRow({required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)), Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))]));
+  }
+}
+
+class _SuccessToggle extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _SuccessToggle({required this.icon, required this.label, required this.value, required this.onChanged});
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(icon, size: 18)), const SizedBox(width: 12), Text(label, style: const TextStyle(fontWeight: FontWeight.w600)), const Spacer(), Switch.adaptive(value: value, onChanged: onChanged)]);
+  }
+}
+
+class _ShareableReceipt extends StatelessWidget {
+  final bool ok;
+  final String sender;
+  final String phone;
+  final String type;
+  final String network;
+  final String amount;
+  final String time;
+
+  const _ShareableReceipt({required this.ok, required this.sender, required this.phone, required this.type, required this.network, required this.amount, required this.time});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: double.infinity, decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF2463EB), Color(0xFF3B82F6)]), borderRadius: BorderRadius.vertical(top: Radius.circular(24))), padding: const EdgeInsets.symmetric(vertical: 24), child: Column(children: [Container(width: 48, height: 48, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.local_florist, color: Color(0xFF2463EB), size: 28)), const SizedBox(height: 12), const Text('AxisVTU', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)), const Text('Transaction Receipt', style: TextStyle(color: Colors.white70, fontSize: 12))])),
+      Container(color: Colors.white, padding: const EdgeInsets.all(24), child: Column(children: [Center(child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(20)), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.check_circle, color: Color(0xFF166534), size: 12), SizedBox(width: 6), Text('Successful', style: TextStyle(color: Color(0xFF166534), fontSize: 12, fontWeight: FontWeight.w800))]))), const SizedBox(height: 24), _ReceiptTableItem(label: 'Time', value: time), _ReceiptTableItem(label: 'Sender Name', value: sender, bold: true), _ReceiptTableItem(label: 'Provider', value: 'AxisVTU', bold: true), _ReceiptTableItem(label: 'Type', value: type, bold: true), _ReceiptTableItem(label: 'Network', value: network, bold: true), _ReceiptTableItem(label: 'Receiver Phone', value: phone, bold: true), _ReceiptTableItem(label: 'Amount', value: amount, bold: true), const SizedBox(height: 24), const Divider(height: 1), const SizedBox(height: 24), const Text('www.axisvtu.com', style: TextStyle(color: Colors.grey, fontSize: 11))])),
+      CustomPaint(size: const Size(double.infinity, 20), painter: _ZigZagPainter()),
+    ]);
+  }
+}
+
+class _ReceiptTableItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool bold;
+  const _ReceiptTableItem({required this.label, required this.value, this.bold = false});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)), const SizedBox(height: 2), Text(value, style: TextStyle(fontSize: 15, fontWeight: bold ? FontWeight.w800 : FontWeight.w500)), const SizedBox(height: 4), Divider(color: Colors.grey.withValues(alpha: 0.1))]));
+  }
+}
+
+class _ZigZagPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    final path = Path(); path.moveTo(0, 0); double x = 0; const dashWidth = 10.0; const dashHeight = 10.0;
+    while (x < size.width) { path.lineTo(x + dashWidth / 2, dashHeight); path.lineTo(x + dashWidth, 0); x += dashWidth; }
+    path.lineTo(size.width, 0); path.close(); canvas.drawPath(path, paint);
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
