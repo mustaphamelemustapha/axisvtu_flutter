@@ -373,6 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .toString()
         .trim();
     final role = (user['role'] ?? 'Member').toString().trim();
+    final referralCode = (user['referral_code'] ?? '').toString().trim();
     final initials = name
         .split(' ')
         .where((part) => part.isNotEmpty)
@@ -453,18 +454,12 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 Container(
-                  height: 46,
-                  width: 46,
+                  height: 44,
+                  width: 44,
                   decoration: BoxDecoration(
                     gradient: AxisPalette.gradient,
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.14),
-                        blurRadius: 14,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: AxisShadows.softGlow,
                   ),
                   child: Center(
                     child: Text(
@@ -523,18 +518,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(compact ? 24 : 28),
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outline.withValues(
-                    alpha: isDark ? 0.14 : 0.10,
+                    alpha: isDark ? 0.08 : 0.05,
                   ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark
-                        ? Colors.black.withValues(alpha: 0.16)
-                        : const Color(0xFF2457F5).withValues(alpha: 0.05),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+                boxShadow: AxisShadows.premiumGlow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -778,6 +765,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            _ReferralBanner(referralCode: referralCode),
             Row(
               children: [
                 Expanded(
@@ -1283,18 +1271,10 @@ class _FundingAccountBlock extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withValues(
-                alpha: isDark ? 0.10 : 0.10,
+                alpha: isDark ? 0.08 : 0.06,
               ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: isDark ? 0.14 : 0.03,
-            ),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: AxisShadows.softGlow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1448,8 +1428,9 @@ class _ServiceCardState extends State<_ServiceCard> {
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
               ),
+              boxShadow: AxisShadows.softGlow,
             ),
             child: Center(
               child: Padding(
@@ -1772,6 +1753,114 @@ class _StatTile extends StatelessWidget {
               color: Theme.of(
                 context,
               ).colorScheme.onSurface.withValues(alpha: 0.62),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReferralBanner extends StatelessWidget {
+  const _ReferralBanner({required this.referralCode});
+
+  final String referralCode;
+
+  @override
+  Widget build(BuildContext context) {
+    if (referralCode.isEmpty) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF141C2A) : const Color(0xFFF3F7FF),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(
+                alpha: isDark ? 0.06 : 0.04,
+              ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.card_giftcard_rounded,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Invite & Earn Rewards',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.1,
+                      ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  'Share your referral code',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: muted,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () async {
+              HapticFeedback.selectionClick();
+              await Clipboard.setData(ClipboardData(text: referralCode));
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Referral code copied')),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(
+                        alpha: 0.12,
+                      ),
+                ),
+                boxShadow: AxisShadows.softGlow,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    referralCode,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.copy_rounded,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
