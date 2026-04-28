@@ -104,6 +104,13 @@ class _DataScreenState extends State<DataScreen> {
   String? _error;
   Future<void>? _plansLoadFuture;
 
+  double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
   bool _isUncertainPurchaseError(String message) {
     final text = message.toLowerCase();
     return text.contains('timed out') ||
@@ -662,6 +669,7 @@ class _DataScreenState extends State<DataScreen> {
                                                     return _PlanTile(
                                                       capacity: _planCapacity(plan),
                                                       price: _planPrice(plan),
+                                                      basePrice: _toDouble(plan['base_price']) ?? 0.0,
                                                       validity: _planValidity(plan),
                                                       selected: selected,
                                                       onTap: () {
@@ -1006,105 +1014,115 @@ class _DataScreenState extends State<DataScreen> {
           ServiceSectionCard(
             title: 'Network',
             subtitle: 'Choose the network with a single tap.',
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                ServiceChoiceChip(
-                  label: 'MTN',
-                  selected: _network == 'mtn',
-                  leading: _networkLogoByName('mtn'),
-                  onTap: () => _selectNetwork('mtn'),
-                ),
-                ServiceChoiceChip(
-                  label: 'Airtel',
-                  selected: _network == 'airtel',
-                  leading: _networkLogoByName('airtel'),
-                  onTap: () => _selectNetwork('airtel'),
-                ),
-                ServiceChoiceChip(
-                  label: 'Glo',
-                  selected: _network == 'glo',
-                  leading: _networkLogoByName('glo'),
-                  onTap: () => _selectNetwork('glo'),
-                ),
-                ServiceChoiceChip(
-                  label: '9mobile',
-                  selected: _network == '9mobile',
-                  leading: _networkLogoByName('9mobile'),
-                  onTap: () => _selectNetwork('9mobile'),
-                ),
-              ],
-            ),
-          ),
-          ServiceSectionCard(
-            title: 'Plan',
-            subtitle: 'Choose a bundle. The button below completes the flow.',
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  selected == null
-                      ? 'Choose one bundle to continue.'
-                      : 'Selected plan: ${_planCapacity(selected)} • ${_planValidity(selected)} • ₦${_planPrice(selected)}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: selected == null ? FontWeight.w500 : FontWeight.w700,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: selected == null ? 0.58 : 0.92),
-                      ),
-                ),
-                const SizedBox(height: 10),
-                Row(
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
                   children: [
-                    Expanded(
-                      child: _SecondaryButton(
-                        label: _loadingPlans ? 'Loading...' : 'Refresh',
-                        icon: _refreshing ? Icons.sync : Icons.refresh_rounded,
-                        compact: compact,
-                        onTap: _refreshing ? null : () => _loadPlans(forceRefresh: true),
-                      ),
+                    ServiceChoiceChip(
+                      label: 'MTN',
+                      selected: _network == 'mtn',
+                      leading: _networkLogoByName('mtn'),
+                      onTap: () => _selectNetwork('mtn'),
                     ),
-                    SizedBox(width: compact ? 8 : 10),
-                    Expanded(
-                      child: _PrimaryGradientButton(
-                        label: selected != null ? 'Change plan' : 'Choose plan',
-                        icon: Icons.grid_view_rounded,
-                        compact: compact,
-                        onTap: _openPlansSheet,
-                      ),
+                    ServiceChoiceChip(
+                      label: 'Airtel',
+                      selected: _network == 'airtel',
+                      leading: _networkLogoByName('airtel'),
+                      onTap: () => _selectNetwork('airtel'),
+                    ),
+                    ServiceChoiceChip(
+                      label: 'Glo',
+                      selected: _network == 'glo',
+                      leading: _networkLogoByName('glo'),
+                      onTap: () => _selectNetwork('glo'),
+                    ),
+                    ServiceChoiceChip(
+                      label: '9mobile',
+                      selected: _network == '9mobile',
+                      leading: _networkLogoByName('9mobile'),
+                      onTap: () => _selectNetwork('9mobile'),
                     ),
                   ],
                 ),
-                if (_loadingPlans && _sortedNetworkPlans.isEmpty) ...[
-                  const SizedBox(height: 12),
-                  const _PlanSkeletonGrid(),
-                ] else if (_error != null && _plans.isEmpty) ...[
-                  const SizedBox(height: 12),
-                  _ErrorBanner(
-                    message: _error!,
-                  ),
-                ] else ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    selected == null
-                        ? 'Open the picker to choose a bundle.'
-                        : 'Selected plan: ${_planCapacity(selected)} • ${_planValidity(selected)} • ₦${_planPrice(selected)}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: selected == null ? 0.58 : 0.88),
-                        ),
+                if (hasPhone) ...[
+                  const SizedBox(height: 16),
+                  _PrimaryGradientButton(
+                    label: selected != null ? 'Change Plan' : 'Select Plan',
+                    icon: Icons.grid_view_rounded,
+                    compact: compact,
+                    onTap: _openPlansSheet,
                   ),
                 ],
               ],
             ),
           ),
+          if (selected != null) ...[
+            const SizedBox(height: 12),
+            _PremiumSectionCard(
+              title: 'Selected Plan',
+              subtitle: 'Verify your selection before purchase.',
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.wifi_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _planCapacity(selected),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          Text(
+                            _planValidity(selected),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.6),
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '₦${_planPrice(selected)}',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
         ],
       ),
@@ -2294,6 +2312,7 @@ class _PlanTile extends StatelessWidget {
     super.key,
     required this.capacity,
     required this.price,
+    this.basePrice = 0.0,
     required this.validity,
     required this.selected,
     required this.onTap,
@@ -2301,6 +2320,7 @@ class _PlanTile extends StatelessWidget {
 
   final String capacity;
   final String price;
+  final double basePrice;
   final String validity;
   final bool selected;
   final VoidCallback onTap;
@@ -2310,69 +2330,124 @@ class _PlanTile extends StatelessWidget {
     final color = Theme.of(context).colorScheme.primary;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final compact = MediaQuery.sizeOf(context).height < 760;
+    
+    final currentPrice = double.tryParse(price.replaceAll(',', '')) ?? 0.0;
+    final hasDiscount = basePrice > currentPrice;
+    final discountPercent = hasDiscount 
+        ? (((basePrice - currentPrice) / basePrice) * 100).round()
+        : 0;
+
+    // Simulate some cashback for premium feel
+    final cashback = currentPrice > 200 ? (currentPrice * 0.02).round().clamp(10, 100) : 0;
 
     return AnimatedContainer(
       duration: AxisDurations.normal,
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: selected ? AxisShadows.premiumGlow : AxisShadows.softGlow,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           child: Ink(
-            padding: EdgeInsets.all(compact ? 9 : 10),
+            padding: EdgeInsets.all(compact ? 12 : 14),
             decoration: BoxDecoration(
               color: selected ? color.withValues(alpha: 0.08) : Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: selected ? color.withValues(alpha: 0.22) : Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
-                width: 1,
+                color: selected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+                width: selected ? 2 : 1,
               ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
-                        capacity.isEmpty ? '—' : capacity,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        capacity,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.18,
+                              fontWeight: FontWeight.w900,
+                              fontSize: compact ? 20 : 22,
+                              letterSpacing: -0.5,
+                            ),
+                      ),
+                    ),
+                    if (hasDiscount)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '$discountPercent% OFF',
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                          ),
                         ),
                       ),
+                  ],
+                ),
+                const Spacer(),
+                if (hasDiscount)
+                  Text(
+                    '₦${basePrice.toInt()}',
+                    style: TextStyle(
+                      decoration: TextDecoration.lineThrough,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      '₦',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: color,
+                          ),
+                    ),
+                    Text(
+                      price,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: color,
+                            letterSpacing: -0.5,
+                          ),
                     ),
                   ],
                 ),
-                SizedBox(height: compact ? 6 : 8),
-                Text(
-                  '₦$price',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-                SizedBox(height: compact ? 4 : 6),
-                const Spacer(),
-                Wrap(
-                  spacing: 5,
-                  runSpacing: 5,
+                const SizedBox(height: 8),
+                Row(
                   children: [
                     _Pill(text: validity),
-                    if (selected)
-                      _Pill(
-                        text: 'Selected',
-                        background: color,
-                        foreground: Colors.white,
+                    const SizedBox(width: 4),
+                    if (cashback > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '₦$cashback cashback',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
+                          ),
+                        ),
                       ),
                   ],
                 ),

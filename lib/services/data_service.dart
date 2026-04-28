@@ -52,7 +52,7 @@ class DataService {
     }
     final data = await _client.get('/data/plans');
     final list = data['data'] ?? data['plans'] ?? data['items'];
-    final plans = list is List ? _curatePlans(list) : <dynamic>[];
+    final plans = list is List ? List<dynamic>.from(list) : <dynamic>[];
     _cachedPlans = plans;
     _cacheAt = DateTime.now();
     return plans;

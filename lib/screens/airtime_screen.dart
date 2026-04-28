@@ -15,6 +15,7 @@ import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
+import '../widgets/glass_card.dart';
 
 class AirtimeScreen extends StatefulWidget {
   const AirtimeScreen({super.key});
@@ -441,18 +442,22 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 360 || size.height < 760;
+    final amountText = _amountCtrl.text.trim();
+    final amount = double.tryParse(amountText) ?? 0.0;
+    final hasPhone = _normalizePhone(_phoneCtrl.text).isNotEmpty;
+    final canBuy = !_loading && hasPhone && amount >= 50;
+
     return ServiceShell(
       title: 'Airtime',
       subtitle: 'Smart network detect, quick suggestions, and instant top-up.',
       icon: Icons.phone_iphone_rounded,
       footer: StickyCheckoutBar(
         title: _network.toUpperCase(),
-        subtitle: _normalizePhone(_phoneCtrl.text).isNotEmpty
-            ? _normalizePhone(_phoneCtrl.text)
-            : 'Enter number',
+        subtitle: hasPhone ? _normalizePhone(_phoneCtrl.text) : 'Enter number',
         amount: amount > 0 ? '₦${amount.toStringAsFixed(2)}' : '₦0.00',
-        active: !_loading && _normalizePhone(_phoneCtrl.text).isNotEmpty && amount >= 50,
+        active: canBuy,
         loading: _loading,
         onBuy: _submit,
         actionLabel: 'Buy Airtime',
@@ -462,8 +467,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         children: [
           ServiceSectionCard(
             title: 'Network',
-            subtitle:
-                'Detected automatically while typing. You can still change it.',
+            subtitle: 'Detected automatically while typing.',
             child: Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -481,61 +485,52 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
             ),
           ),
           ServiceSectionCard(
-            title: 'Recipient Details',
+            title: 'Recipient',
             subtitle: 'Enter beneficiary number and amount.',
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Builder(
-                  builder: (context) {
-                    final detected = _detectNetwork(
-                      _normalizePhone(_phoneCtrl.text),
-                    );
-                    if (detected == null) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Detected network: ${detected.toUpperCase()}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    );
-                  },
-                ),
                 TextField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: 'Phone Number',
-                    hintText: '08123456789',
+                    hintText: '081...',
                     prefixIcon: Icon(Icons.call_outlined),
                   ),
                 ),
                 if (_suggestions.isNotEmpty) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Theme.of(context).dividerColor),
-                      boxShadow: AxisShadows.softGlow,
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Suggestions',
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Double tap to fill suggested number',
-                          style: Theme.of(context).textTheme.bodySmall,
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 14,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Smart Suggestions',
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -544,20 +539,14 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                           children: _suggestions.map((number) {
                             final detected = _detectNetwork(number) ?? _network;
                             return GestureDetector(
-                              onDoubleTap: () => _applySuggestedNumber(number),
+                              onTap: () => _applySuggestedNumber(number),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 7,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: 0.1),
+                                  color: Theme.of(context).colorScheme.surface,
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: Theme.of(context).colorScheme.primary
-                                        .withValues(alpha: 0.25),
+                                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
                                   ),
                                 ),
                                 child: Row(
@@ -565,12 +554,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                                   children: [
                                     _networkLogo(detected),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      number,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.labelMedium,
-                                    ),
+                                    Text(number, style: Theme.of(context).textTheme.labelMedium),
                                   ],
                                 ),
                               ),
@@ -581,62 +565,44 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
                     labelText: 'Amount (₦)',
-                    hintText: '200',
+                    hintText: 'Enter amount',
                     prefixIcon: Icon(Icons.payments_outlined),
                   ),
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [100, 200, 500, 1000, 2000]
-                      .map(
-                        (v) => ActionChip(
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [100, 200, 500, 1000, 2000, 5000].map((v) {
+                      final isSelected = _amountCtrl.text == v.toString();
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
                           label: Text('₦$v'),
-                          onPressed: () =>
-                              setState(() => _amountCtrl.text = v.toString()),
+                          selected: isSelected,
+                          onSelected: (s) {
+                            HapticFeedback.selectionClick();
+                            setState(() => _amountCtrl.text = v.toString());
+                          },
                         ),
-                      )
-                      .toList(),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ],
             ),
           ),
-          // Checkout card removed in favor of sticky footer
           ServiceSectionCard(
-            title: 'Beneficiaries',
-            subtitle: 'Same quick style as Buy Data page.',
+            title: 'Settings',
+            subtitle: 'Personalize your airtime experience.',
             child: Column(
               children: [
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search Contacts',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Row(
-                  children: [
-                    _TabChip(label: 'Recent', selected: true),
-                    SizedBox(width: 10),
-                    _TabChip(label: 'Saved', selected: false),
-                  ],
-                ),
-                const SizedBox(height: 14),
                 _ToggleTile(
                   icon: Icons.person_add_alt_1_rounded,
                   label: 'Auto-save Beneficiaries',
@@ -663,11 +629,26 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
             ),
           ),
           if (_error != null)
-            ServiceSectionCard(
-              title: 'Validation',
-              child: Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+            _PremiumSectionCard(
+              title: 'Validation Error',
+              subtitle: 'Please check your inputs.',
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Text(
+                  _error!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
         ],
@@ -717,21 +698,15 @@ class _ToggleTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.14),
-            child: Icon(
-              icon,
-              size: 18,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
+            child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -740,16 +715,50 @@ class _ToggleTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 2),
                 Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
-          Switch(value: value, onChanged: onChanged),
+          Switch.adaptive(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumSectionCard extends StatelessWidget {
+  const _PremiumSectionCard({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+          ),
+          const SizedBox(height: 12),
+          child,
         ],
       ),
     );
