@@ -51,6 +51,14 @@ class DataService {
 
   Future<List<dynamic>> getPlans({bool forceRefresh = false}) async {
     if (!forceRefresh) {
+      // Serve from fresh in-memory cache immediately.
+      if (_cachedPlans.isNotEmpty && isCacheFresh) {
+        return cachedPlans;
+      }
+
+      // In-memory cache is stale or empty — always fetch live data.
+      // But if we have any cached data (memory or disk), show it instantly
+      // while refreshing in the background.
       if (_cachedPlans.isEmpty) {
         try {
           final prefs = await SharedPreferences.getInstance();
@@ -63,11 +71,10 @@ class DataService {
           }
         } catch (_) {}
       }
-      
+
       if (_cachedPlans.isNotEmpty) {
-        if (!isCacheFresh) {
-          _fetchAndCache();
-        }
+        // Kick off a background refresh so we converge on live data quickly.
+        _fetchAndCache();
         return cachedPlans;
       }
     }

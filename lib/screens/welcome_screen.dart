@@ -11,6 +11,7 @@ import '../widgets/theme_toggle_button.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'shell_screen.dart';
+import '../services/biometric_service.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key, this.initialIdentifier});
@@ -30,6 +31,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   bool _loading = false;
   String? _localError;
   bool _focusPasswordPending = false;
+  bool _biometricAvailable = false;
+  bool _biometricLoading = false;
 
   @override
   void initState() {
@@ -41,6 +44,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     } else {
       _restoreSavedIdentifier();
     }
+    _checkBiometricAvailability();
   }
 
   @override
@@ -61,6 +65,50 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         _focusPasswordPending = true;
       }
     });
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final enabled = await BiometricService.isAppLockEnabled;
+    if (!enabled) return;
+    final supported = await BiometricService.isDeviceSupported();
+    final canCheck = await BiometricService.canCheckBiometrics();
+    // Also ensure there is a saved session token to restore
+    final prefs = await SharedPreferences.getInstance();
+    final savedToken = prefs.getString('axisvtu_token');
+    if (!mounted) return;
+    setState(() {
+      _biometricAvailable = supported && canCheck && (savedToken?.isNotEmpty ?? false);
+    });
+  }
+
+  Future<void> _loginWithBiometrics() async {
+    setState(() {
+      _biometricLoading = true;
+      _localError = null;
+    });
+    final success = await BiometricService.authenticate(
+      reason: 'Sign in to AxisVTU',
+    );
+    if (!mounted) return;
+    if (!success) {
+      setState(() {
+        _biometricLoading = false;
+        _localError = 'Biometric authentication failed. Try signing in with your password.';
+      });
+      return;
+    }
+    // Restore session from saved token
+    final session = context.read<SessionController>();
+    await session.bootstrap();
+    if (!mounted) return;
+    if (session.isAuthenticated) {
+      Navigator.of(context).pushReplacementNamed(ShellScreen.route);
+    } else {
+      setState(() {
+        _biometricLoading = false;
+        _localError = 'Session expired. Please sign in with your password.';
+      });
+    }
   }
 
   String? _initialEmail(String identifier) {
@@ -206,6 +254,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       icon: Icons.login_rounded,
                       onPressed: (session.isLoading || _loading) ? null : _login,
                     ),
+                    if (_biometricAvailable) ...[
+                      const SizedBox(height: 12),
+                      _BiometricSignInButton(
+                        loading: _biometricLoading,
+                        onPressed: (session.isLoading || _loading || _biometricLoading)
+                            ? null
+                            : _loginWithBiometrics,
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Center(
                       child: Wrap(
@@ -278,6 +335,45 @@ class _AuthInput extends StatelessWidget {
           borderSide: BorderSide(
             color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BiometricSignInButton extends StatelessWidget {
+  const _BiometricSignInButton({this.onPressed, required this.loading});
+
+  final VoidCallback? onPressed;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: BorderSide(color: primary.withValues(alpha: 0.6), width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: isDark
+              ? primary.withValues(alpha: 0.07)
+              : primary.withValues(alpha: 0.04),
+          foregroundColor: primary,
+        ),
+        icon: loading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: primary),
+              )
+            : const Icon(Icons.fingerprint_rounded, size: 22),
+        label: Text(
+          loading ? 'Authenticating…' : 'Sign in with Fingerprint',
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
       ),
     );

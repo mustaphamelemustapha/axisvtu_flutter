@@ -1424,11 +1424,15 @@ String title, String subtitle) async {
                 const SizedBox(height: 8),
                 _ActionTile(
                   label: 'Biometric unlock',
-                  subtitle: _biometricEnabled ? 'Enabled for secure access' : 'Tap to enable fingerprint/face ID',
+                  subtitle: _biometricEnabled
+                      ? 'Fingerprint / Face ID active'
+                      : 'Enable to use fingerprint for sign-in & purchases',
                   icon: Icons.fingerprint_rounded,
-                  trailing: Switch.adaptive(
-                    value: _biometricEnabled,
-                    onChanged: (_) => _toggleBiometric(),
+                  trailing: AbsorbPointer(
+                    child: Switch.adaptive(
+                      value: _biometricEnabled,
+                      onChanged: (_) {},
+                    ),
                   ),
                   onTap: _toggleBiometric,
                 ),
