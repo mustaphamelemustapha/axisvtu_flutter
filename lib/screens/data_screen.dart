@@ -248,10 +248,8 @@ class _DataScreenState extends State<DataScreen> {
       setState(() {
         _network = detected;
         _error = null;
-        _plans = [];
-        _selectedPlanCode = null;
-        _loadingPlans = true;
-        _refreshing = false;
+        // Keep _plans so the UI doesn't go blank, just refresh silently.
+        _refreshing = true;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -285,12 +283,12 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   String _normalizePhone(String input) {
-    final digits = input.replaceAll(RegExp(r'\D'), '');
-    if (digits.startsWith('234') && digits.length >= 13) {
-      return '0${digits.substring(3)}';
+    var digits = input.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('234')) {
+      digits = '0${digits.substring(3)}';
     }
-    if (!digits.startsWith('0') && digits.length == 10) {
-      return '0$digits';
+    if (digits.length == 10 && !digits.startsWith('0')) {
+      digits = '0$digits';
     }
     return digits;
   }

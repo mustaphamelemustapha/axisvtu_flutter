@@ -61,18 +61,9 @@ class DataService {
   Future<List<dynamic>> _fetchAndCache() async {
     try {
       final data = await _client.get('/data/plans');
-      List<dynamic>? list;
+      final list = _extractList(data);
+      final plans = list ?? <dynamic>[];
       
-      if (data is List) {
-        list = data;
-      } else if (data is Map) {
-        final rawList = data['data'] ?? data['plans'] ?? data['items'];
-        if (rawList is List) {
-          list = rawList;
-        }
-      }
-
-      final plans = list != null ? List<dynamic>.from(list) : <dynamic>[];
       _cachedPlans = plans;
       _cacheAt = DateTime.now();
 
@@ -86,6 +77,16 @@ class DataService {
       if (_cachedPlans.isNotEmpty) return _cachedPlans;
       rethrow;
     }
+  }
+
+  List<dynamic>? _extractList(dynamic data) {
+    if (data is List) return data;
+    if (data is Map) {
+      final rawList = data['data'] ?? data['plans'] ?? data['items'];
+      if (rawList is List) return rawList;
+      // If the map itself looks like a list of values? No.
+    }
+    return null;
   }
 
   Future<Map<String, dynamic>> purchase({
