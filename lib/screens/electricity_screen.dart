@@ -10,7 +10,6 @@ import '../services/purchase_auth_service.dart';
 import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
-import '../widgets/primary_button.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
@@ -167,7 +166,9 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
       setState(() {
         _verificationChecked = true;
         _verificationOk = ok;
-        _verifiedCustomerName = ok ? (res['customer_name'] ?? '').toString().trim() : '';
+        _verifiedCustomerName = ok
+            ? (res['customer_name'] ?? '').toString().trim()
+            : '';
         _verificationMessage = ok
             ? 'Meter verified successfully.'
             : (res['message'] ?? 'Unable to verify meter number.').toString();
@@ -177,7 +178,9 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
       setState(() {
         _verificationChecked = true;
         _verificationOk = false;
-        _verificationMessage = msg.isNotEmpty ? msg : 'Unable to verify meter number right now.';
+        _verificationMessage = msg.isNotEmpty
+            ? msg
+            : 'Unable to verify meter number right now.';
       });
     } finally {
       if (mounted) setState(() => _verifying = false);
@@ -250,7 +253,10 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     });
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({
+    String authMethod = PurchaseAuthService.methodAuto,
+  }) async {
+    if (_loading) return;
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) return;
 
@@ -278,6 +284,7 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     final authorized = await PurchaseAuthService.authorizePin(
       context: context,
       reason: 'electricity purchase',
+      preferredMethod: authMethod,
     );
     if (!mounted || !authorized) return;
 
@@ -346,6 +353,29 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  void _showAuthChoiceSheet() {
+    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+    final meter = _meterNumberCtrl.text.trim();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _DualAuthSheet(
+        title: 'Electricity Summary',
+        subtitle: '${_disco.toUpperCase()} • $meter',
+        amount: '₦${amount.toStringAsFixed(2)}',
+        onPin: () {
+          Navigator.pop(context);
+          _submit(authMethod: PurchaseAuthService.methodPin);
+        },
+        onBiometric: () {
+          Navigator.pop(context);
+          _submit(authMethod: PurchaseAuthService.methodBiometric);
+        },
+      ),
+    );
   }
 
   void _showResult({
@@ -436,11 +466,13 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
       icon: Icons.flash_on_rounded,
       footer: StickyCheckoutBar(
         title: _disco.toUpperCase(),
-        subtitle: _meterNumberCtrl.text.trim().isEmpty ? 'Enter meter number' : _meterNumberCtrl.text.trim(),
+        subtitle: _meterNumberCtrl.text.trim().isEmpty
+            ? 'Enter meter number'
+            : _meterNumberCtrl.text.trim(),
         amount: '₦${amount.toStringAsFixed(2)}',
         active: _verificationOk && !_loading && amount >= 500,
         loading: _loading,
-        onBuy: _submit,
+        onBuy: _showAuthChoiceSheet,
         actionLabel: 'Pay Bill',
         icon: Icons.flash_on_rounded,
       ),
@@ -535,57 +567,85 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.search_rounded, size: 18),
-                        label: Text(_verifying ? 'Verifying...' : 'Verify Meter'),
+                        label: Text(
+                          _verifying ? 'Verifying...' : 'Verify Meter',
+                        ),
                       ),
                     ),
                   ],
                 ),
-                if (_verificationChecked) ...
-                  [
-                    const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: _verificationOk
-                            ? Colors.green.withValues(alpha: 0.12)
-                            : Colors.red.withValues(alpha: 0.10),
-                        border: Border.all(
-                          color: _verificationOk
-                              ? Colors.green.withValues(alpha: 0.5)
-                              : Colors.red.withValues(alpha: 0.4),
+                if (_verificationChecked) ...[
+                  const SizedBox(height: 8),
+                  Builder(
+                    builder: (context) {
+                      final isDark =
+                          Theme.of(context).brightness == Brightness.dark;
+                      final okBg = isDark
+                          ? const Color(0xFF123322)
+                          : const Color(0xFFEAF9EF);
+                      final failBg = isDark
+                          ? const Color(0xFF3A1818)
+                          : const Color(0xFFFDECEC);
+                      final okBorder = isDark
+                          ? const Color(0xFF34D399)
+                          : const Color(0xFF22C55E);
+                      final failBorder = isDark
+                          ? const Color(0xFFF87171)
+                          : const Color(0xFFEF4444);
+                      final okText = isDark
+                          ? const Color(0xFFD1FAE5)
+                          : const Color(0xFF166534);
+                      final failText = isDark
+                          ? const Color(0xFFFEE2E2)
+                          : const Color(0xFF991B1B);
+
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _verificationOk
-                                ? Icons.check_circle_outline_rounded
-                                : Icons.cancel_outlined,
-                            size: 18,
-                            color: _verificationOk ? Colors.green : Colors.red,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: _verificationOk ? okBg : failBg,
+                          border: Border.all(
+                            color: _verificationOk ? okBorder : failBorder,
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _verificationOk && _verifiedCustomerName.isNotEmpty
-                                  ? 'Customer: $_verifiedCustomerName'
-                                  : _verificationMessage,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: _verificationOk ? Colors.green[800] : Colors.red[800],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _verificationOk
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.cancel_outlined,
+                              size: 18,
+                              color: _verificationOk ? okText : failText,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _verificationOk &&
+                                        _verifiedCustomerName.isNotEmpty
+                                    ? 'Customer: $_verifiedCustomerName'
+                                    : _verificationMessage,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: _verificationOk ? okText : failText,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextField(
                   controller: _phoneCtrl,
@@ -631,24 +691,105 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.error.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline_rounded, color: Theme.of(context).colorScheme.error, size: 20),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: Theme.of(context).colorScheme.error,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         _error!,
-                        style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DualAuthSheet extends StatelessWidget {
+  const _DualAuthSheet({
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+    required this.onPin,
+    required this.onBiometric,
+  });
+
+  final String title;
+  final String subtitle;
+  final String amount;
+  final VoidCallback onPin;
+  final VoidCallback onBiometric;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF111827) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 6),
+          Text(
+            amount,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onPin,
+                  icon: const Icon(Icons.lock_outline_rounded),
+                  label: const Text('Use PIN'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onBiometric,
+                  icon: const Icon(Icons.fingerprint_rounded),
+                  label: const Text('Use Biometric'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

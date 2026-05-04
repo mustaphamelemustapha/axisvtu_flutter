@@ -8,9 +8,15 @@ import 'transaction_pin_service.dart';
 import 'biometric_service.dart';
 
 class PurchaseAuthService {
+  // auto: chooser/fallback, pin: force pin sheet, biometric: try biometric first
+  static const String methodAuto = 'auto';
+  static const String methodPin = 'pin';
+  static const String methodBiometric = 'biometric';
+
   static Future<bool> authorizePin({
     required BuildContext context,
     String reason = 'purchase',
+    String preferredMethod = methodAuto,
   }) async {
     final session = context.read<SessionController>();
     final token = (session.token ?? '').trim();
@@ -44,6 +50,7 @@ class PurchaseAuthService {
         service: service,
         reason: reason,
         pinLength: status.pinLength,
+        preferredMethod: preferredMethod,
       );
     } on ApiException catch (e) {
       _showSnack(context, _friendlyError(e.message, e.statusCode));
@@ -95,6 +102,7 @@ class PurchaseAuthService {
           service: service,
           reason: reason,
           pinLength: pinLength,
+          preferredMethod: methodAuto,
         );
       }
       _showSnack(context, _friendlyError(e.message, e.statusCode));
@@ -110,21 +118,45 @@ class PurchaseAuthService {
     required TransactionPinService service,
     required String reason,
     required int pinLength,
+    required String preferredMethod,
   }) async {
     // 1. Check for Biometric Unlock
     final bioEnabled = await BiometricService.isAppLockEnabled;
     final savedPin = await BiometricService.getPin();
+    final availability = await BiometricService.getAvailability();
 
-    if (bioEnabled && savedPin != null && savedPin.length == pinLength) {
-      final success = await BiometricService.authenticate(
-        reason: 'Confirm your $reason via Biometrics',
-      );
-      if (success) {
-        try {
-          await service.verify(savedPin);
-          return true;
-        } catch (_) {
-          // If saved PIN fails, fallback to manual entry
+    if (bioEnabled && availability.ready && context.mounted) {
+      bool useBiometric = false;
+      if (preferredMethod == methodBiometric) {
+        useBiometric = true;
+      } else if (preferredMethod == methodPin) {
+        useBiometric = false;
+      } else {
+        final choice = await _askAuthMethod(context, reason);
+        useBiometric = choice == true;
+      }
+      if (useBiometric) {
+        final success = await BiometricService.authenticate(
+          reason: 'Confirm your $reason via Biometrics',
+        );
+        if (success) {
+          if (savedPin != null && savedPin.length == pinLength) {
+            try {
+              await service.verify(savedPin);
+              return true;
+            } catch (_) {
+              // If saved PIN fails, fallback to manual entry
+            }
+          }
+          _showSnack(
+            context,
+            'Biometric verified. Enter transaction PIN once to complete setup.',
+          );
+        } else {
+          _showSnack(
+            context,
+            'Biometric verification was not completed. Use PIN to continue.',
+          );
         }
       }
     }
@@ -149,7 +181,107 @@ class PurchaseAuthService {
       },
     );
     if (pin == null || !context.mounted) return false;
+    if (bioEnabled &&
+        availability.ready &&
+        (savedPin == null || savedPin.length != pinLength)) {
+      await BiometricService.savePin(pin);
+    }
     return true;
+  }
+
+  static Future<bool?> _askAuthMethod(BuildContext context, String reason) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: theme.colorScheme.outline.withValues(alpha: 0.24),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.12,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.fingerprint_rounded,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Authorize $reason',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Use biometrics for quick approval, or continue with your transaction PIN.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        icon: const Icon(Icons.pin_outlined),
+                        label: const Text('Use PIN'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        icon: const Icon(Icons.fingerprint_rounded),
+                        label: const Text('Use fingerprint'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   static Future<String?> _requestPinInput({
@@ -172,9 +304,9 @@ class PurchaseAuthService {
 
   static void _showSnack(BuildContext context, String message) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   static String _friendlyError(String message, [int? statusCode]) {

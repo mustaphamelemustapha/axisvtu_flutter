@@ -9,8 +9,6 @@ import '../services/purchase_auth_service.dart';
 import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
-import '../theme/axis_tokens.dart';
-import '../widgets/primary_button.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
@@ -233,7 +231,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     return null;
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({
+    String authMethod = PurchaseAuthService.methodAuto,
+  }) async {
+    if (_loading) return;
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) return;
 
@@ -261,6 +262,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     final authorized = await PurchaseAuthService.authorizePin(
       context: context,
       reason: 'airtime purchase',
+      preferredMethod: authMethod,
     );
     if (!mounted || !authorized) return;
 
@@ -272,9 +274,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
 
     try {
       _activeRequestId ??= buildRequestId("airtime");
-      final res = await ServicesService(
-        token: token,
-      ).purchaseAirtime(
+      final res = await ServicesService(token: token).purchaseAirtime(
         network: _network,
         phoneNumber: phone,
         amount: amount,
@@ -311,7 +311,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
           fields: [
             ReceiptField(label: 'Network', value: _network.toUpperCase()),
             ReceiptField(label: 'Phone', value: phone),
-            ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
+            ReceiptField(
+              label: 'Amount',
+              value: '₦${amount.toStringAsFixed(2)}',
+            ),
           ],
         );
       } else {
@@ -323,7 +326,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
           fields: [
             ReceiptField(label: 'Network', value: _network.toUpperCase()),
             ReceiptField(label: 'Phone', value: phone),
-            ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
+            ReceiptField(
+              label: 'Amount',
+              value: '₦${amount.toStringAsFixed(2)}',
+            ),
             ReceiptField(label: 'Failure', value: message),
           ],
         );
@@ -341,7 +347,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     final amountText = _amountCtrl.text.trim();
     final amount = double.tryParse(amountText) ?? 0.0;
     final phone = _normalizePhone(_phoneCtrl.text);
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -351,14 +357,17 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         network: _network,
         title: 'Airtime Recharge',
         amount: '₦${amount.toStringAsFixed(2)}',
-        onProceed: () {
+        onProceedPin: () {
           Navigator.pop(context);
-          _submit();
+          _submit(authMethod: PurchaseAuthService.methodPin);
+        },
+        onProceedBiometric: () {
+          Navigator.pop(context);
+          _submit(authMethod: PurchaseAuthService.methodBiometric);
         },
       ),
     );
   }
-
 
   void _showResult({
     required String status,
@@ -367,7 +376,8 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     required List<ReceiptField> fields,
   }) {
     final ok = status == 'success';
-    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
+    final userName =
+        context.read<SessionController>().user?['full_name'] ?? 'User';
     final phone = _normalizePhone(_phoneCtrl.text);
     final amount = _amountCtrl.text.trim();
 
@@ -429,18 +439,6 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     return 'failed';
   }
 
-  String _statusTitle({
-    required String status,
-    required String success,
-    required String pending,
-    required String failed,
-  }) {
-    final normalized = status.toLowerCase();
-    if (normalized == 'success') return success;
-    if (normalized == 'pending') return pending;
-    return failed;
-  }
-
   String _resultSubtitle(String status, Map<String, dynamic> payload) {
     final message = (payload['message'] ?? payload['detail'] ?? '')
         .toString()
@@ -487,11 +485,9 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final compact = size.width < 360 || size.height < 760;
     final amountText = _amountCtrl.text.trim();
     final amount = double.tryParse(amountText) ?? 0.0;
     final hasPhone = _normalizePhone(_phoneCtrl.text).isNotEmpty;
-    final canBuy = !_loading && hasPhone && amount >= 50;
 
     return ServiceShell(
       title: 'Airtime',
@@ -550,10 +546,14 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Column(
@@ -569,9 +569,12 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                             const SizedBox(width: 6),
                             Text(
                               'Smart Suggestions',
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
                                     fontWeight: FontWeight.w800,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                             ),
                           ],
@@ -585,12 +588,16 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                             return GestureDetector(
                               onTap: () => _applySuggestedNumber(number),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 7,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Theme.of(context).colorScheme.surface,
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+                                    color: Theme.of(context).colorScheme.outline
+                                        .withValues(alpha: 0.12),
                                   ),
                                 ),
                                 child: Row(
@@ -598,7 +605,12 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                                   children: [
                                     _networkLogo(detected),
                                     const SizedBox(width: 6),
-                                    Text(number, style: Theme.of(context).textTheme.labelMedium),
+                                    Text(
+                                      number,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelMedium,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -612,7 +624,9 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Amount (₦)',
                     hintText: 'Enter amount',
@@ -680,10 +694,14 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.error.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Text(
@@ -743,14 +761,22 @@ class _ToggleTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+        ),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
-            child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.14),
+            child: Icon(
+              icon,
+              size: 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -759,7 +785,9 @@ class _ToggleTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 2),
                 Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
@@ -786,7 +814,9 @@ class _PremiumSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.62);
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -794,45 +824,20 @@ class _PremiumSectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: muted),
           ),
           const SizedBox(height: 12),
           child,
         ],
-      ),
-    );
-  }
-}
-
-class _TabChip extends StatelessWidget {
-  const _TabChip({required this.label, required this.selected});
-
-  final String label;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected ? color : Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: selected ? Colors.white : color,
-          fontWeight: FontWeight.w600,
-        ),
       ),
     );
   }
@@ -843,14 +848,16 @@ class _PurchaseSummaryModal extends StatelessWidget {
   final String network;
   final String title;
   final String amount;
-  final VoidCallback onProceed;
+  final VoidCallback onProceedPin;
+  final VoidCallback onProceedBiometric;
 
   const _PurchaseSummaryModal({
     required this.phone,
     required this.network,
     required this.title,
     required this.amount,
-    required this.onProceed,
+    required this.onProceedPin,
+    required this.onProceedBiometric,
   });
 
   @override
@@ -868,8 +875,12 @@ class _PurchaseSummaryModal extends StatelessWidget {
         children: [
           Center(
             child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -877,9 +888,17 @@ class _PurchaseSummaryModal extends StatelessWidget {
             children: [
               const Icon(Icons.assignment_outlined, size: 20),
               const SizedBox(width: 8),
-              Text('Purchase Summary', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              Text(
+                'Purchase Summary',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
               const Spacer(),
-              IconButton.filledTonal(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, size: 18)),
+              IconButton.filledTonal(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded, size: 18),
+              ),
             ],
           ),
           const SizedBox(height: 32),
@@ -887,25 +906,65 @@ class _PurchaseSummaryModal extends StatelessWidget {
           _SummaryRow(label: 'Network', value: network.toUpperCase()),
           _SummaryRow(label: 'Service', value: title),
           _SummaryRow(label: 'Amount', value: amount),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider()),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Divider(),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total to Pay', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-              Text(amount, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary)),
+              Text(
+                'Total to Pay',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              Text(
+                amount,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 40),
-          FilledButton.icon(
-            onPressed: onProceed,
-            icon: const Icon(Icons.lock_outline_rounded),
-            label: const Text('Use PIN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onProceedPin,
+                  icon: const Icon(Icons.lock_outline_rounded),
+                  label: const Text(
+                    'Use PIN',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onProceedBiometric,
+                  icon: const Icon(Icons.fingerprint_rounded),
+                  label: const Text(
+                    'Use Biometric',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
         ],
@@ -927,13 +986,15 @@ class _SummaryRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: Colors.grey, fontSize: 16)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+          ),
         ],
       ),
     );
   }
 }
-
 
 class _SuccessModal extends StatefulWidget {
   final bool ok;
@@ -947,8 +1008,15 @@ class _SuccessModal extends StatefulWidget {
   final VoidCallback onSave;
 
   const _SuccessModal({
-    required this.ok, required this.time, required this.sender, required this.provider, 
-    required this.type, required this.network, required this.phone, required this.amount, required this.onSave
+    required this.ok,
+    required this.time,
+    required this.sender,
+    required this.provider,
+    required this.type,
+    required this.network,
+    required this.phone,
+    required this.amount,
+    required this.onSave,
   });
 
   @override
@@ -963,53 +1031,91 @@ class _SuccessModalState extends State<_SuccessModal> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: BoxDecoration(color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), borderRadius: const BorderRadius.vertical(top: Radius.circular(40))),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           const SizedBox(height: 32),
           Container(
-            padding: const EdgeInsets.all(16), 
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              shape: BoxShape.circle, 
-              color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444)
-            ), 
+              shape: BoxShape.circle,
+              color: widget.ok
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFFEF4444),
+            ),
             child: Icon(
-              widget.ok ? Icons.check_rounded : Icons.close_rounded, 
-              color: Colors.white, 
-              size: 48
-            )
+              widget.ok ? Icons.check_rounded : Icons.close_rounded,
+              color: Colors.white,
+              size: 48,
+            ),
           ),
           const SizedBox(height: 20),
-          Text(widget.ok ? 'Purchase Successful' : 'Purchase Failed', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+          Text(
+            widget.ok ? 'Purchase Successful' : 'Purchase Failed',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 32),
           Container(
-            decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.withValues(alpha: 0.1))),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white10 : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+            ),
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                Row(children: [
-                  const Icon(Icons.receipt_long_outlined, size: 18), const SizedBox(width: 8), const Text('Transfer Receipt', style: TextStyle(fontWeight: FontWeight.w700)),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
-                    decoration: BoxDecoration(
-                      color: (widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withValues(alpha: 0.1), 
-                      borderRadius: BorderRadius.circular(20)
-                    ), 
-                    child: Text(
-                      widget.ok ? 'Successful' : 'Failed', 
-                      style: TextStyle(
-                        color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444), 
-                        fontSize: 12, 
-                        fontWeight: FontWeight.w800
-                      )
-                    )
-                  ),
-                ]),
-                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
+                Row(
+                  children: [
+                    const Icon(Icons.receipt_long_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Transfer Receipt',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            (widget.ok
+                                    ? const Color(0xFF22C55E)
+                                    : const Color(0xFFEF4444))
+                                .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        widget.ok ? 'Successful' : 'Failed',
+                        style: TextStyle(
+                          color: widget.ok
+                              ? const Color(0xFF22C55E)
+                              : const Color(0xFFEF4444),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(),
+                ),
                 _ReceiptRow(label: 'Time', value: widget.time),
                 _ReceiptRow(label: 'Sender Name', value: widget.sender),
                 _ReceiptRow(label: 'Provider', value: widget.provider),
@@ -1021,27 +1127,60 @@ class _SuccessModalState extends State<_SuccessModal> {
             ),
           ),
           const SizedBox(height: 24),
-          _SuccessToggle(icon: Icons.person_add_outlined, label: 'Beneficiaries', value: _saveBene, onChanged: (v) => setState(() => _saveBene = v)),
+          _SuccessToggle(
+            icon: Icons.person_add_outlined,
+            label: 'Beneficiaries',
+            value: _saveBene,
+            onChanged: (v) => setState(() => _saveBene = v),
+          ),
           const SizedBox(height: 12),
-          _SuccessToggle(icon: Icons.bolt_outlined, label: 'Axis Bolt', value: _bolt, onChanged: (v) => setState(() => _bolt = v)),
+          _SuccessToggle(
+            icon: Icons.bolt_outlined,
+            label: 'Axis Bolt',
+            value: _bolt,
+            onChanged: (v) => setState(() => _bolt = v),
+          ),
           const SizedBox(height: 32),
-          Row(children: [
-            Expanded(
-              flex: 2, 
-              child: FilledButton.icon(
-                onPressed: widget.onSave, 
-                icon: const Icon(Icons.download_rounded), 
-                label: const Text('Save Receipt', style: TextStyle(fontWeight: FontWeight.w800)), 
-                style: FilledButton.styleFrom(
-                  backgroundColor: widget.ok ? const Color(0xFF22C55E) : const Color(0xFF64748B), 
-                  padding: const EdgeInsets.symmetric(vertical: 20), 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
-                )
-              )
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))), child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.w700)))),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: FilledButton.icon(
+                  onPressed: widget.onSave,
+                  icon: const Icon(Icons.download_rounded),
+                  label: const Text(
+                    'Save Receipt',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: widget.ok
+                        ? const Color(0xFF22C55E)
+                        : const Color(0xFF64748B),
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text(
+                    'Dismiss',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1054,7 +1193,19 @@ class _ReceiptRow extends StatelessWidget {
   const _ReceiptRow({required this.label, required this.value});
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)), Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))]));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1063,10 +1214,30 @@ class _SuccessToggle extends StatelessWidget {
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
-  const _SuccessToggle({required this.icon, required this.label, required this.value, required this.onChanged});
+  const _SuccessToggle({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
   @override
   Widget build(BuildContext context) {
-    return Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(icon, size: 18)), const SizedBox(width: 12), Text(label, style: const TextStyle(fontWeight: FontWeight.w600)), const Spacer(), Switch.adaptive(value: value, onChanged: onChanged)]);
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        const Spacer(),
+        Switch.adaptive(value: value, onChanged: onChanged),
+      ],
+    );
   }
 }
 
@@ -1079,85 +1250,152 @@ class _ShareableReceipt extends StatelessWidget {
   final String amount;
   final String time;
 
-  const _ShareableReceipt({required this.ok, required this.sender, required this.phone, required this.type, required this.network, required this.amount, required this.time});
+  const _ShareableReceipt({
+    required this.ok,
+    required this.sender,
+    required this.phone,
+    required this.type,
+    required this.network,
+    required this.amount,
+    required this.time,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        width: double.infinity, 
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: ok ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)] : [const Color(0xFF64748B), const Color(0xFF94A3B8)]
-          ), 
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24))
-        ), 
-        padding: const EdgeInsets.symmetric(vertical: 24), 
-        child: Column(
-          children: [
-            Container(
-              width: 48, height: 48, 
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), 
-              child: ClipOval(
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Image.asset(
-                    'assets/brand/axisvtu-logo.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (c, e, s) => Icon(
-                      ok ? Icons.local_florist : Icons.error_outline_rounded, 
-                      color: ok ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
-                      size: 24
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: ok
+                  ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)]
+                  : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: ClipOval(
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Image.asset(
+                      'assets/brand/axisvtu-logo.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (c, e, s) => Icon(
+                        ok ? Icons.local_florist : Icons.error_outline_rounded,
+                        color: ok
+                            ? const Color(0xFF2463EB)
+                            : const Color(0xFF64748B),
+                        size: 24,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ), 
-            const SizedBox(height: 12), 
-            const Text('AxisVTU', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)), 
-            const Text('Transaction Receipt', style: TextStyle(color: Colors.white70, fontSize: 12))
-          ]
-        )
-      ),
-      Container(
-        color: Colors.white, 
-        padding: const EdgeInsets.all(24), 
-        child: Column(
-          children: [
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), 
-                decoration: BoxDecoration(
-                  color: ok ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2), 
-                  borderRadius: BorderRadius.circular(20)
-                ), 
-                child: Row(
-                  mainAxisSize: MainAxisSize.min, 
-                  children: [
-                    Icon(ok ? Icons.check_circle : Icons.cancel, color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B), size: 12), 
-                    const SizedBox(width: 6), 
-                    Text(ok ? 'Successful' : 'Failed', style: TextStyle(color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B), fontSize: 12, fontWeight: FontWeight.w800))
-                  ]
-                )
-              )
-            ), 
-            const SizedBox(height: 24), 
-            _ReceiptTableItem(label: 'Time', value: time), 
-            _ReceiptTableItem(label: 'Sender Name', value: sender, bold: true), 
-            _ReceiptTableItem(label: 'Provider', value: 'AxisVTU', bold: true), 
-            _ReceiptTableItem(label: 'Type', value: type, bold: true), 
-            _ReceiptTableItem(label: 'Network', value: network, bold: true), 
-            _ReceiptTableItem(label: 'Receiver Phone', value: phone, bold: true), 
-            _ReceiptTableItem(label: 'Amount', value: amount, bold: true), 
-            const SizedBox(height: 24), 
-            const Divider(height: 1), 
-            const SizedBox(height: 24), 
-            const Text('www.axisvtu.com', style: TextStyle(color: Colors.grey, fontSize: 11))
-          ]
-        )
-      ),
-      CustomPaint(size: const Size(double.infinity, 20), painter: _ZigZagPainter()),
-    ]);
+              const SizedBox(height: 12),
+              const Text(
+                'AxisVTU',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const Text(
+                'Transaction Receipt',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ok
+                        ? const Color(0xFFDCFCE7)
+                        : const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        ok ? Icons.check_circle : Icons.cancel,
+                        color: ok
+                            ? const Color(0xFF166534)
+                            : const Color(0xFF991B1B),
+                        size: 12,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        ok ? 'Successful' : 'Failed',
+                        style: TextStyle(
+                          color: ok
+                              ? const Color(0xFF166534)
+                              : const Color(0xFF991B1B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _ReceiptTableItem(label: 'Time', value: time),
+              _ReceiptTableItem(
+                label: 'Sender Name',
+                value: sender,
+                bold: true,
+              ),
+              _ReceiptTableItem(
+                label: 'Provider',
+                value: 'AxisVTU',
+                bold: true,
+              ),
+              _ReceiptTableItem(label: 'Type', value: type, bold: true),
+              _ReceiptTableItem(label: 'Network', value: network, bold: true),
+              _ReceiptTableItem(
+                label: 'Receiver Phone',
+                value: phone,
+                bold: true,
+              ),
+              _ReceiptTableItem(label: 'Amount', value: amount, bold: true),
+              const SizedBox(height: 24),
+              const Divider(height: 1),
+              const SizedBox(height: 24),
+              const Text(
+                'www.axisvtu.com',
+                style: TextStyle(color: Colors.grey, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+        CustomPaint(
+          size: const Size(double.infinity, 20),
+          painter: _ZigZagPainter(),
+        ),
+      ],
+    );
   }
 }
 
@@ -1165,21 +1403,56 @@ class _ReceiptTableItem extends StatelessWidget {
   final String label;
   final String value;
   final bool bold;
-  const _ReceiptTableItem({required this.label, required this.value, this.bold = false});
+  const _ReceiptTableItem({
+    required this.label,
+    required this.value,
+    this.bold = false,
+  });
   @override
   Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)), const SizedBox(height: 2), Text(value, style: TextStyle(fontSize: 15, fontWeight: bold ? FontWeight.w800 : FontWeight.w500)), const SizedBox(height: 4), Divider(color: Colors.grey.withValues(alpha: 0.1))]));
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Divider(color: Colors.grey.withValues(alpha: 0.1)),
+        ],
+      ),
+    );
   }
 }
 
 class _ZigZagPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white..style = PaintingStyle.fill;
-    final path = Path(); path.moveTo(0, 0); double x = 0; const dashWidth = 10.0; const dashHeight = 10.0;
-    while (x < size.width) { path.lineTo(x + dashWidth / 2, dashHeight); path.lineTo(x + dashWidth, 0); x += dashWidth; }
-    path.lineTo(size.width, 0); path.close(); canvas.drawPath(path, paint);
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    final path = Path();
+    path.moveTo(0, 0);
+    double x = 0;
+    const dashWidth = 10.0;
+    const dashHeight = 10.0;
+    while (x < size.width) {
+      path.lineTo(x + dashWidth / 2, dashHeight);
+      path.lineTo(x + dashWidth, 0);
+      x += dashWidth;
+    }
+    path.lineTo(size.width, 0);
+    path.close();
+    canvas.drawPath(path, paint);
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

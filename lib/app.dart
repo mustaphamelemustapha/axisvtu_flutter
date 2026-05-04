@@ -14,7 +14,6 @@ import 'screens/shell_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/splash_screen.dart';
-import 'services/biometric_service.dart';
 
 class AxisVTUApp extends StatelessWidget {
   const AxisVTUApp({super.key});
@@ -35,6 +34,17 @@ class AxisVTUApp extends StatelessWidget {
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             themeMode: mode,
+            builder: (context, child) {
+              final media = MediaQuery.of(context);
+              final clamped = media.textScaler.clamp(
+                minScaleFactor: 0.95,
+                maxScaleFactor: 1.12,
+              );
+              return MediaQuery(
+                data: media.copyWith(textScaler: clamped),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             routes: {
               '/splash': (_) => const SplashScreen(),
               WelcomeScreen.route: (_) => const WelcomeScreen(),
@@ -60,8 +70,6 @@ class _AppEntryGateState extends State<AppEntryGate> {
   bool _splashDone = false;
   bool _onboardingDone = false;
   bool _onboardingLoaded = false;
-  bool _biometricChecked = false;
-  bool _biometricPassed = false;
   Timer? _splashTimer;
 
   @override
@@ -83,27 +91,10 @@ class _AppEntryGateState extends State<AppEntryGate> {
   Future<void> _loadInitialState() async {
     final prefs = await SharedPreferences.getInstance();
     final onboarding = prefs.getBool(OnboardingScreen.seenKey) ?? false;
-    final bioEnabled = await BiometricService.isAppLockEnabled;
-    
-    if (!bioEnabled) {
-      if (!mounted) return;
-      setState(() {
-        _onboardingDone = onboarding;
-        _onboardingLoaded = true;
-        _biometricChecked = true;
-        _biometricPassed = true;
-      });
-      return;
-    }
-
-    // Attempt to authenticate
-    final success = await BiometricService.authenticate(reason: 'Unlock AxisVTU');
     if (!mounted) return;
     setState(() {
       _onboardingDone = onboarding;
       _onboardingLoaded = true;
-      _biometricChecked = true;
-      _biometricPassed = success;
     });
   }
 
@@ -111,7 +102,9 @@ class _AppEntryGateState extends State<AppEntryGate> {
   Widget build(BuildContext context) {
     final uri = Uri.base;
     final token = uri.queryParameters['token'];
-    final flow = (uri.queryParameters['flow'] ?? uri.queryParameters['kind'] ?? '').toLowerCase();
+    final flow =
+        (uri.queryParameters['flow'] ?? uri.queryParameters['kind'] ?? '')
+            .toLowerCase();
     final resetFlag = (uri.queryParameters['reset'] ?? '').toLowerCase();
     final path = uri.path.toLowerCase();
     if (token != null && token.isNotEmpty) {
@@ -127,49 +120,14 @@ class _AppEntryGateState extends State<AppEntryGate> {
     }
 
     final session = context.watch<SessionController>();
-    if (!session.isBootstrapped || !_splashDone || !_onboardingLoaded || !_biometricChecked) {
+    if (!session.isBootstrapped || !_splashDone || !_onboardingLoaded) {
       return const SplashScreen();
     }
-    
+
     if (session.isAuthenticated) {
-      if (!_biometricPassed) {
-        return Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.lock_outline_rounded, size: 64, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 16),
-                Text('App Locked', style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final success = await BiometricService.authenticate(reason: 'Unlock AxisVTU');
-                    if (success && mounted) {
-                      setState(() => _biometricPassed = true);
-                    }
-                  },
-                  icon: const Icon(Icons.fingerprint_rounded),
-                  label: const Text('Unlock'),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () {
-                    session.logout();
-                    setState(() {
-                      _biometricPassed = true; // allow routing to welcome screen
-                    });
-                  },
-                  child: const Text('Log out'),
-                )
-              ],
-            ),
-          ),
-        );
-      }
       return const ShellScreen();
     }
-    
+
     if (!_onboardingDone) {
       return const OnboardingScreen();
     }

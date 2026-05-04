@@ -504,7 +504,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ReceiptField(label: 'Time', value: _formatDate(tx)),
       ReceiptField(label: 'Sender Name', value: sender),
       if (recipient != '—') ReceiptField(label: 'Recipient', value: recipient),
-      if (network != '—') ReceiptField(label: 'Network', value: network.toUpperCase()),
+      if (network != '—')
+        ReceiptField(label: 'Network', value: network.toUpperCase()),
       ReceiptField(label: 'Plan', value: plan),
       ReceiptField(label: 'Amount', value: _amountLabel(tx)),
       ReceiptField(label: 'Reference', value: reference),
@@ -607,7 +608,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.08),
                         ),
                         boxShadow: AxisShadows.softGlow,
                       ),
@@ -647,28 +650,42 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       status == 'success'
                                           ? 'Transaction successful'
                                           : (status == 'pending'
-                                              ? 'Transaction pending'
-                                              : 'Transaction failed'),
-                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: -0.18,
-                                      ),
+                                                ? 'Transaction pending'
+                                                : 'Transaction failed'),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -0.18,
+                                          ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       typeLabel,
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.60),
                                           ),
                                     ),
                                   ],
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: color.withValues(alpha: 0.08),
-                                  border: Border.all(color: color.withValues(alpha: 0.16)),
+                                  border: Border.all(
+                                    color: color.withValues(alpha: 0.16),
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
@@ -709,7 +726,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.07),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.07),
                         ),
                       ),
                       child: Column(
@@ -717,9 +736,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         children: [
                           Text(
                             'Details',
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 8),
                           _DetailRow(
@@ -730,10 +748,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               icon: const Icon(Icons.copy_rounded, size: 18),
                             ),
                           ),
-                          if ((tx['external_reference'] ?? '').toString().trim().isNotEmpty)
+                          if ((tx['external_reference'] ?? '')
+                              .toString()
+                              .trim()
+                              .isNotEmpty)
                             _DetailRow(
                               label: 'Provider Ref',
-                              value: (tx['external_reference'] ?? '').toString(),
+                              value: (tx['external_reference'] ?? '')
+                                  .toString(),
                             ),
                           _DetailRow(
                             label: 'Type',
@@ -750,8 +772,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                 'Support ticket open for this transaction.',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.60),
                                     ),
                               ),
                             ),
@@ -844,7 +870,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                       ),
                       const Spacer(),
-                      _HeaderActionBtn(icon: Icons.refresh_rounded, onTap: _reload),
+                      _HeaderActionBtn(
+                        icon: Icons.refresh_rounded,
+                        onTap: _reload,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -857,22 +886,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                   Text(
                     'Transactions and receipts at a glance',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: muted,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: muted),
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.12),
                       ),
                     ),
                     child: Text(
-                      _txFuture == null ? '0 records' : '${_activeFilterCount} filters',
+                      _txFuture == null
+                          ? '0 records'
+                          : '${_activeFilterCount} filters',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: muted,
@@ -903,31 +939,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       children: [
                         Text(
                           'History',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.2,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.2,
+                              ),
                         ),
                         Text(
                           'Transactions and receipts at a glance',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: muted,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: muted),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.12),
                       ),
                     ),
                     child: Text(
-                      _txFuture == null ? '0 records' : '${_activeFilterCount} filters',
+                      _txFuture == null
+                          ? '0 records'
+                          : '${_activeFilterCount} filters',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: muted,
@@ -1030,7 +1074,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   const SizedBox(width: 8),
                   _MiniFilterChip(
                     label: 'Bills',
-                    selected: _typeFilter == 'cable' || _typeFilter == 'electricity',
+                    selected:
+                        _typeFilter == 'cable' || _typeFilter == 'electricity',
                     onTap: () => setState(() => _typeFilter = 'cable'),
                   ),
                 ],
@@ -1124,9 +1169,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             Expanded(
                               child: Text(
                                 _activeFilterSummary,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: muted,
-                                ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(color: muted),
                               ),
                             ),
                             TextButton(
@@ -1144,8 +1189,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ],
                     if (filtered.isEmpty)
                       _HistoryEmptyState(
-                        onBrowseServices: () => Navigator.of(context)
-                            .pushNamedAndRemoveUntil('/app', (route) => false),
+                        onBrowseServices: () => Navigator.of(
+                          context,
+                        ).pushNamedAndRemoveUntil('/app', (route) => false),
                       )
                     else
                       ...filtered.map(
@@ -1271,11 +1317,13 @@ class _MiniFilterChip extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: selected
-                    ? color
-                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
-                fontWeight: FontWeight.w700,
-              ),
+            color: selected
+                ? color
+                : Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.72),
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
@@ -1308,7 +1356,9 @@ class _MetricCard extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.62),
             ),
           ),
           const SizedBox(height: 2),
@@ -1332,7 +1382,9 @@ class _HistoryEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.62);
     return GlassCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 4),
@@ -1342,7 +1394,9 @@ class _HistoryEmptyState extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
@@ -1353,17 +1407,17 @@ class _HistoryEmptyState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'No transactions yet',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
               'Your successful purchases will appear here once you start using services.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: muted,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: muted),
             ),
             const SizedBox(height: 14),
             SizedBox(
@@ -1499,7 +1553,9 @@ class _HistoryNoticeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.62);
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1508,7 +1564,9 @@ class _HistoryNoticeCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: Theme.of(context).colorScheme.primary),
@@ -1516,24 +1574,21 @@ class _HistoryNoticeCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: muted,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: muted),
           ),
           const SizedBox(height: 12),
           SizedBox(
             width: 132,
-            child: FilledButton(
-              onPressed: onAction,
-              child: Text(actionLabel),
-            ),
+            child: FilledButton(onPressed: onAction, child: Text(actionLabel)),
           ),
         ],
       ),
@@ -1561,7 +1616,9 @@ class _FilterChipBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.12) : Theme.of(context).colorScheme.surface,
+          color: selected
+              ? color.withValues(alpha: 0.12)
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
@@ -1572,7 +1629,11 @@ class _FilterChipBtn extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.70),
+            color: selected
+                ? color
+                : Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.70),
             fontWeight: FontWeight.w700,
             fontSize: 12,
           ),
@@ -1637,19 +1698,24 @@ class _HistoryTxCard extends StatelessWidget {
                               title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.1,
-                              ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.1,
+                                  ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               subtitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62),
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.62),
+                                  ),
                             ),
                           ],
                         ),
@@ -1662,18 +1728,21 @@ class _HistoryTxCard extends StatelessWidget {
                       Text(
                         date,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.54),
                         ),
                       ),
                       const Spacer(),
                       Text(
                         amount,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: amountColor,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          letterSpacing: -0.1,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: amountColor,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                              letterSpacing: -0.1,
+                            ),
                       ),
                     ],
                   ),
@@ -1681,10 +1750,15 @@ class _HistoryTxCard extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.08),
-                        border: Border.all(color: statusColor.withValues(alpha: 0.14)),
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.14),
+                        ),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
@@ -1719,26 +1793,33 @@ class _HistoryTxCard extends StatelessWidget {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.1,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.1,
+                              ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62),
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.62),
+                              ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           date,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.54),
+                              ),
                         ),
                       ],
                     ),
@@ -1749,19 +1830,25 @@ class _HistoryTxCard extends StatelessWidget {
                     children: [
                       Text(
                         amount,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: amountColor,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 17,
-                          letterSpacing: -0.1,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: amountColor,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17,
+                              letterSpacing: -0.1,
+                            ),
                       ),
                       const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: statusColor.withValues(alpha: 0.08),
-                          border: Border.all(color: statusColor.withValues(alpha: 0.14)),
+                          border: Border.all(
+                            color: statusColor.withValues(alpha: 0.14),
+                          ),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
@@ -1778,7 +1865,9 @@ class _HistoryTxCard extends StatelessWidget {
                   const SizedBox(width: 6),
                   Icon(
                     Icons.chevron_right_rounded,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.35),
                   ),
                 ],
               ),
@@ -1821,7 +1910,9 @@ class _DetailRow extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.60),
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -1857,7 +1948,9 @@ class _ReceiptDetailLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60);
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.60);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -1866,9 +1959,9 @@ class _ReceiptDetailLine extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: muted,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: muted),
             ),
           ),
           const SizedBox(width: 12),
@@ -1877,10 +1970,10 @@ class _ReceiptDetailLine extends StatelessWidget {
               value,
               textAlign: TextAlign.right,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: valueColor ?? Theme.of(context).colorScheme.onSurface,
-                    fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
-                    letterSpacing: strong ? -0.05 : 0,
-                  ),
+                color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
+                letterSpacing: strong ? -0.05 : 0,
+              ),
             ),
           ),
         ],

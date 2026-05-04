@@ -70,14 +70,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Future<void> _checkBiometricAvailability() async {
     final enabled = await BiometricService.isAppLockEnabled;
     if (!enabled) return;
-    final supported = await BiometricService.isDeviceSupported();
-    final canCheck = await BiometricService.canCheckBiometrics();
-    // Also ensure there is a saved session token to restore
-    final prefs = await SharedPreferences.getInstance();
-    final savedToken = prefs.getString('axisvtu_token');
+    final availability = await BiometricService.getAvailability();
     if (!mounted) return;
     setState(() {
-      _biometricAvailable = supported && canCheck && (savedToken?.isNotEmpty ?? false);
+      _biometricAvailable = availability.ready;
     });
   }
 
@@ -93,7 +89,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (!success) {
       setState(() {
         _biometricLoading = false;
-        _localError = 'Biometric authentication failed. Try signing in with your password.';
+        _localError =
+            'Biometric authentication failed. Try signing in with your password.';
       });
       return;
     }
@@ -106,7 +103,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     } else {
       setState(() {
         _biometricLoading = false;
-        _localError = 'Session expired. Please sign in with your password.';
+        _localError =
+            'No active session found. Sign in once with password to enable biometric quick sign-in.';
       });
     }
   }
@@ -126,7 +124,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final identifier = _identifierCtrl.text.trim();
     final password = _passwordCtrl.text;
     if (identifier.isEmpty || password.isEmpty) {
-      setState(() => _localError = 'Enter your email or phone number and password.');
+      setState(
+        () => _localError = 'Enter your email or phone number and password.',
+      );
       return;
     }
 
@@ -144,7 +144,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       return;
     }
     setState(() {
-      _localError = session.error ?? 'Login failed. Check your details and try again.';
+      _localError =
+          session.error ?? 'Login failed. Check your details and try again.';
       _loading = false;
     });
   }
@@ -154,6 +155,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final session = context.watch<SessionController>();
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final muted = onSurface.withValues(alpha: 0.66);
+    final authError = _localError ?? session.error;
 
     return Scaffold(
       body: GestureDetector(
@@ -169,7 +171,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
               AuthHeroBlock(
                 title: 'Welcome back',
-                subtitle: 'Sign in to buy data, top up airtime, pay bills, and manage your wallet in one place.',
+                subtitle:
+                    'Sign in to buy data, top up airtime, pay bills, and manage your wallet in one place.',
                 logoSize: 80,
                 titleSize: 27,
                 tight: true,
@@ -177,7 +180,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   children: [
                     if (_focusPasswordPending)
                       Builder(
@@ -211,19 +215,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         ),
                       ),
                     ),
-                    if (_localError != null) ...[
+                    if (authError != null) ...[
                       const SizedBox(height: 8),
                       Text(
-                        _localError!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ],
-                    if (session.error != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        session.error!,
+                        authError,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
                         ),
@@ -249,16 +244,21 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ),
                     const SizedBox(height: 10),
                     PrimaryButton(
-                      label: session.isLoading || _loading ? 'Signing in...' : 'Continue',
+                      label: session.isLoading || _loading
+                          ? 'Signing in...'
+                          : 'Continue',
                       loading: session.isLoading || _loading,
                       icon: Icons.login_rounded,
-                      onPressed: (session.isLoading || _loading) ? null : _login,
+                      onPressed: (session.isLoading || _loading)
+                          ? null
+                          : _login,
                     ),
                     if (_biometricAvailable) ...[
                       const SizedBox(height: 12),
                       _BiometricSignInButton(
                         loading: _biometricLoading,
-                        onPressed: (session.isLoading || _loading || _biometricLoading)
+                        onPressed:
+                            (session.isLoading || _loading || _biometricLoading)
                             ? null
                             : _loginWithBiometrics,
                       ),
@@ -276,8 +276,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             onPressed: () => Navigator.of(context).push(
                               AuthRoute(
                                 page: RegisterScreen(
-                                  initialEmail: _initialEmail(_identifierCtrl.text),
-                                  initialPhone: _initialPhone(_identifierCtrl.text),
+                                  initialEmail: _initialEmail(
+                                    _identifierCtrl.text,
+                                  ),
+                                  initialPhone: _initialPhone(
+                                    _identifierCtrl.text,
+                                  ),
                                 ),
                               ),
                             ),
@@ -358,7 +362,9 @@ class _BiometricSignInButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           side: BorderSide(color: primary.withValues(alpha: 0.6), width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           backgroundColor: isDark
               ? primary.withValues(alpha: 0.07)
               : primary.withValues(alpha: 0.04),
@@ -368,7 +374,10 @@ class _BiometricSignInButton extends StatelessWidget {
             ? SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: primary),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: primary,
+                ),
               )
             : const Icon(Icons.fingerprint_rounded, size: 22),
         label: Text(

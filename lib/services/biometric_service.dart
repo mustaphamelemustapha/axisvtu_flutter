@@ -3,6 +3,22 @@ import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class BiometricAvailability {
+  final bool supported;
+  final bool canCheck;
+  final bool hasEnrolled;
+  final String? error;
+
+  const BiometricAvailability({
+    required this.supported,
+    required this.canCheck,
+    required this.hasEnrolled,
+    this.error,
+  });
+
+  bool get ready => supported && canCheck;
+}
+
 class BiometricService {
   static final _auth = LocalAuthentication();
   static const _secureStorage = FlutterSecureStorage();
@@ -19,9 +35,6 @@ class BiometricService {
   static Future<void> setAppLockEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_appLockKey, value);
-    if (!value) {
-      await deletePin(); // Clean up PIN if disabled
-    }
   }
 
   /// Securely store the transaction PIN.
@@ -57,13 +70,49 @@ class BiometricService {
     }
   }
 
+  /// Returns a full readiness snapshot for profile toggle messaging.
+  static Future<BiometricAvailability> getAvailability() async {
+    try {
+      final supported = await _auth.isDeviceSupported();
+      final canCheck = await _auth.canCheckBiometrics;
+      List<BiometricType> enrolled = const [];
+      try {
+        enrolled = await _auth.getAvailableBiometrics();
+      } on PlatformException {
+        enrolled = const [];
+      }
+      return BiometricAvailability(
+        supported: supported,
+        canCheck: canCheck,
+        hasEnrolled: enrolled.isNotEmpty,
+      );
+    } on PlatformException catch (e) {
+      return BiometricAvailability(
+        supported: false,
+        canCheck: false,
+        hasEnrolled: false,
+        error: e.message,
+      );
+    } catch (e) {
+      return BiometricAvailability(
+        supported: false,
+        canCheck: false,
+        hasEnrolled: false,
+        error: e.toString(),
+      );
+    }
+  }
+
   /// Trigger the biometric authentication prompt.
-  static Future<bool> authenticate({String reason = 'Please authenticate to access your account'}) async {
+  static Future<bool> authenticate({
+    String reason = 'Please authenticate to access your account',
+  }) async {
     try {
       return await _auth.authenticate(
         localizedReason: reason,
-        biometricOnly: true, // Prefer Face/Touch ID over device PIN
-        persistAcrossBackgrounding: true, // Keep auth alive if app is minimized briefly
+        biometricOnly: false, // Allow device credential fallback on Android
+        persistAcrossBackgrounding:
+            true, // Keep auth alive if app is minimized briefly
       );
     } on PlatformException {
       return false;

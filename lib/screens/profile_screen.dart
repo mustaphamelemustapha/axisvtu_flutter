@@ -33,6 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   static const _emailAlertsKey = 'axis_profile_email_alerts_v1';
 
   bool _updatingProfile = false;
+  bool _biometricBusy = false;
   bool _changingPassword = false;
   bool _saveBeneficiaries = true;
   bool _pushNotifications = true;
@@ -49,8 +50,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bioEnabled = await BiometricService.isAppLockEnabled;
     if (!mounted) return;
     setState(() {
-      _saveBeneficiaries = prefs.getBool(_saveBeneficiariesKey) ?? _saveBeneficiaries;
-      _pushNotifications = prefs.getBool(_pushNotificationsKey) ?? _pushNotifications;
+      _saveBeneficiaries =
+          prefs.getBool(_saveBeneficiariesKey) ?? _saveBeneficiaries;
+      _pushNotifications =
+          prefs.getBool(_pushNotificationsKey) ?? _pushNotifications;
       _emailAlerts = prefs.getBool(_emailAlertsKey) ?? _emailAlerts;
       _biometricEnabled = bioEnabled;
     });
@@ -469,9 +472,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primaryContainer.withValues(alpha: 0.65),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primaryContainer
+                                .withValues(alpha: 0.65),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
@@ -486,11 +490,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               Text(
                                 'Transaction PIN',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w800),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -552,9 +553,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primaryContainer.withValues(alpha: 0.65),
+                          color: Theme.of(context).colorScheme.primaryContainer
+                              .withValues(alpha: 0.65),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
@@ -569,11 +569,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Text(
                               'Transaction PIN',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w800),
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -593,10 +590,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ? 'Your ${status.pinLength}-digit PIN protects wallet debits.'
                         : 'Set a ${status.pinLength}-digit PIN to protect wallet debits and approvals.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.72),
-                        ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.72),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   if (!status.isSet)
@@ -677,9 +674,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(sheetContext).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        sheetContext,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -733,9 +730,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(sheetContext).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        sheetContext,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -748,14 +745,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(sheetContext).showSnackBar(
         const SnackBar(
-          content: Text('Reset link sent to your email. Open it to reset your PIN.'),
+          content: Text(
+            'Reset link sent to your email. Open it to reset your PIN.',
+          ),
         ),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(sheetContext).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        sheetContext,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -783,9 +782,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(
-                        alpha: isDark ? 0.16 : 0.18,
-                      ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: isDark ? 0.16 : 0.18),
                 ),
                 boxShadow: AxisShadows.softGlow,
               ),
@@ -801,7 +800,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         width: 46,
                         height: 5,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.28),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.28),
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -813,7 +814,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
@@ -828,15 +831,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               Text(
                                 title,
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w800),
                               ),
                               const SizedBox(height: 3),
                               Text(
                                 subtitle,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.64),
                                     ),
                               ),
                             ],
@@ -849,9 +855,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         helperText,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
-                              height: 1.45,
-                            ),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.72),
+                          height: 1.45,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -866,13 +874,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _showComingSoon(
-String title, String subtitle) async {
+  Future<void> _showComingSoon(String title, String subtitle) async {
     await _showFeatureSheet(
       title: title,
       subtitle: subtitle,
       icon: Icons.hourglass_bottom_rounded,
-      helperText: 'This feature is not live yet. We will unlock it in a future update.',
+      helperText:
+          'This feature is not live yet. We will unlock it in a future update.',
       actions: [
         PrimaryButton(
           label: 'Got it',
@@ -883,118 +891,58 @@ String title, String subtitle) async {
     );
   }
 
-  Future<void> _showVerificationDetails({
-    required String verificationLabel,
-    required String name,
-    required String email,
-    required String phone,
-    required String joined,
-    required bool hasName,
-    required bool hasEmail,
-    required bool hasPhone,
-  }) async {
-    final missing = <String>[
-      if (!hasName) 'Full name',
-      if (!hasEmail) 'Email',
-      if (!hasPhone) 'Phone number',
-    ];
-    await _showFeatureSheet(
-      title: 'Verification status',
-      subtitle: verificationLabel,
-      icon: Icons.verified_user_rounded,
-      helperText: verificationLabel == 'Verified'
-          ? 'Your profile details are complete enough for trusted transactions.'
-          : 'Finish the missing details below to move your account closer to a verified state.',
-      actions: [
-        _InfoTile(label: 'Account name', value: name, icon: Icons.badge_outlined),
-        const SizedBox(height: 8),
-        _InfoTile(label: 'Email', value: email.isEmpty ? 'Not added' : email, icon: Icons.email_outlined),
-        const SizedBox(height: 8),
-        _InfoTile(label: 'Phone', value: phone.isEmpty ? 'Not added' : phone, icon: Icons.phone_outlined),
-        const SizedBox(height: 8),
-        _InfoTile(label: 'Member since', value: joined, icon: Icons.event_outlined),
-        if (missing.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Text(
-            'Missing: ${missing.join(', ')}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.68),
-                ),
-          ),
-        ],
-        const SizedBox(height: 16),
-        PrimaryButton(
-          label: hasName || hasEmail || hasPhone ? 'Edit profile' : 'Complete profile',
-          icon: Icons.edit_outlined,
-          onPressed: () {
-            Navigator.pop(context);
-            _openEditProfileSheet();
-          },
-        ),
-      ],
-    );
-  }
-
   Future<void> _toggleBiometric() async {
-    final supported = await BiometricService.isDeviceSupported();
-    final canCheck = await BiometricService.canCheckBiometrics();
-    if (!supported || !canCheck) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biometrics not available on this device.')),
-      );
-      return;
-    }
-
-    if (_biometricEnabled) {
-      setState(() => _biometricEnabled = false);
-      await BiometricService.setAppLockEnabled(false);
-      return;
-    }
-
-    final authenticated = await BiometricService.authenticate(reason: 'Authenticate to enable biometric unlock');
-    if (authenticated) {
-      // Prompt for Transaction PIN to store it securely for future transactions
-      if (!mounted) return;
-      final session = context.read<SessionController>();
-      final token = (session.token ?? '').trim();
-      final pinService = TransactionPinService(token: token);
-      
-      try {
-        final status = await pinService.statusOrNull();
-        if (status != null && status.isSet) {
-          if (!mounted) return;
-          final pin = await PinEntrySheet.show(
-            context,
-            title: 'Verify Transaction PIN',
-            subtitle: 'Enter your PIN to enable biometric confirmation for purchases.',
-            confirmLabel: 'Secure & Enable',
-            pinLength: status.pinLength,
-            onSubmit: (value) async {
-              try {
-                await pinService.verify(value);
-                return null;
-              } catch (e) {
-                return 'Incorrect PIN';
-              }
-            },
-          );
-          
-          if (pin != null) {
-            await BiometricService.savePin(pin);
-          } else {
-            // User cancelled PIN entry, don't enable biometrics
-            return;
-          }
+    if (_biometricBusy) return;
+    setState(() => _biometricBusy = true);
+    try {
+      final availability = await BiometricService.getAvailability();
+      if (!availability.ready) {
+        String message = 'Biometric unlock is not available on this device.';
+        if (!availability.supported) {
+          message =
+              'This device does not support biometrics or device screen lock.';
+        } else if (!availability.canCheck || !availability.hasEnrolled) {
+          message =
+              'No fingerprint/face is set. Add one in your phone settings, then try again.';
+        } else if (availability.error != null &&
+            availability.error!.trim().isNotEmpty) {
+          message = availability.error!.trim();
         }
-      } catch (_) {}
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+        return;
+      }
 
-      setState(() => _biometricEnabled = true);
-      await BiometricService.setAppLockEnabled(true);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biometric unlock enabled.')),
+      if (_biometricEnabled) {
+        setState(() => _biometricEnabled = false);
+        await BiometricService.setAppLockEnabled(false);
+        return;
+      }
+
+      final authenticated = await BiometricService.authenticate(
+        reason: 'Authenticate to enable biometric unlock',
       );
+      if (authenticated) {
+        setState(() => _biometricEnabled = true);
+        await BiometricService.setAppLockEnabled(true);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Biometric unlock enabled.')),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Biometric verification was not completed. Try again.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _biometricBusy = false);
     }
   }
 
@@ -1008,7 +956,11 @@ String title, String subtitle) async {
     await _saveBoolPref(_pushNotificationsKey, value);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(value ? 'In-app alerts enabled.' : 'In-app alerts paused.')),
+      SnackBar(
+        content: Text(
+          value ? 'In-app alerts enabled.' : 'In-app alerts paused.',
+        ),
+      ),
     );
   }
 
@@ -1027,17 +979,20 @@ String title, String subtitle) async {
       title: 'Help center',
       subtitle: 'Common questions',
       icon: Icons.help_outline_rounded,
-      helperText: 'These notes cover the most common questions so you can move quickly without leaving the page.',
+      helperText:
+          'These notes cover the most common questions so you can move quickly without leaving the page.',
       actions: [
         _InfoTile(
           label: 'How do I fund my wallet?',
-          value: 'Transfer to your dedicated account and the wallet updates automatically.',
+          value:
+              'Transfer to your dedicated account and the wallet updates automatically.',
           icon: Icons.account_balance_wallet_outlined,
         ),
         const SizedBox(height: 8),
         _InfoTile(
           label: 'Why is a purchase pending?',
-          value: 'Some providers confirm a little later. We keep the record visible in History.',
+          value:
+              'Some providers confirm a little later. We keep the record visible in History.',
           icon: Icons.schedule_outlined,
         ),
         const SizedBox(height: 8),
@@ -1049,13 +1004,15 @@ String title, String subtitle) async {
         const SizedBox(height: 8),
         _InfoTile(
           label: 'Why did my PIN fail?',
-          value: 'Wrong PIN attempts return a calm retry message so you can try again right away.',
+          value:
+              'Wrong PIN attempts return a calm retry message so you can try again right away.',
           icon: Icons.pin_outlined,
         ),
         const SizedBox(height: 8),
         _InfoTile(
           label: 'What if a payment is pending?',
-          value: 'Pending transactions stay visible in History until the provider gives a final result.',
+          value:
+              'Pending transactions stay visible in History until the provider gives a final result.',
           icon: Icons.hourglass_bottom_rounded,
         ),
         const SizedBox(height: 16),
@@ -1089,7 +1046,9 @@ String title, String subtitle) async {
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.14),
               ),
             ),
             child: Column(
@@ -1101,7 +1060,9 @@ String title, String subtitle) async {
                     width: 46,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
@@ -1109,13 +1070,17 @@ String title, String subtitle) async {
                 const SizedBox(height: 12),
                 Text(
                   'Report an issue',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Write a short summary and we will route it to the mmtechglobe support team.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.66),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.66),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1149,10 +1114,7 @@ String title, String subtitle) async {
                         ? 'Hello mmtechglobe team,\n\nI need help with an issue in the app.'
                         : detailsCtrl.text.trim();
                     Navigator.pop(context);
-                    await _launchSupportEmail(
-                      subject: subject,
-                      body: body,
-                    );
+                    await _launchSupportEmail(subject: subject, body: body);
                   },
                 ),
               ],
@@ -1170,33 +1132,41 @@ String title, String subtitle) async {
     );
   }
 
-  Future<void> _launchSupportEmail({required String subject, required String body}) async {
+  Future<void> _launchSupportEmail({
+    required String subject,
+    required String body,
+  }) async {
     final sheetContext = context;
     final messenger = ScaffoldMessenger.of(sheetContext);
     final uri = Uri(
       scheme: 'mailto',
       path: 'mmtechglobe@gmail.com',
-      queryParameters: {
-        'subject': subject,
-        'body': body,
-      },
+      queryParameters: {'subject': subject, 'body': body},
     );
     try {
       final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
-        await Clipboard.setData(const ClipboardData(text: 'mmtechglobe@gmail.com'));
+        await Clipboard.setData(
+          const ClipboardData(text: 'mmtechglobe@gmail.com'),
+        );
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Support email copied. Send your issue to mmtechglobe@gmail.com.'),
+            content: Text(
+              'Support email copied. Send your issue to mmtechglobe@gmail.com.',
+            ),
           ),
         );
       }
     } catch (_) {
       if (!mounted) return;
-      await Clipboard.setData(const ClipboardData(text: 'mmtechglobe@gmail.com'));
+      await Clipboard.setData(
+        const ClipboardData(text: 'mmtechglobe@gmail.com'),
+      );
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Support email copied. Send your issue to mmtechglobe@gmail.com.'),
+          content: Text(
+            'Support email copied. Send your issue to mmtechglobe@gmail.com.',
+          ),
         ),
       );
     }
@@ -1214,20 +1184,6 @@ String title, String subtitle) async {
     final accountType = (user['role'] ?? 'User').toString();
     final joined = _joinedLabel(user['created_at']);
     final initials = _initialsFromName(name);
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.66);
-    final hasName = (user['full_name'] ?? user['name'] ?? '')
-        .toString()
-        .trim()
-        .isNotEmpty;
-    final hasEmail = (user['email'] ?? '').toString().trim().isNotEmpty;
-    final hasPhone = (user['phone_number'] ?? '').toString().trim().isNotEmpty;
-    final verificationLabel = hasName && hasEmail && hasPhone
-        ? 'Verified'
-        : hasName || hasEmail || hasPhone
-        ? 'In review'
-        : 'Setup required';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final themeController = context.watch<ThemeController>();
     final heroText = isDark ? Colors.white : const Color(0xFF0F172A);
@@ -1237,7 +1193,12 @@ String title, String subtitle) async {
 
     return SafeArea(
       child: ListView(
-        padding: EdgeInsets.fromLTRB(compact ? 14 : 16, 14, compact ? 14 : 16, 28),
+        padding: EdgeInsets.fromLTRB(
+          compact ? 14 : 16,
+          14,
+          compact ? 14 : 16,
+          28,
+        ),
         children: [
           Container(
             padding: EdgeInsets.all(compact ? 14 : 18),
@@ -1277,7 +1238,9 @@ String title, String subtitle) async {
                         child: Text(
                           initials.isEmpty ? 'AX' : initials,
                           style: TextStyle(
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
                             fontWeight: FontWeight.w800,
                             fontSize: 18,
                           ),
@@ -1321,10 +1284,7 @@ String title, String subtitle) async {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _StatusChip(
-                      icon: Icons.verified_user_rounded,
-                      label: verificationLabel,
-                    ),
+                    _StatusChip(icon: Icons.person_outline_rounded, label: accountType),
                     _StatusChip(
                       icon: Icons.security_rounded,
                       label: 'Trusted account',
@@ -1337,12 +1297,10 @@ String title, String subtitle) async {
                 ),
                 SizedBox(height: compact ? 8 : 10),
                 Text(
-                  hasName && hasEmail && hasPhone
-                      ? 'Your profile is ready for trusted purchases.'
-                      : 'Complete your profile details to unlock a stronger trust state.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: heroSoftText,
-                  ),
+                  'Manage your profile, security, and notification preferences from one place.',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: heroSoftText),
                 ),
               ],
             ),
@@ -1396,9 +1354,9 @@ String title, String subtitle) async {
               label: 'Open referrals',
               subtitle: 'Copy, share, and track progress',
               icon: Icons.redeem_rounded,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ReferralScreen()),
-              ),
+              onTap: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const ReferralScreen())),
             ),
           ),
           SizedBox(height: compact ? 10 : 12),
@@ -1428,13 +1386,25 @@ String title, String subtitle) async {
                       ? 'Fingerprint / Face ID active'
                       : 'Enable to use fingerprint for sign-in & purchases',
                   icon: Icons.fingerprint_rounded,
-                  trailing: AbsorbPointer(
-                    child: Switch.adaptive(
-                      value: _biometricEnabled,
-                      onChanged: (_) {},
-                    ),
+                  trailing: Switch(
+                    value: _biometricEnabled,
+                    onChanged: _biometricBusy
+                        ? null
+                        : (_) => _toggleBiometric(),
+                    thumbColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.white;
+                      }
+                      return Theme.of(context).colorScheme.surface;
+                    }),
+                    trackColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Theme.of(context).colorScheme.primary;
+                      }
+                      return Theme.of(context).colorScheme.outline;
+                    }),
                   ),
-                  onTap: _toggleBiometric,
+                  onTap: _biometricBusy ? () {} : _toggleBiometric,
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
@@ -1469,7 +1439,7 @@ String title, String subtitle) async {
                   const SizedBox(height: 8),
                   _ActionTile(
                     label: 'User management',
-                    subtitle: 'Review, block, or verify users',
+                    subtitle: 'Review and manage platform users',
                     icon: Icons.people_outline_rounded,
                     onTap: () => _showComingSoon(
                       'User management',
@@ -1481,48 +1451,6 @@ String title, String subtitle) async {
             ),
             SizedBox(height: compact ? 10 : 12),
           ],
-          _ProfileSection(
-            title: 'Verification / KYC',
-            subtitle: 'Strengthen your trust level',
-            icon: Icons.verified_outlined,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _InfoTile(
-                  label: 'Status',
-                  value: verificationLabel,
-                  icon: Icons.badge_outlined,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  verificationLabel == 'Verified'
-                      ? 'Your profile is looking strong and ready for trusted use.'
-                      : 'Complete missing details to improve wallet trust and future limit handling.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: muted),
-                ),
-                const SizedBox(height: 12),
-                PrimaryButton(
-                  label: verificationLabel == 'Verified'
-                      ? 'View verification'
-                      : 'Complete verification',
-                  icon: Icons.verified_rounded,
-                  onPressed: () => _showVerificationDetails(
-                    verificationLabel: verificationLabel,
-                    name: name,
-                    email: email,
-                    phone: phone,
-                    joined: joined,
-                    hasName: hasName,
-                    hasEmail: hasEmail,
-                    hasPhone: hasPhone,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
             title: 'Preferences',
             subtitle: 'Control notifications and convenience',
@@ -1632,7 +1560,7 @@ String title, String subtitle) async {
                 const SizedBox(height: 8),
                 _InfoTile(
                   label: 'Policies',
-                  value: 'Privacy • Terms • KYC',
+                  value: 'Privacy • Terms',
                   icon: Icons.policy_outlined,
                 ),
               ],
@@ -1685,89 +1613,95 @@ class _ProfileSectionState extends State<_ProfileSection> {
     ).colorScheme.onSurface.withValues(alpha: 0.62);
     return GlassCard(
       padding: const EdgeInsets.all(0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
+      child: AnimatedContainer(
+        duration: AxisDurations.normal,
+        curve: Curves.easeOut,
+        padding: EdgeInsets.all(compact ? 12 : 14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(22),
-          child: AnimatedContainer(
-            duration: AxisDurations.normal,
-            curve: Curves.easeOut,
-            padding: EdgeInsets.all(compact ? 12 : 14),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: compact ? 36 : 40,
-                      height: compact ? 36 : 40,
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(13),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => setState(() => _expanded = !_expanded),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: compact ? 36 : 40,
+                        height: compact ? 36 : 40,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        child: Icon(
+                          widget.icon,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: compact ? 18 : 20,
+                        ),
                       ),
-                      child: Icon(
-                        widget.icon,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: compact ? 18 : 20,
+                      SizedBox(width: compact ? 8 : 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(color: muted),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    SizedBox(width: compact ? 8 : 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(color: muted),
-                          ),
-                        ],
+                      AnimatedRotation(
+                        turns: _expanded ? 0.5 : 0,
+                        duration: AxisDurations.normal,
+                        child: Icon(
+                          Icons.expand_more_rounded,
+                          size: compact ? 20 : 24,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.55),
+                        ),
                       ),
-                    ),
-                    AnimatedRotation(
-                      turns: _expanded ? 0.5 : 0,
-                      duration: AxisDurations.normal,
-                      child: Icon(
-                        Icons.expand_more_rounded,
-                        size: compact ? 20 : 24,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.55),
-                      ),
-                    ),
-                  ],
-                ),
-                AnimatedCrossFade(
-                  firstChild: const SizedBox.shrink(),
-                  secondChild: Column(
-                    children: [SizedBox(height: compact ? 12 : 14), widget.child],
+                    ],
                   ),
-                  crossFadeState: _expanded
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  duration: AxisDurations.normal,
                 ),
-              ],
+              ),
             ),
-          ),
+            AnimatedCrossFade(
+              firstChild: const SizedBox.shrink(),
+              secondChild: Column(
+                children: [
+                  SizedBox(height: compact ? 12 : 14),
+                  widget.child,
+                ],
+              ),
+              crossFadeState: _expanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: AxisDurations.normal,
+            ),
+          ],
         ),
       ),
     );
@@ -1787,12 +1721,17 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 360 || MediaQuery.sizeOf(context).height < 760;
+    final compact =
+        MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.sizeOf(context).height < 760;
     final muted = Theme.of(
       context,
     ).colorScheme.onSurface.withValues(alpha: 0.64);
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14, vertical: compact ? 10 : 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 12 : 14,
+        vertical: compact ? 10 : 12,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
@@ -1836,9 +1775,10 @@ class _InfoTile extends StatelessWidget {
                 Text(
                   value,
                   softWrap: true,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, height: 1.35),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    height: 1.35,
+                  ),
                 ),
               ],
             ),
@@ -1850,7 +1790,6 @@ class _InfoTile extends StatelessWidget {
 }
 
 class _ActionTile extends StatelessWidget {
-
   const _ActionTile({
     required this.label,
     required this.subtitle,
@@ -1867,7 +1806,9 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 360 || MediaQuery.sizeOf(context).height < 760;
+    final compact =
+        MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.sizeOf(context).height < 760;
     final color = Theme.of(context).colorScheme.primary;
     return Material(
       color: Colors.transparent,
@@ -1875,7 +1816,10 @@ class _ActionTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Ink(
-          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14, vertical: compact ? 10 : 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 12 : 14,
+            vertical: compact ? 10 : 12,
+          ),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(18),
@@ -1966,7 +1910,11 @@ class _StatusChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: isDark ? Colors.white : const Color(0xFF2457F5)),
+          Icon(
+            icon,
+            size: 14,
+            color: isDark ? Colors.white : const Color(0xFF2457F5),
+          ),
           const SizedBox(width: 6),
           Text(
             label,

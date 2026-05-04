@@ -143,7 +143,10 @@ class _ExamScreenState extends State<ExamScreen> {
     });
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({
+    String authMethod = PurchaseAuthService.methodAuto,
+  }) async {
+    if (_loading) return;
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) return;
 
@@ -164,6 +167,7 @@ class _ExamScreenState extends State<ExamScreen> {
     final authorized = await PurchaseAuthService.authorizePin(
       context: context,
       reason: 'exam pin purchase',
+      preferredMethod: authMethod,
     );
     if (!mounted || !authorized) return;
 
@@ -175,9 +179,7 @@ class _ExamScreenState extends State<ExamScreen> {
 
     try {
       _activeRequestId ??= buildRequestId("exam");
-      final res = await ServicesService(
-        token: token,
-      ).purchaseExam(
+      final res = await ServicesService(token: token).purchaseExam(
         exam: _exam,
         quantity: _quantity,
         phoneNumber: phone,
@@ -231,6 +233,29 @@ class _ExamScreenState extends State<ExamScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  void _showAuthChoiceSheet() {
+    final phone = _phoneCtrl.text.trim();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _DualAuthSheet(
+        title: 'Exam PIN Summary',
+        subtitle: '${_exam.toUpperCase()} • Qty $_quantity',
+        amount: 'Quantity: $_quantity',
+        onPin: () {
+          Navigator.pop(context);
+          _submit(authMethod: PurchaseAuthService.methodPin);
+        },
+        onBiometric: () {
+          Navigator.pop(context);
+          _submit(authMethod: PurchaseAuthService.methodBiometric);
+        },
+        phone: phone,
+      ),
+    );
   }
 
   void _showResult({
@@ -503,6 +528,89 @@ class _ExamScreenState extends State<ExamScreen> {
             icon: Icons.school_rounded,
             loading: _loading,
             onPressed: _submit,
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _loading ? null : _showAuthChoiceSheet,
+              icon: const Icon(Icons.verified_user_outlined),
+              label: const Text('Continue to Authorization'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DualAuthSheet extends StatelessWidget {
+  const _DualAuthSheet({
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+    required this.onPin,
+    required this.onBiometric,
+    required this.phone,
+  });
+
+  final String title;
+  final String subtitle;
+  final String amount;
+  final String phone;
+  final VoidCallback onPin;
+  final VoidCallback onBiometric;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF111827) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+          if (phone.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text('Phone: $phone', style: Theme.of(context).textTheme.bodySmall),
+          ],
+          const SizedBox(height: 6),
+          Text(
+            amount,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onPin,
+                  icon: const Icon(Icons.lock_outline_rounded),
+                  label: const Text('Use PIN'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onBiometric,
+                  icon: const Icon(Icons.fingerprint_rounded),
+                  label: const Text('Use Biometric'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

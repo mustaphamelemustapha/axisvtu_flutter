@@ -10,7 +10,6 @@ import '../services/purchase_auth_service.dart';
 import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
-import '../widgets/primary_button.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
@@ -180,7 +179,10 @@ class _CableScreenState extends State<CableScreen> {
     });
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({
+    String authMethod = PurchaseAuthService.methodAuto,
+  }) async {
+    if (_loading) return;
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) return;
 
@@ -209,6 +211,7 @@ class _CableScreenState extends State<CableScreen> {
     final authorized = await PurchaseAuthService.authorizePin(
       context: context,
       reason: 'cable subscription',
+      preferredMethod: authMethod,
     );
     if (!mounted || !authorized) return;
 
@@ -274,6 +277,29 @@ class _CableScreenState extends State<CableScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  void _showAuthChoiceSheet() {
+    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+    final smartcard = _smartcardCtrl.text.trim();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _DualAuthSheet(
+        title: 'Cable Summary',
+        subtitle: '${_provider.toUpperCase()} • $smartcard',
+        amount: '₦${amount.toStringAsFixed(2)}',
+        onPin: () {
+          Navigator.pop(context);
+          _submit(authMethod: PurchaseAuthService.methodPin);
+        },
+        onBiometric: () {
+          Navigator.pop(context);
+          _submit(authMethod: PurchaseAuthService.methodBiometric);
+        },
+      ),
+    );
   }
 
   void _showResult({
@@ -362,11 +388,16 @@ class _CableScreenState extends State<CableScreen> {
       icon: Icons.tv_rounded,
       footer: StickyCheckoutBar(
         title: _provider.toUpperCase(),
-        subtitle: _smartcardCtrl.text.trim().isEmpty ? 'Enter decoder number' : _smartcardCtrl.text.trim(),
+        subtitle: _smartcardCtrl.text.trim().isEmpty
+            ? 'Enter decoder number'
+            : _smartcardCtrl.text.trim(),
         amount: '₦${amount.toStringAsFixed(2)}',
-        active: !_loading && _smartcardCtrl.text.trim().length >= 5 && amount >= 500,
+        active:
+            !_loading &&
+            _smartcardCtrl.text.trim().length >= 5 &&
+            amount >= 500,
         loading: _loading,
-        onBuy: _submit,
+        onBuy: _showAuthChoiceSheet,
         actionLabel: 'Pay Cable',
         icon: Icons.tv_rounded,
       ),
@@ -461,24 +492,105 @@ class _CableScreenState extends State<CableScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.error.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline_rounded, color: Theme.of(context).colorScheme.error, size: 20),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: Theme.of(context).colorScheme.error,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         _error!,
-                        style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DualAuthSheet extends StatelessWidget {
+  const _DualAuthSheet({
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+    required this.onPin,
+    required this.onBiometric,
+  });
+
+  final String title;
+  final String subtitle;
+  final String amount;
+  final VoidCallback onPin;
+  final VoidCallback onBiometric;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF111827) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 6),
+          Text(
+            amount,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onPin,
+                  icon: const Icon(Icons.lock_outline_rounded),
+                  label: const Text('Use PIN'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onBiometric,
+                  icon: const Icon(Icons.fingerprint_rounded),
+                  label: const Text('Use Biometric'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

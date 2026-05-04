@@ -11,12 +11,10 @@ import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
-import '../widgets/primary_button.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
-import 'dart:math' as math;
 import 'package:flutter_animate/flutter_animate.dart';
 
 class DataScreen extends StatefulWidget {
@@ -78,13 +76,6 @@ class _DataScreenState extends State<DataScreen> {
 
   static const double _planTileExtent = 174;
 
-  double _planTileExtentForWidth(double width) {
-    if (width < 340) return 166;
-    if (width < 380) return 170;
-    if (width < 430) return 174;
-    return _planTileExtent;
-  }
-
   final _phoneCtrl = TextEditingController();
   final _scrollController = ScrollController();
   final bool _ported = false;
@@ -120,7 +111,6 @@ class _DataScreenState extends State<DataScreen> {
   void initState() {
     super.initState();
     _phoneCtrl.addListener(_onPhoneChanged);
-    DataService.clearCache();
     if (DataService.hasCache) {
       _plans = DataService.cachedPlans;
       _loadingPlans = false;
@@ -175,16 +165,17 @@ class _DataScreenState extends State<DataScreen> {
       }
 
       try {
-        final data = await DataService(token: token).getPlans(
-          forceRefresh: forceRefresh,
-        );
+        final data = await DataService(
+          token: token,
+        ).getPlans(forceRefresh: forceRefresh);
         if (!mounted) return;
         setState(() {
           _plans = data;
           _error = null;
           final plans = _sortedNetworkPlans;
           final current = _selectedPlanCode;
-          _selectedPlanCode = plans.any((plan) => plan['plan_code']?.toString() == current)
+          _selectedPlanCode =
+              plans.any((plan) => plan['plan_code']?.toString() == current)
               ? current
               : null;
         });
@@ -225,7 +216,8 @@ class _DataScreenState extends State<DataScreen> {
         prefs.getBool(_beneficiariesEnabledKey) ?? _beneficiariesEnabled;
     final smartSuggestionEnabled =
         prefs.getBool(_smartSuggestionEnabledKey) ?? _smartSuggestionEnabled;
-    final fastRouteEnabled = prefs.getBool(_fastRouteEnabledKey) ?? _fastRouteEnabled;
+    final fastRouteEnabled =
+        prefs.getBool(_fastRouteEnabledKey) ?? _fastRouteEnabled;
     if (!mounted) return;
     setState(() {
       _beneficiariesEnabled = beneficiariesEnabled;
@@ -234,7 +226,6 @@ class _DataScreenState extends State<DataScreen> {
     });
     _onPhoneChanged();
   }
-
 
   Future<void> _saveRecentNumber(String number) async {
     if (!_beneficiariesEnabled) return;
@@ -254,10 +245,6 @@ class _DataScreenState extends State<DataScreen> {
 
     final detected = _detectNetwork(normalized);
     if (detected != null && detected != _network) {
-      final shouldForceRefresh = detected == 'airtel';
-      if (shouldForceRefresh) {
-        DataService.clearCache();
-      }
       setState(() {
         _network = detected;
         _error = null;
@@ -268,7 +255,7 @@ class _DataScreenState extends State<DataScreen> {
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _loadPlans(forceRefresh: shouldForceRefresh, silent: true);
+        _loadPlans(silent: true);
       });
     }
 
@@ -336,14 +323,18 @@ class _DataScreenState extends State<DataScreen> {
     final plans = List<dynamic>.from(_networkPlans);
     plans.sort((a, b) {
       if (_network == 'airtel') {
-        final aOrder = _airtelBundleOrder[_planCapacity(a).toUpperCase()] ?? 999;
-        final bOrder = _airtelBundleOrder[_planCapacity(b).toUpperCase()] ?? 999;
+        final aOrder =
+            _airtelBundleOrder[_planCapacity(a).toUpperCase()] ?? 999;
+        final bOrder =
+            _airtelBundleOrder[_planCapacity(b).toUpperCase()] ?? 999;
         if (aOrder != bOrder) return aOrder.compareTo(bOrder);
       }
       final aPrice = _planPriceValue(a);
       final bPrice = _planPriceValue(b);
       if (aPrice != bPrice) return aPrice.compareTo(bPrice);
-      return _capacityToGb(_planCapacity(a)).compareTo(_capacityToGb(_planCapacity(b)));
+      return _capacityToGb(
+        _planCapacity(a),
+      ).compareTo(_capacityToGb(_planCapacity(b)));
     });
     return plans;
   }
@@ -455,7 +446,7 @@ class _DataScreenState extends State<DataScreen> {
           builder: (context, setSheetState) {
             final currentPlans = _sortedNetworkPlans;
             final isLoading = _loadingPlans && currentPlans.isEmpty;
-            
+
             return DraggableScrollableSheet(
               initialChildSize: 0.85,
               minChildSize: 0.6,
@@ -463,11 +454,13 @@ class _DataScreenState extends State<DataScreen> {
               expand: false,
               builder: (context, scrollController) {
                 final isDark = Theme.of(context).brightness == Brightness.dark;
-                
+
                 return Container(
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF0F172A) : Colors.white,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(32),
+                    ),
                   ),
                   child: Column(
                     children: [
@@ -476,22 +469,49 @@ class _DataScreenState extends State<DataScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Available Plans',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Available Plans',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.5,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    isLoading
+                                        ? 'Loading available plans...'
+                                        : '${currentPlans.length} plans available',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.65),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const Spacer(),
+                            const SizedBox(width: 12),
                             IconButton.filledTonal(
                               onPressed: () => Navigator.pop(context),
                               icon: const Icon(Icons.close_rounded, size: 20),
@@ -500,25 +520,33 @@ class _DataScreenState extends State<DataScreen> {
                         ),
                       ),
                       Expanded(
-                        child: isLoading 
-                          ? const _PlanShimmerGrid()
-                          : currentPlans.isEmpty 
-                            ? _EmptyPlansState(onRetry: () => _loadPlans(forceRefresh: true))
+                        child: isLoading
+                            ? const _PlanShimmerGrid()
+                            : currentPlans.isEmpty
+                            ? _EmptyPlansState(
+                                onRetry: () => _loadPlans(forceRefresh: true),
+                              )
                             : GridView.builder(
                                 controller: scrollController,
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 0.92,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
                                 ),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 10,
+                                      childAspectRatio:
+                                          MediaQuery.sizeOf(context).width < 390
+                                          ? 0.86
+                                          : 0.9,
+                                    ),
                                 itemCount: currentPlans.length,
                                 itemBuilder: (context, index) {
                                   final plan = currentPlans[index];
                                   final code = plan['plan_code']?.toString();
                                   final isSelected = selectedCode == code;
-                                  
+
                                   return _PlanGridTile(
                                     plan: plan,
                                     selected: isSelected,
@@ -531,33 +559,60 @@ class _DataScreenState extends State<DataScreen> {
                               ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
                         child: Row(
                           children: [
                             Expanded(
                               child: OutlinedButton(
                                 onPressed: () => Navigator.pop(context),
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
-                                child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
+                                child: const Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: FilledButton(
-                                onPressed: selectedCode == null ? null : () {
-                                  Navigator.pop(context);
-                                  setState(() => _selectedPlanCode = selectedCode);
-                                  _showSummaryModal();
-                                },
+                                onPressed: selectedCode == null
+                                    ? null
+                                    : () {
+                                        Navigator.pop(context);
+                                        setState(
+                                          () =>
+                                              _selectedPlanCode = selectedCode,
+                                        );
+                                        _showSummaryModal();
+                                      },
                                 style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary,
                                 ),
-                                child: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.w700)),
+                                child: const Text(
+                                  'Confirm',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -577,10 +632,10 @@ class _DataScreenState extends State<DataScreen> {
   void _showSummaryModal() {
     final plan = _selectedPlan;
     if (plan == null) return;
-    
+
     final phone = _normalizePhone(_phoneCtrl.text);
     final price = _planPrice(plan);
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -591,16 +646,22 @@ class _DataScreenState extends State<DataScreen> {
         planName: _planCapacity(plan),
         planValidity: _planValidity(plan),
         price: price,
-        onProceed: () {
+        onProceedPin: () {
           Navigator.pop(context);
-          _buy();
+          _buy(authMethod: PurchaseAuthService.methodPin);
+        },
+        onProceedBiometric: () {
+          Navigator.pop(context);
+          _buy(authMethod: PurchaseAuthService.methodBiometric);
         },
       ),
     );
   }
 
-
-  Future<void> _buy() async {
+  Future<void> _buy({
+    String authMethod = PurchaseAuthService.methodAuto,
+  }) async {
+    if (_submitting) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final normalizedPhone = _normalizePhone(_phoneCtrl.text);
     if (_selectedPlanCode == null || normalizedPhone.isEmpty) {
@@ -614,6 +675,7 @@ class _DataScreenState extends State<DataScreen> {
     final authorized = await PurchaseAuthService.authorizePin(
       context: context,
       reason: 'data purchase',
+      preferredMethod: authMethod,
     );
     if (!mounted || !authorized) return;
 
@@ -660,60 +722,72 @@ class _DataScreenState extends State<DataScreen> {
 
   void _showResult(Map<String, dynamic> res) {
     final statusRaw = (res['status'] ?? '').toString().toLowerCase();
-    final ok = res['success'] == true ||
+    final ok =
+        res['success'] == true ||
         statusRaw == 'delivered' ||
         statusRaw == 'success' ||
-        statusRaw == 'successful';
-    
+        statusRaw == 'successful' ||
+        statusRaw == 'completed' ||
+        statusRaw == 'order_completed';
+    final pending =
+        statusRaw == 'pending' ||
+        statusRaw == 'processing' ||
+        statusRaw == 'queued' ||
+        statusRaw == 'order_received' ||
+        statusRaw == 'order_onhold';
+    final status = ok ? 'success' : (pending ? 'pending' : 'failed');
+
     final selected = _selectedPlan;
-    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
+    final userName =
+        context.read<SessionController>().user?['full_name'] ?? 'User';
     final phone = _normalizePhone(_phoneCtrl.text);
+    final message = (res['message'] ?? res['detail'] ?? '').toString().trim();
+    final reference = (res['reference'] ?? _activeRequestId ?? '—')
+        .toString()
+        .trim();
+    final subtitle = message.isNotEmpty
+        ? message
+        : status == 'success'
+        ? 'Data purchase completed successfully.'
+        : status == 'pending'
+        ? 'Purchase submitted and currently processing.'
+        : 'Data purchase failed.';
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _SuccessModal(
-        ok: ok,
-        time: _formatDate(DateTime.now()),
-        sender: userName,
-        provider: 'AxisVTU',
-        capacity: selected == null ? '—' : _planCapacity(selected),
-        validity: selected == null ? '' : _planValidity(selected),
-        network: _network.toUpperCase(),
-        phone: phone,
-        onSave: () => _shareReceipt(ok, userName, phone, selected),
-      ),
-    );
-  }
-
-  void _shareReceipt(bool ok, String sender, String phone, dynamic plan) {
-    // Sharing logic placeholder - could use screenshot + share_plus
-    HapticFeedback.mediumImpact();
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-        child: _ShareableReceipt(
-          ok: ok,
-          sender: sender,
-          phone: phone,
-          planName: plan != null ? _planCapacity(plan) : 'Plan',
-          planValidity: plan != null ? _planValidity(plan) : '',
-          network: _network.toUpperCase(),
-          time: _formatDate(DateTime.now()),
-        ),
+      builder: (context) => PurchaseResultSheet(
+        status: status,
+        title: status == 'success'
+            ? 'Data Purchase Successful'
+            : (status == 'pending'
+                  ? 'Data Purchase Pending'
+                  : 'Data Purchase Failed'),
+        subtitle: subtitle,
+        fields: [
+          ReceiptField(label: 'Time', value: _formatDate(DateTime.now())),
+          ReceiptField(label: 'Sender Name', value: userName),
+          ReceiptField(label: 'Network', value: _network.toUpperCase()),
+          ReceiptField(label: 'Recipient', value: phone),
+          ReceiptField(
+            label: 'Plan',
+            value: selected == null
+                ? '—'
+                : '${_planCapacity(selected)} • ${_planValidity(selected)}',
+          ),
+          ReceiptField(
+            label: 'Amount',
+            value: selected == null ? '₦0.00' : '₦${_planPrice(selected)}',
+          ),
+          ReceiptField(label: 'Reference', value: reference),
+        ],
       ),
     );
   }
 
   void _selectNetwork(String value) {
     HapticFeedback.selectionClick();
-    final shouldForceRefresh = value == 'airtel';
-    if (shouldForceRefresh) {
-      DataService.clearCache();
-    }
     setState(() {
       _invalidateRequestId();
       _network = value;
@@ -725,7 +799,7 @@ class _DataScreenState extends State<DataScreen> {
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _loadPlans(forceRefresh: shouldForceRefresh, silent: true);
+      _loadPlans(silent: true);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -774,7 +848,6 @@ class _DataScreenState extends State<DataScreen> {
     final compact = size.width < 360 || size.height < 760;
     final selected = _selectedPlan;
     final hasPhone = _normalizePhone(_phoneCtrl.text).isNotEmpty;
-    final canBuy = !_submitting && selected != null && hasPhone;
 
     return ServiceShell(
       title: 'Buy Data',
@@ -787,9 +860,13 @@ class _DataScreenState extends State<DataScreen> {
         amount: selected != null ? '₦${_planPrice(selected)}' : '₦0.00',
         active: hasPhone,
         loading: _submitting,
-        onBuy: _selectedPlanCode == null ? () => _openPlansSheet() : _showSummaryModal,
+        onBuy: _selectedPlanCode == null
+            ? () => _openPlansSheet()
+            : _showSummaryModal,
         actionLabel: _selectedPlanCode == null ? 'Select Plan' : 'Buy Data',
-        icon: _selectedPlanCode == null ? Icons.layers_outlined : Icons.wifi_rounded,
+        icon: _selectedPlanCode == null
+            ? Icons.layers_outlined
+            : Icons.wifi_rounded,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -811,7 +888,8 @@ class _DataScreenState extends State<DataScreen> {
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                 ),
-                if (_error != null && _error!.toLowerCase().contains('phone')) ...[
+                if (_error != null &&
+                    _error!.toLowerCase().contains('phone')) ...[
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerLeft,
@@ -825,8 +903,8 @@ class _DataScreenState extends State<DataScreen> {
                   ),
                 ],
                 const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
+                SizedBox(
+                  width: double.infinity,
                   child: _SecondaryButton(
                     label: 'Recent recipients',
                     icon: Icons.history_rounded,
@@ -902,10 +980,14 @@ class _DataScreenState extends State<DataScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.12),
                   ),
                 ),
                 child: Row(
@@ -914,7 +996,9 @@ class _DataScreenState extends State<DataScreen> {
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -930,16 +1014,14 @@ class _DataScreenState extends State<DataScreen> {
                         children: [
                           Text(
                             _planCapacity(selected),
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           Text(
                             _planValidity(selected),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface
                                       .withValues(alpha: 0.6),
                                 ),
                           ),
@@ -949,9 +1031,9 @@ class _DataScreenState extends State<DataScreen> {
                     Text(
                       '₦${_planPrice(selected)}',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -963,9 +1045,7 @@ class _DataScreenState extends State<DataScreen> {
       ),
     );
   }
-
 }
-
 
 class _FlowStepHeader extends StatelessWidget {
   const _FlowStepHeader({
@@ -1001,7 +1081,9 @@ class _FlowStepHeader extends StatelessWidget {
             border: Border.all(
               color: active || done
                   ? color.withValues(alpha: 0.18)
-                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+                  : Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.08),
             ),
           ),
           child: done
@@ -1010,7 +1092,11 @@ class _FlowStepHeader extends StatelessWidget {
                   step,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: active ? color : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.66),
+                    color: active
+                        ? color
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.66),
                   ),
                 ),
         ),
@@ -1030,7 +1116,9 @@ class _FlowStepHeader extends StatelessWidget {
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.58),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.58),
                 ),
               ),
             ],
@@ -1040,8 +1128,6 @@ class _FlowStepHeader extends StatelessWidget {
     );
   }
 }
-
-
 
 class _SummaryLine extends StatelessWidget {
   const _SummaryLine({
@@ -1110,7 +1196,11 @@ class _SecondaryButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onTap,
         icon: Icon(icon, size: compact ? 16 : 17),
-        label: Text(label),
+        label: Text(label, overflow: TextOverflow.ellipsis, maxLines: 1),
+        style: OutlinedButton.styleFrom(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+        ),
       ),
     );
   }
@@ -1174,7 +1264,9 @@ class _GradientActionButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.20),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.20),
               blurRadius: 14,
               offset: const Offset(0, 8),
             ),
@@ -1221,7 +1313,9 @@ class _RecentRecipientsSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0E1624) : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.10)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.16),
@@ -1243,16 +1337,23 @@ class _RecentRecipientsSheet extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Recent recipients',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-                IconButton(onPressed: onClose, icon: const Icon(Icons.close_rounded)),
+                IconButton(
+                  onPressed: onClose,
+                  icon: const Icon(Icons.close_rounded),
+                ),
               ],
             ),
             Text(
-              'Double tap a number to use it.',
+              'Tap any number to fill it quickly.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.56),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.56),
               ),
             ),
             const SizedBox(height: 12),
@@ -1268,15 +1369,27 @@ class _RecentRecipientsSheet extends StatelessWidget {
                 runSpacing: 8,
                 children: recentNumbers.map((number) {
                   return GestureDetector(
-                    onDoubleTap: () => onApply(number),
+                    onTap: () => onApply(number),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
                       ),
-                      child: Text(number, style: Theme.of(context).textTheme.labelLarge),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      child: Text(
+                        number,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
                     ),
                   );
                 }).toList(),
@@ -1287,7 +1400,6 @@ class _RecentRecipientsSheet extends StatelessWidget {
     );
   }
 }
-
 
 class _TransactionHeroCard extends StatelessWidget {
   const _TransactionHeroCard({
@@ -1319,19 +1431,31 @@ class _TransactionHeroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         gradient: isDark
             ? const LinearGradient(
-                colors: [Color(0xFF0E1726), Color(0xFF12233A), Color(0xFF0A1220)],
+                colors: [
+                  Color(0xFF0E1726),
+                  Color(0xFF12233A),
+                  Color(0xFF0A1220),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
             : const LinearGradient(
-                colors: [Color(0xFFF1F6FF), Color(0xFFE8F1FF), Color(0xFFF7FAFF)],
+                colors: [
+                  Color(0xFFF1F6FF),
+                  Color(0xFFE8F1FF),
+                  Color(0xFFF7FAFF),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.10)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.14 : 0.08),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: isDark ? 0.14 : 0.08),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1347,7 +1471,9 @@ class _TransactionHeroCard extends StatelessWidget {
               height: 76,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -1360,7 +1486,9 @@ class _TransactionHeroCard extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -1376,17 +1504,21 @@ class _TransactionHeroCard extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.2,
-                          ),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.2,
+                              ),
                         ),
                         const SizedBox(height: 3),
                         Text(
                           subtitle,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.60),
+                              ),
                         ),
                       ],
                     ),
@@ -1397,20 +1529,28 @@ class _TransactionHeroCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.72),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
                       children: [
-                        Icon(trailingIcon, size: 15, color: Theme.of(context).colorScheme.primary),
+                        Icon(
+                          trailingIcon,
+                          size: 15,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           trailingLabel,
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -1461,7 +1601,9 @@ class _HeroChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.78),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1470,7 +1612,9 @@ class _HeroChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -1513,10 +1657,7 @@ class _HeroButton extends StatelessWidget {
           : OutlinedButton.icon(
               onPressed: onTap,
               icon: disabled
-                  ? const SizedBox(
-                      width: 0,
-                      height: 0,
-                    )
+                  ? const SizedBox(width: 0, height: 0)
                   : Icon(icon, size: 18),
               label: Text(label),
             ),
@@ -1537,20 +1678,26 @@ class _PremiumSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.62);
     return GlassCard(
-      padding: const EdgeInsets.all(AxisSpacing.md),
+      padding: EdgeInsets.all(AxisSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: muted),
           ),
           const SizedBox(height: 12),
           child,
@@ -1616,7 +1763,9 @@ class _NetworkMetaPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1625,14 +1774,18 @@ class _NetworkMetaPill extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -1666,7 +1819,11 @@ class _InfoChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.16)),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.16),
+            ),
           ),
           child: Row(
             children: [
@@ -1688,13 +1845,17 @@ class _InfoChip extends StatelessWidget {
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       value ? 'On' : 'Off',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.62),
                       ),
                     ),
                   ],
@@ -1727,14 +1888,18 @@ class _SuggestionPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Suggestions',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 2),
           Text(
@@ -1750,9 +1915,14 @@ class _SuggestionPanel extends StatelessWidget {
               return GestureDetector(
                 onDoubleTap: () => onApply(number),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(
@@ -1760,9 +1930,15 @@ class _SuggestionPanel extends StatelessWidget {
                     children: [
                       const Icon(Icons.person_outline_rounded, size: 15),
                       const SizedBox(width: 6),
-                      Text(number, style: Theme.of(context).textTheme.labelMedium),
+                      Text(
+                        number,
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
                       const SizedBox(width: 6),
-                      Text(detected.toUpperCase(), style: Theme.of(context).textTheme.labelSmall),
+                      Text(
+                        detected.toUpperCase(),
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
                     ],
                   ),
                 ),
@@ -1797,9 +1973,15 @@ class _RecentRecipientsInline extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12)),
+              border: Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.12),
+              ),
             ),
             child: Text(number, style: Theme.of(context).textTheme.labelMedium),
           ),
@@ -1815,7 +1997,8 @@ class _PurchaseSummaryModal extends StatelessWidget {
   final String planName;
   final String planValidity;
   final String price;
-  final VoidCallback onProceed;
+  final VoidCallback onProceedPin;
+  final VoidCallback onProceedBiometric;
 
   const _PurchaseSummaryModal({
     required this.phone,
@@ -1823,7 +2006,8 @@ class _PurchaseSummaryModal extends StatelessWidget {
     required this.planName,
     required this.planValidity,
     required this.price,
-    required this.onProceed,
+    required this.onProceedPin,
+    required this.onProceedBiometric,
   });
 
   @override
@@ -1856,7 +2040,9 @@ class _PurchaseSummaryModal extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Purchase Summary',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const Spacer(),
               IconButton.filledTonal(
@@ -1879,7 +2065,9 @@ class _PurchaseSummaryModal extends StatelessWidget {
             children: [
               Text(
                 'Total to Pay',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               Text(
                 price,
@@ -1891,16 +2079,42 @@ class _PurchaseSummaryModal extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 40),
-          FilledButton.icon(
-            onPressed: onProceed,
-            icon: const Icon(Icons.lock_outline_rounded),
-            label: const Text('Use PIN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onProceedPin,
+                  icon: const Icon(Icons.lock_outline_rounded),
+                  label: const Text(
+                    'Use PIN',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onProceedBiometric,
+                  icon: const Icon(Icons.fingerprint_rounded),
+                  label: const Text(
+                    'Use Biometric',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
         ],
@@ -1921,20 +2135,34 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey)),
-          Text(value, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w800)),
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
+          ),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
         ],
       ),
     );
   }
 }
 
-
 class _PlanShimmerGrid extends StatelessWidget {
   const _PlanShimmerGrid();
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final base = isDark ? const Color(0xFF1A2438) : const Color(0xFFF2F4F8);
+    final highlight = isDark
+        ? const Color(0xFF283656)
+        : const Color(0xFFE7EBF3);
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -1944,12 +2172,53 @@ class _PlanShimmerGrid extends StatelessWidget {
         childAspectRatio: 1.1,
       ),
       itemCount: 6,
-      itemBuilder: (context, index) => Container(
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(20),
+      itemBuilder: (context, index) => AnimatedOpacity(
+        duration: const Duration(milliseconds: 420),
+        opacity: 0.88,
+        child: Container(
+          decoration: BoxDecoration(
+            color: base,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.12),
+            ),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 54,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: highlight,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                width: 88,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: highlight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: 72,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: highlight,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ],
+          ),
         ),
-      ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1200.ms),
+      ),
     );
   }
 }
@@ -1959,94 +2228,104 @@ class _PlanGridTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _PlanGridTile({required this.plan, required this.selected, required this.onTap});
+  const _PlanGridTile({
+    required this.plan,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isCompact = width < 390;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
-    final capacity = _planCapacityValue(plan);
     final price = _planPriceValueFormatted(plan);
-    final validity = plan['validity']?.toString() ?? '30 Days';
+    final validity = plan['validity']?.toString() ?? '30d';
     final network = (plan['network'] ?? '').toString().toLowerCase();
-    
+    final capacity = _planDisplayTitle(plan, network);
+    final baseColor = isDark ? const Color(0xFF1A2337) : Colors.white;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : const Color(0xFFD9E1EE);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textMuted = isDark
+        ? Colors.white.withValues(alpha: 0.70)
+        : const Color(0xFF64748B);
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(20),
       child: AnimatedContainer(
         duration: 200.ms,
         decoration: BoxDecoration(
-          color: selected 
-            ? primary.withValues(alpha: 0.15) 
-            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
-          borderRadius: BorderRadius.circular(24),
+          color: selected
+              ? (isDark
+                    ? primary.withValues(alpha: 0.14)
+                    : primary.withValues(alpha: 0.10))
+              : baseColor,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? primary : (isDark ? Colors.white10 : Colors.grey[200]!),
-            width: selected ? 2.5 : 1.2,
+            color: selected ? primary : borderColor,
+            width: selected ? 2 : 1.2,
           ),
-          boxShadow: selected 
-            ? [BoxShadow(color: primary.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8))] 
-            : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Opacity(
-                opacity: selected ? 0.2 : 0.1,
-                child: _buildNetworkIcon(network, size: 32),
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.22)
+                  : const Color(0xFF0F172A).withValues(alpha: 0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            isCompact ? 12 : 14,
+            isCompact ? 12 : 13,
+            isCompact ? 12 : 14,
+            isCompact ? 12 : 13,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: selected ? primary : Colors.grey[400]!.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      validity.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        color: selected ? Colors.white : Colors.grey[600],
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      capacity,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        color: selected ? primary : (isDark ? Colors.white : const Color(0xFF1E293B)),
-                        letterSpacing: -1.5,
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '₦$price',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: selected ? primary : (isDark ? Colors.white70 : const Color(0xFF475569)),
-                    ),
+                  _buildNetworkIcon(network, size: isCompact ? 20 : 22),
+                  const Spacer(),
+                  _PlanMetaPill(
+                    label: validity,
+                    selected: selected,
+                    primary: primary,
+                    isDark: isDark,
+                    compact: isCompact,
                   ),
                 ],
               ),
-            ),
-          ],
+              SizedBox(height: isCompact ? 10 : 12),
+              Text(
+                capacity,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: isCompact ? 15 : 17,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? primary : textPrimary,
+                  letterSpacing: -0.2,
+                  height: 1.15,
+                ),
+              ),
+              SizedBox(height: isCompact ? 6 : 8),
+              Text(
+                '₦$price',
+                style: TextStyle(
+                  fontSize: isCompact ? 15 : 16,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? primary : textMuted,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2057,20 +2336,119 @@ class _PlanGridTile extends StatelessWidget {
     if (network.contains('airtel')) asset = 'assets/networks/airtel.svg';
     if (network.contains('glo')) asset = 'assets/networks/glo.svg';
     if (network.contains('9mobile')) asset = 'assets/networks/9mobile.svg';
-    
+
     return SvgPicture.asset(
       asset,
       width: size,
       height: size,
-      placeholderBuilder: (context) => Icon(Icons.wifi, size: size, color: Colors.grey),
+      placeholderBuilder: (context) =>
+          Icon(Icons.wifi, size: size, color: Colors.grey),
+    );
+  }
+}
+
+class _PlanMetaPill extends StatelessWidget {
+  const _PlanMetaPill({
+    required this.label,
+    required this.selected,
+    required this.primary,
+    required this.isDark,
+    required this.compact,
+  });
+
+  final String label;
+  final bool selected;
+  final Color primary;
+  final bool isDark;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: compact ? 4 : 5,
+      ),
+      decoration: BoxDecoration(
+        color: selected
+            ? primary.withValues(alpha: 0.16)
+            : (isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : const Color(0xFFF4F6FA)),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: selected
+              ? primary.withValues(alpha: 0.5)
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : const Color(0xFFDDE4F0)),
+        ),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: compact ? 10 : 11,
+          fontWeight: FontWeight.w700,
+          color: selected
+              ? primary
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.78)
+                    : const Color(0xFF64748B)),
+          letterSpacing: 0.2,
+        ),
+      ),
     );
   }
 }
 
 // File-level utility functions for DataScreen
 String _planCapacityValue(dynamic plan) {
-  final raw = plan['data_capacity'] ?? plan['size'] ?? plan['capacity'] ?? plan['name'] ?? plan['plan_name'] ?? '';
+  final raw =
+      plan['data_capacity'] ??
+      plan['size'] ??
+      plan['capacity'] ??
+      plan['name'] ??
+      plan['plan_name'] ??
+      '';
   return _formatCapacityValue(raw);
+}
+
+String _planDisplayTitle(dynamic plan, String network) {
+  final raw =
+      plan['name'] ??
+      plan['plan_name'] ??
+      plan['data_capacity'] ??
+      plan['size'] ??
+      plan['capacity'] ??
+      '';
+  var value = _formatCapacityValue(raw);
+  if (value.isEmpty) return 'Data Plan';
+
+  final prefixes = ['MTN', 'AIRTEL', 'GLO', '9MOBILE', 'SMILE', 'T2'];
+  for (final p in prefixes) {
+    if (value.toUpperCase().startsWith(p)) {
+      value = value.substring(p.length).trim();
+      break;
+    }
+  }
+
+  value = value.replaceAllMapped(
+    RegExp(r'([A-Z]+)(\d)'),
+    (m) => '${m[1]} ${m[2]}',
+  );
+  value = value.replaceAllMapped(
+    RegExp(r'(\d)([A-Z])'),
+    (m) => '${m[1]} ${m[2]}',
+  );
+  value = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  if (value.isEmpty) {
+    final net = network.isEmpty
+        ? 'Plan'
+        : '${network[0].toUpperCase()}${network.substring(1)}';
+    return '$net Plan';
+  }
+  return value;
 }
 
 String _planPriceValueFormatted(dynamic plan) {
@@ -2096,14 +2474,16 @@ String _formatCapacityValue(dynamic raw) {
     return '${mb}MB';
   }
 
-  final gb = parsed % 1 == 0 ? parsed.toInt().toString() : parsed.toStringAsFixed(1);
+  final gb = parsed % 1 == 0
+      ? parsed.toInt().toString()
+      : parsed.toStringAsFixed(1);
   return '${gb}GB';
 }
 
 String _formatMoneyValue(dynamic value) {
   final number = _toDoubleValue(value);
   if (number == null) return value.toString();
-  
+
   // Format with commas for thousands
   String base;
   if (number % 1 == 0) {
@@ -2111,14 +2491,14 @@ String _formatMoneyValue(dynamic value) {
   } else {
     base = number.toStringAsFixed(2);
   }
-  
+
   final parts = base.split('.');
   final main = parts[0];
   final decimal = parts.length > 1 ? '.${parts[1]}' : '';
-  
+
   final reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
   final formattedMain = main.replaceAllMapped(reg, (Match m) => '${m[1]},');
-  
+
   return '$formattedMain$decimal';
 }
 
@@ -2140,9 +2520,29 @@ class _EmptyPlansState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey[300]),
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 52,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.35),
+          ),
           const SizedBox(height: 16),
-          const Text('No plans found for this network'),
+          Text(
+            'No plans available right now',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Try refreshing the catalog in a moment.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.64),
+            ),
+          ),
           TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
@@ -2194,31 +2594,41 @@ class _SuccessModalState extends State<_SuccessModal> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           const SizedBox(height: 32),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              shape: BoxShape.circle, 
-              color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444)
+              shape: BoxShape.circle,
+              color: widget.ok
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFFEF4444),
             ),
             child: Icon(
-              widget.ok ? Icons.check_rounded : Icons.close_rounded, 
-              color: Colors.white, 
-              size: 48
+              widget.ok ? Icons.check_rounded : Icons.close_rounded,
+              color: Colors.white,
+              size: 48,
             ),
           ),
           const SizedBox(height: 20),
           Text(
             widget.ok ? 'Purchase Successful' : 'Purchase Failed',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 32),
           Container(
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
             ),
@@ -2229,50 +2639,72 @@ class _SuccessModalState extends State<_SuccessModal> {
                   children: [
                     const Icon(Icons.receipt_long_outlined, size: 18),
                     const SizedBox(width: 8),
-                    const Text('Transfer Receipt', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const Text(
+                      'Transfer Receipt',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: (widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withValues(alpha: 0.1),
+                        color:
+                            (widget.ok
+                                    ? const Color(0xFF22C55E)
+                                    : const Color(0xFFEF4444))
+                                .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        widget.ok ? 'Successful' : 'Failed', 
+                        widget.ok ? 'Successful' : 'Failed',
                         style: TextStyle(
-                          color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444), 
-                          fontSize: 12, 
-                          fontWeight: FontWeight.w800
-                        )
+                          color: widget.ok
+                              ? const Color(0xFF22C55E)
+                              : const Color(0xFFEF4444),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(),
+                ),
                 _ReceiptRow(label: 'Time', value: widget.time),
                 _ReceiptRow(label: 'Sender Name', value: widget.sender),
                 _ReceiptRow(label: 'Provider', value: widget.provider),
                 _ReceiptRow(
-                  label: 'Data Capacity', 
+                  label: 'Data Capacity',
                   value: widget.capacity,
-                  extra: widget.validity.isNotEmpty 
-                    ? Container(
-                        margin: const EdgeInsets.only(left: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: (widget.ok ? Colors.green[100] : Colors.red[100]), 
-                          borderRadius: BorderRadius.circular(4)
-                        ),
-                        child: Text(
-                          widget.validity, 
-                          style: TextStyle(
-                            fontSize: 10, 
-                            color: widget.ok ? Colors.green[800] : Colors.red[800], 
-                            fontWeight: FontWeight.w800
-                          )
-                        ),
-                      )
-                    : null,
+                  extra: widget.validity.isNotEmpty
+                      ? Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: (widget.ok
+                                ? Colors.green[100]
+                                : Colors.red[100]),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            widget.validity,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: widget.ok
+                                  ? Colors.green[800]
+                                  : Colors.red[800],
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
                 _ReceiptRow(label: 'Network', value: widget.network),
                 _ReceiptRow(label: 'Receiver Phone', value: widget.phone),
@@ -2301,11 +2733,18 @@ class _SuccessModalState extends State<_SuccessModal> {
                 child: FilledButton.icon(
                   onPressed: widget.onSave,
                   icon: const Icon(Icons.download_rounded),
-                  label: const Text('Save Receipt', style: TextStyle(fontWeight: FontWeight.w800)),
+                  label: const Text(
+                    'Save Receipt',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
                   style: FilledButton.styleFrom(
-                    backgroundColor: widget.ok ? const Color(0xFF22C55E) : const Color(0xFF64748B),
+                    backgroundColor: widget.ok
+                        ? const Color(0xFF22C55E)
+                        : const Color(0xFF64748B),
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
                 ),
               ),
@@ -2315,9 +2754,14 @@ class _SuccessModalState extends State<_SuccessModal> {
                   onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'Dismiss',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ],
@@ -2345,7 +2789,13 @@ class _ReceiptRow extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
               if (extra != null) extra!,
             ],
           ),
@@ -2361,7 +2811,12 @@ class _SuccessToggle extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _SuccessToggle({required this.icon, required this.label, required this.value, required this.onChanged});
+  const _SuccessToggle({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2369,7 +2824,10 @@ class _SuccessToggle extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
           child: Icon(icon, size: 18),
         ),
         const SizedBox(width: 12),
@@ -2409,11 +2867,11 @@ class _ShareableReceipt extends StatelessWidget {
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: ok 
-                ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)] 
-                : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
-              begin: Alignment.topLeft, 
-              end: Alignment.bottomRight
+              colors: ok
+                  ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)]
+                  : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
@@ -2421,8 +2879,12 @@ class _ShareableReceipt extends StatelessWidget {
           child: Column(
             children: [
               Container(
-                width: 48, height: 48,
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
                 child: ClipOval(
                   child: Padding(
                     padding: const EdgeInsets.all(6),
@@ -2430,17 +2892,29 @@ class _ShareableReceipt extends StatelessWidget {
                       'assets/brand/axisvtu-logo.png',
                       fit: BoxFit.contain,
                       errorBuilder: (c, e, s) => Icon(
-                        ok ? Icons.local_florist : Icons.error_outline_rounded, 
-                        color: ok ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
-                        size: 24
+                        ok ? Icons.local_florist : Icons.error_outline_rounded,
+                        color: ok
+                            ? const Color(0xFF2463EB)
+                            : const Color(0xFF64748B),
+                        size: 24,
                       ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-              const Text('AxisVTU', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-              const Text('Transaction Receipt', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const Text(
+                'AxisVTU',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const Text(
+                'Transaction Receipt',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
             ],
           ),
         ),
@@ -2451,27 +2925,36 @@ class _ShareableReceipt extends StatelessWidget {
             children: [
               Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: ok ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2), 
-                    borderRadius: BorderRadius.circular(20)
+                    color: ok
+                        ? const Color(0xFFDCFCE7)
+                        : const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        ok ? Icons.check_circle : Icons.cancel, 
-                        color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B), 
-                        size: 12
+                        ok ? Icons.check_circle : Icons.cancel,
+                        color: ok
+                            ? const Color(0xFF166534)
+                            : const Color(0xFF991B1B),
+                        size: 12,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        ok ? 'Successful' : 'Failed', 
+                        ok ? 'Successful' : 'Failed',
                         style: TextStyle(
-                          color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B), 
-                          fontSize: 12, 
-                          fontWeight: FontWeight.w800
-                        )
+                          color: ok
+                              ? const Color(0xFF166534)
+                              : const Color(0xFF991B1B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),
@@ -2479,37 +2962,55 @@ class _ShareableReceipt extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _ReceiptTableItem(label: 'Time', value: time),
-              _ReceiptTableItem(label: 'Sender Name', value: sender, bold: true),
-              _ReceiptTableItem(label: 'Provider', value: 'AxisVTU', bold: true),
               _ReceiptTableItem(
-                label: 'Data Capacity', 
-                value: planName, 
+                label: 'Sender Name',
+                value: sender,
                 bold: true,
-                extra: planValidity.isNotEmpty 
-                  ? Container(
-                      margin: const EdgeInsets.only(left: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: ok ? Colors.green[100] : Colors.red[100], 
-                        borderRadius: BorderRadius.circular(4)
-                      ),
-                      child: Text(
-                        planValidity, 
-                        style: TextStyle(
-                          fontSize: 10, 
-                          color: ok ? Colors.green : Colors.red, 
-                          fontWeight: FontWeight.w900
-                        )
-                      ),
-                    )
-                  : null,
+              ),
+              _ReceiptTableItem(
+                label: 'Provider',
+                value: 'AxisVTU',
+                bold: true,
+              ),
+              _ReceiptTableItem(
+                label: 'Data Capacity',
+                value: planName,
+                bold: true,
+                extra: planValidity.isNotEmpty
+                    ? Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: ok ? Colors.green[100] : Colors.red[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          planValidity,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: ok ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      )
+                    : null,
               ),
               _ReceiptTableItem(label: 'Network', value: network, bold: true),
-              _ReceiptTableItem(label: 'Receiver Phone', value: phone, bold: true),
+              _ReceiptTableItem(
+                label: 'Receiver Phone',
+                value: phone,
+                bold: true,
+              ),
               const SizedBox(height: 24),
               const Divider(height: 1),
               const SizedBox(height: 24),
-              const Text('www.axisvtu.com', style: TextStyle(color: Colors.grey, fontSize: 11)),
+              const Text(
+                'www.axisvtu.com',
+                style: TextStyle(color: Colors.grey, fontSize: 11),
+              ),
             ],
           ),
         ),
@@ -2527,7 +3028,12 @@ class _ReceiptTableItem extends StatelessWidget {
   final String value;
   final bool bold;
   final Widget? extra;
-  const _ReceiptTableItem({required this.label, required this.value, this.bold = false, this.extra});
+  const _ReceiptTableItem({
+    required this.label,
+    required this.value,
+    this.bold = false,
+    this.extra,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2540,7 +3046,14 @@ class _ReceiptTableItem extends StatelessWidget {
           const SizedBox(height: 2),
           Row(
             children: [
-              Text(value, style: TextStyle(fontSize: 15, fontWeight: bold ? FontWeight.w800 : FontWeight.w500, color: Colors.black87)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
               if (extra != null) extra!,
             ],
           ),
@@ -2555,7 +3068,9 @@ class _ReceiptTableItem extends StatelessWidget {
 class _ZigZagPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
     final path = Path();
     path.moveTo(0, 0);
     double x = 0;
@@ -2570,6 +3085,7 @@ class _ZigZagPainter extends CustomPainter {
     path.close();
     canvas.drawPath(path, paint);
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
@@ -2588,6 +3104,9 @@ class _EmptyStateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.70);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -2608,7 +3127,9 @@ class _EmptyStateCard extends StatelessWidget {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[500], fontSize: 13),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: textColor, fontSize: 13, height: 1.35),
           ),
         ],
       ),
