@@ -82,9 +82,8 @@ class DataService {
   List<dynamic>? _extractList(dynamic data) {
     if (data is List) return data;
     if (data is Map) {
-      final rawList = data['data'] ?? data['plans'] ?? data['items'];
+      final rawList = data['data'] ?? data['plans'] ?? data['items'] ?? data['results'];
       if (rawList is List) return rawList;
-      // If the map itself looks like a list of values? No.
     }
     return null;
   }
