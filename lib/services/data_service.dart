@@ -7,7 +7,7 @@ class DataService {
   DataService({required this.token});
 
   final String token;
-  static const Duration _cacheTtl = Duration(minutes: 2);
+  static const Duration _cacheTtl = Duration(seconds: 5);
   static List<dynamic> _cachedPlans = [];
   static DateTime? _cacheAt;
   static const String _prefsKey = 'axis_data_plans_cache_v1';
