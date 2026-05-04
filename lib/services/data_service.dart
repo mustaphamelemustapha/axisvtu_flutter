@@ -61,8 +61,18 @@ class DataService {
   Future<List<dynamic>> _fetchAndCache() async {
     try {
       final data = await _client.get('/data/plans');
-      final list = data['data'] ?? data['plans'] ?? data['items'];
-      final plans = list is List ? List<dynamic>.from(list) : <dynamic>[];
+      List<dynamic>? list;
+      
+      if (data is List) {
+        list = data;
+      } else if (data is Map) {
+        final rawList = data['data'] ?? data['plans'] ?? data['items'];
+        if (rawList is List) {
+          list = rawList;
+        }
+      }
+
+      final plans = list != null ? List<dynamic>.from(list) : <dynamic>[];
       _cachedPlans = plans;
       _cacheAt = DateTime.now();
 
