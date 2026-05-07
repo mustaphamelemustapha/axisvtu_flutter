@@ -54,7 +54,7 @@ class _PrimaryButtonState extends State<PrimaryButton> {
           child: FilledButton.icon(
             onPressed: _enabled ? _handlePress : null,
             icon: widget.loading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
