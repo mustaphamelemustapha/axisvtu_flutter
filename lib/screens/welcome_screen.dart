@@ -104,7 +104,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       setState(() {
         _biometricLoading = false;
         _localError =
-            'Session expired. Please sign in again with your password to re-enable biometric unlock.';
+            'Please sign in once to enable biometric quick sign-in.';
       });
     }
   }
@@ -172,14 +172,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               AuthHeroBlock(
                 title: 'Welcome back',
                 subtitle:
-                    'Sign in to buy data, top up airtime, and manage your utility services in one place.',
-                logoSize: 80,
-                titleSize: 27,
+                    'Access your data, airtime, and bill services in seconds.',
+                logoSize: 84,
+                titleSize: 28,
                 tight: true,
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
+                  padding: const EdgeInsets.fromLTRB(22, 4, 22, 20),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   children: [
@@ -216,12 +216,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ),
                     ),
                     if (authError != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        authError,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
+                      const SizedBox(height: 12),
+                      _AuthInfoCard(
+                        message: authError,
+                        isWarning: authError.contains('password') ||
+                            authError.contains('details'),
                       ),
                     ],
                     const SizedBox(height: 8),
@@ -239,7 +238,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   ),
                                 );
                               },
-                        child: const Text('Forgot password?'),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          foregroundColor: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.7),
+                        ),
+                        child: const Text(
+                          'Forgot password?',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -249,16 +258,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           : 'Continue',
                       loading: session.isLoading || _loading,
                       icon: Icons.login_rounded,
-                      onPressed: (session.isLoading || _loading)
-                          ? null
-                          : _login,
+                      onPressed: (session.isLoading || _loading) ? null : _login,
                     ),
                     if (_biometricAvailable) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       _BiometricSignInButton(
                         loading: _biometricLoading,
-                        onPressed:
-                            (session.isLoading || _loading || _biometricLoading)
+                        onPressed: (session.isLoading ||
+                                _loading ||
+                                _biometricLoading)
                             ? null
                             : _loginWithBiometrics,
                       ),
@@ -270,7 +278,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         children: [
                           Text(
                             'New to AxisVTU?',
-                            style: TextStyle(color: muted),
+                            style: TextStyle(
+                              color: muted,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           TextButton(
                             onPressed: () => Navigator.of(context).push(
@@ -285,11 +296,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 ),
                               ),
                             ),
-                            child: const Text('Create account'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                            child: const Text(
+                              'Create account',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    const _TrustFooter(),
                   ],
                 ),
               ),
@@ -297,6 +316,93 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AuthInfoCard extends StatelessWidget {
+  const _AuthInfoCard({required this.message, this.isWarning = false});
+  final String message;
+  final bool isWarning;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isWarning
+        ? (isDark ? Colors.orangeAccent : Colors.orange.shade800)
+        : (isDark ? Colors.blueAccent : Colors.blue.shade800);
+    final bg = color.withValues(alpha: 0.1);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isWarning ? Icons.info_outline_rounded : Icons.fingerprint_rounded,
+            size: 18,
+            color: color,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrustFooter extends StatelessWidget {
+  const _TrustFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shield_outlined, size: 14, color: muted),
+            const SizedBox(width: 6),
+            Text(
+              'Secure access • Fast services',
+              style: TextStyle(
+                color: muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        TextButton(
+          onPressed: () {
+            // Support logic
+          },
+          style: TextButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            foregroundColor: muted,
+          ),
+          child: const Text(
+            'Need help? Contact support',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -337,9 +443,24 @@ class _AuthInput extends StatelessWidget {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
           ),
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       ),
     );
   }
@@ -360,14 +481,14 @@ class _BiometricSignInButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          side: BorderSide(color: primary.withValues(alpha: 0.6), width: 1.5),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          side: BorderSide(color: primary.withValues(alpha: 0.25), width: 1.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           backgroundColor: isDark
-              ? primary.withValues(alpha: 0.07)
-              : primary.withValues(alpha: 0.04),
+              ? primary.withValues(alpha: 0.08)
+              : primary.withValues(alpha: 0.05),
           foregroundColor: primary,
         ),
         icon: loading
@@ -381,8 +502,8 @@ class _BiometricSignInButton extends StatelessWidget {
               )
             : const Icon(Icons.fingerprint_rounded, size: 22),
         label: Text(
-          loading ? 'Authenticating…' : 'Sign in with Fingerprint',
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          loading ? 'Authenticating…' : 'Sign in with Biometric',
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
         ),
       ),
     );

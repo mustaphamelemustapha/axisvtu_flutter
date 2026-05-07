@@ -531,7 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: GlassCard(
               padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
               child: Column(
-                mainAxisSize: min,
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(

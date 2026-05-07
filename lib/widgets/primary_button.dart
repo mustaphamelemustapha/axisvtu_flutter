@@ -39,50 +39,74 @@ class _PrimaryButtonState extends State<PrimaryButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = widget.backgroundColor ?? theme.colorScheme.primary;
+
     return SizedBox(
       width: double.infinity,
       child: Listener(
         onPointerDown: _enabled ? (_) => setState(() => _pressed = true) : null,
         onPointerUp: _enabled ? (_) => setState(() => _pressed = false) : null,
-        onPointerCancel: _enabled
-            ? (_) => setState(() => _pressed = false)
-            : null,
+        onPointerCancel: _enabled ? (_) => setState(() => _pressed = false) : null,
         child: AnimatedScale(
-          scale: _pressed ? 0.97 : 1.0,
+          scale: _pressed ? 0.98 : 1.0,
           duration: AxisDurations.fast,
           curve: Curves.easeOut,
-          child: FilledButton.icon(
-            onPressed: _enabled ? _handlePress : null,
-            icon: widget.loading
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        widget.foregroundColor ?? Colors.white,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: _enabled
+                  ? LinearGradient(
+                      colors: [
+                        primary,
+                        primary.withValues(alpha: 0.82),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: _enabled ? null : theme.disabledColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AxisRadii.lg),
+              boxShadow: [
+                if (_enabled)
+                  BoxShadow(
+                    color: primary.withValues(alpha: isDark ? 0.28 : 0.2),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+              ],
+            ),
+            child: FilledButton.icon(
+              onPressed: _enabled ? _handlePress : null,
+              icon: widget.loading
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          widget.foregroundColor ?? Colors.white,
+                        ),
                       ),
-                    ),
-                  )
-                : Icon(widget.icon ?? Icons.arrow_forward_rounded, size: 20),
-            label: Text(widget.label),
-            style: FilledButton.styleFrom(
-              backgroundColor: widget.backgroundColor ?? theme.colorScheme.primary,
-              foregroundColor: widget.foregroundColor ?? Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              minimumSize: const Size.fromHeight(54),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AxisRadii.lg),
+                    )
+                  : Icon(widget.icon ?? Icons.arrow_forward_rounded, size: 20),
+              label: Text(widget.label),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: widget.foregroundColor ?? Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                minimumSize: const Size.fromHeight(56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AxisRadii.lg),
+                ),
+                textStyle: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 16,
+                  letterSpacing: 0.3,
+                  fontWeight: FontWeight.w700,
+                ),
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
               ),
-              textStyle: theme.textTheme.labelLarge?.copyWith(
-                fontSize: 16,
-                letterSpacing: 0.4,
-                fontWeight: FontWeight.w600,
-              ),
-              elevation: 0,
-              shadowColor: theme.colorScheme.primary.withValues(alpha: 0.18),
-              surfaceTintColor: Colors.transparent,
-              animationDuration: AxisDurations.normal,
             ),
           ),
         ),

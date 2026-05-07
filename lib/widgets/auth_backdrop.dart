@@ -111,11 +111,11 @@ class AuthBackdrop extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Fast VTU. Clean receipts. Wallet-first.',
+                      'Fast services. Clean receipts. One simple app.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
-                        height: 1.35,
+                        height: 1.4,
                         fontWeight: FontWeight.w500,
                         color: muted,
                       ),
@@ -132,7 +132,7 @@ class AuthBackdrop extends StatelessWidget {
                         ),
                         _TrustChip(
                           icon: Icons.security_rounded,
-                          label: 'Secure wallet',
+                          label: 'Secure access',
                         ),
                         _TrustChip(
                           icon: Icons.receipt_long_rounded,
@@ -146,9 +146,14 @@ class AuthBackdrop extends StatelessWidget {
             ],
             if (overlay case final Widget overlayWidget) overlayWidget,
             Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                child: child,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: child,
+                  ),
+                ),
               ),
             ),
           ],
