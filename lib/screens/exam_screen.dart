@@ -166,7 +166,7 @@ class _ExamScreenState extends State<ExamScreen> {
 
     final authorized = await PurchaseAuthService.authorizePin(
       context: context,
-      reason: 'exam pin purchase',
+      reason: 'exam pin order',
       preferredMethod: authMethod,
     );
     if (!mounted || !authorized) return;
@@ -175,7 +175,7 @@ class _ExamScreenState extends State<ExamScreen> {
       _loading = true;
       _error = null;
     });
-    PurchaseLoadingOverlay.show(context, title: 'Buying exam pin');
+    PurchaseLoadingOverlay.show(context, title: 'Processing order');
 
     try {
       _activeRequestId ??= buildRequestId("exam");
@@ -272,9 +272,9 @@ class _ExamScreenState extends State<ExamScreen> {
         status: status,
         title: _statusTitle(
           status: status,
-          success: 'Exam Purchase Successful',
-          pending: 'Exam Purchase Pending',
-          failed: 'Exam Purchase Failed',
+          success: 'Exam Order Successful',
+          pending: 'Exam Order Pending',
+          failed: 'Exam Order Failed',
         ),
         subtitle: subtitle,
         fields: [
@@ -323,11 +323,11 @@ class _ExamScreenState extends State<ExamScreen> {
         .toString()
         .trim();
     if (message.isNotEmpty) return message;
-    if (status == 'success') return 'Exam purchase completed successfully.';
+    if (status == 'success') return 'Exam order completed successfully.';
     if (status == 'pending') {
       return 'Exam request received and currently processing.';
     }
-    return 'Exam purchase failed.';
+    return 'Exam order failed.';
   }
 
   String _formatDate(DateTime value) {
@@ -524,7 +524,7 @@ class _ExamScreenState extends State<ExamScreen> {
               ),
             ),
           PrimaryButton(
-            label: 'Buy Exam Pin',
+            label: 'Order Exam Pin',
             icon: Icons.school_rounded,
             loading: _loading,
             onPressed: _submit,

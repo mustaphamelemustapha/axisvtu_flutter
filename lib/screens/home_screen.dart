@@ -1803,8 +1803,8 @@ class _TopUpSheetState extends State<_TopUpSheet> {
           const SizedBox(height: 24),
           _StepTile(
             number: '1',
-            title: 'Copy account details',
-            subtitle: 'Tap to copy your dedicated bank details.',
+            title: 'Copy top-up details',
+            subtitle: 'Tap to copy your dedicated top-up details.',
             icon: Icons.copy_rounded,
           ),
           _StepTile(
@@ -1816,7 +1816,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
           _StepTile(
             number: '3',
             title: 'Automatic reflection',
-            subtitle: 'Your credit will reflect instantly.',
+            subtitle: 'Your account credit will reflect instantly.',
             icon: Icons.flash_on_rounded,
             isLast: true,
           ),
@@ -1837,7 +1837,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
                 return Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
-                    'Your dedicated account details are being prepared. Please check back in a moment.',
+                    'Your dedicated top-up details are being prepared. Please check back in a moment.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: muted),
                   ),

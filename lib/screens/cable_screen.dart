@@ -219,7 +219,7 @@ class _CableScreenState extends State<CableScreen> {
       _loading = true;
       _error = null;
     });
-    PurchaseLoadingOverlay.show(context, title: 'Paying cable subscription');
+    PurchaseLoadingOverlay.show(context, title: 'Processing order');
 
     try {
       _activeRequestId ??= buildRequestId("cable");
@@ -316,9 +316,9 @@ class _CableScreenState extends State<CableScreen> {
         status: status,
         title: _statusTitle(
           status: status,
-          success: 'Cable Purchase Successful',
-          pending: 'Cable Purchase Pending',
-          failed: 'Cable Purchase Failed',
+          success: 'Cable Order Successful',
+          pending: 'Cable Order Pending',
+          failed: 'Cable Order Failed',
         ),
         subtitle: subtitle,
         fields: [
@@ -367,11 +367,11 @@ class _CableScreenState extends State<CableScreen> {
         .toString()
         .trim();
     if (message.isNotEmpty) return message;
-    if (status == 'success') return 'Cable purchase completed successfully.';
+    if (status == 'success') return 'Cable order completed successfully.';
     if (status == 'pending') {
       return 'Cable request received and currently processing.';
     }
-    return 'Cable purchase failed.';
+    return 'Cable order failed.';
   }
 
   String _formatDate(DateTime value) {
@@ -398,7 +398,7 @@ class _CableScreenState extends State<CableScreen> {
             amount >= 500,
         loading: _loading,
         onBuy: _showAuthChoiceSheet,
-        actionLabel: 'Pay Cable',
+        actionLabel: 'Confirm',
         icon: Icons.tv_rounded,
       ),
       child: Column(

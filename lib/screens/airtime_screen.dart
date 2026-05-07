@@ -270,7 +270,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       _loading = true;
       _error = null;
     });
-    PurchaseLoadingOverlay.show(context, title: 'Buying airtime');
+    PurchaseLoadingOverlay.show(context, title: 'Processing order');
 
     try {
       _activeRequestId ??= buildRequestId("airtime");
@@ -305,7 +305,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         _showResult(
           status: 'pending',
           subtitle:
-              'Purchase submitted. Provider confirmation is delayed. Check History shortly.',
+              'Order submitted. Provider confirmation is delayed. Check History shortly.',
           reference:
               'AXIS-AIRTIME-PENDING-${DateTime.now().millisecondsSinceEpoch}',
           fields: [
@@ -444,11 +444,11 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         .toString()
         .trim();
     if (message.isNotEmpty) return message;
-    if (status == 'success') return 'Airtime purchase completed successfully.';
+    if (status == 'success') return 'Airtime order completed successfully.';
     if (status == 'pending') {
       return 'Airtime request received and currently processing.';
     }
-    return 'Airtime purchase failed.';
+    return 'Airtime order failed.';
   }
 
   String _formatDate(DateTime value) {
@@ -889,7 +889,7 @@ class _PurchaseSummaryModal extends StatelessWidget {
               const Icon(Icons.assignment_outlined, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Purchase Summary',
+                'Order Summary',
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),

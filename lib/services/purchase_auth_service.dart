@@ -31,7 +31,7 @@ class PurchaseAuthService {
       if (status == null) {
         _showSnack(
           context,
-          'Transaction PIN service is updating. Please try again in a moment.',
+          'Purchase PIN service is updating. Please try again in a moment.',
         );
         return false;
       }
@@ -69,7 +69,7 @@ class PurchaseAuthService {
   }) async {
     final first = await _requestPinInput(
       context: context,
-      title: 'Create Transaction PIN',
+      title: 'Create Purchase PIN',
       subtitle: 'Set your $pinLength-digit PIN for $reason.',
       confirmLabel: 'Continue',
       pinLength: pinLength,
@@ -78,7 +78,7 @@ class PurchaseAuthService {
 
     final second = await _requestPinInput(
       context: context,
-      title: 'Confirm Transaction PIN',
+      title: 'Confirm Purchase PIN',
       subtitle: 'Re-enter your $pinLength-digit PIN.',
       confirmLabel: 'Save PIN',
       pinLength: pinLength,
@@ -92,7 +92,7 @@ class PurchaseAuthService {
     try {
       await service.setup(pin: first, confirmPin: second);
       if (!context.mounted) return false;
-      _showSnack(context, 'Transaction PIN created successfully.');
+      _showSnack(context, 'Purchase PIN created successfully.');
       return true;
     } on ApiException catch (e) {
       if (e.statusCode == 409) {
@@ -150,7 +150,7 @@ class PurchaseAuthService {
           }
           _showSnack(
             context,
-            'Biometric verified. Enter transaction PIN once to complete setup.',
+            'Biometric verified. Enter purchase PIN once to complete setup.',
           );
         } else {
           _showSnack(
@@ -165,7 +165,7 @@ class PurchaseAuthService {
     if (!context.mounted) return false;
     final pin = await _requestPinInput(
       context: context,
-      title: 'Enter Transaction PIN',
+      title: 'Enter Purchase PIN',
       subtitle: 'Authorize this $reason with your $pinLength-digit PIN.',
       confirmLabel: 'Verify',
       pinLength: pinLength,
@@ -251,7 +251,7 @@ class PurchaseAuthService {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Use biometrics for quick approval, or continue with your transaction PIN.',
+                  'Use biometrics for quick approval, or continue with your purchase PIN.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
                   ),

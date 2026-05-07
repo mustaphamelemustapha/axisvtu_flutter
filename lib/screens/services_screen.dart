@@ -96,8 +96,8 @@ class ServicesScreen extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           _SectionHeader(
-            title: 'Bill Payments',
-            subtitle: 'Electricity and Cable TV subscriptions',
+            title: 'Utility Subscriptions',
+            subtitle: 'Electricity and Cable TV services',
           ),
           _ServiceGrid(
             items: [

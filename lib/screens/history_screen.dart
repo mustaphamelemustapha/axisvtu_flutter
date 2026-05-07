@@ -193,7 +193,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (_statusFilter != 'all') parts.add(_statusFilter.toUpperCase());
     if (_typeFilter != 'all') {
       parts.add(
-        _typeFilter == 'wallet_fund' ? 'WALLET' : _typeFilter.toUpperCase(),
+        _typeFilter == 'wallet_fund' ? 'TOP-UP' : _typeFilter.toUpperCase(),
       );
     }
     if (_dateFilter != 'all') parts.add(_dateFilterLabel(_dateFilter));
@@ -241,7 +241,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          'Filter Transactions',
+                          'Filter Orders',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),

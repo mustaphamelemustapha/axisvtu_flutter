@@ -1,14 +1,21 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../services/auth_service.dart';
+import '../services/api_client.dart';
 
 class SessionController extends ChangeNotifier {
   SessionController();
 
   static const String lastIdentifierKey = 'axisvtu_last_identifier';
+  static const String _tokenKey = 'axisvtu_secure_token_v1';
+  
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+  );
 
   String? _token;
   Map<String, dynamic>? _user;
@@ -56,25 +63,39 @@ class SessionController extends ChangeNotifier {
     try {
       final data = await AuthService(token: token).me();
       return _asMap(data['user']) ?? data;
+    } on ApiException catch (e) {
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        throw e; // Definitive auth failure
+      }
+      return null; // Probable network issue or server error
     } catch (_) {
       return null;
     }
   }
 
   Future<void> bootstrap() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('axisvtu_token');
-    if (_token != null && _token!.isNotEmpty) {
-      final fetched = await _fetchMe(_token!);
-      if (fetched != null) {
-        _user = fetched;
-      } else {
-        _token = null;
-        _user = null;
+    if (_bootstrapped && isAuthenticated) return;
+    
+    try {
+      _token = await _secureStorage.read(key: _tokenKey);
+      if (_token != null && _token!.isNotEmpty) {
+        final fetched = await _fetchMe(_token!);
+        if (fetched != null) {
+          _user = fetched;
+        } else {
+          // If fetched is null, it means there was a non-auth error (e.g. network).
+          // We KEEP the token so biometric can still work or user can retry.
+        }
       }
+    } catch (e) {
+      // Storage error or definitive 401
+      if (e is ApiException && (e.statusCode == 401 || e.statusCode == 403)) {
+        await logout();
+      }
+    } finally {
+      _bootstrapped = true;
+      notifyListeners();
     }
-    _bootstrapped = true;
-    notifyListeners();
   }
 
   Future<bool> login(String email, String password) async {
@@ -90,8 +111,10 @@ class SessionController extends ChangeNotifier {
         final fresh = await _fetchMe(_token!);
         if (fresh != null) _user = fresh;
       }
+      
+      await _secureStorage.write(key: _tokenKey, value: _token!);
+      
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('axisvtu_token', _token!);
       final trimmedIdentifier = email.trim();
       if (trimmedIdentifier.isNotEmpty) {
         await prefs.setString(lastIdentifierKey, trimmedIdentifier);
@@ -127,8 +150,6 @@ class SessionController extends ChangeNotifier {
       _token = _extractToken(data);
       _user = _extractUser(data);
 
-      // Some backend builds create the account but do not return auth tokens.
-      // Fallback: immediately sign in with submitted credentials.
       if (_token == null || _token!.isEmpty) {
         final loginData = await AuthService().login(
           email: normalizedEmail,
@@ -146,8 +167,10 @@ class SessionController extends ChangeNotifier {
         final fresh = await _fetchMe(_token!);
         if (fresh != null) _user = fresh;
       }
+
+      await _secureStorage.write(key: _tokenKey, value: _token!);
+
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('axisvtu_token', _token!);
       final preferredIdentifier = normalizedEmail.isNotEmpty
           ? normalizedEmail
           : phone.trim();
@@ -166,8 +189,7 @@ class SessionController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('axisvtu_token');
+    await _secureStorage.delete(key: _tokenKey);
     _token = null;
     _user = null;
     notifyListeners();

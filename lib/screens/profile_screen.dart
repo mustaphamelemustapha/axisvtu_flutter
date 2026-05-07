@@ -489,7 +489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Transaction PIN',
+                                'Purchase PIN',
                                 style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(fontWeight: FontWeight.w800),
                               ),
@@ -531,7 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: GlassCard(
               padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
@@ -568,15 +568,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Transaction PIN',
+                              'Purchase PIN',
                               style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(fontWeight: FontWeight.w800),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               status.isSet
-                                  ? 'Update or reset the PIN that protects wallet debits.'
-                                  : 'Set up a PIN to protect wallet debits and approvals.',
+                                  ? 'Update or reset the PIN that protects your account credit.'
+                                  : 'Set up a PIN to protect your orders and approvals.',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
@@ -587,8 +587,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 16),
                   Text(
                     status.isSet
-                        ? 'Your ${status.pinLength}-digit PIN protects wallet debits.'
-                        : 'Set a ${status.pinLength}-digit PIN to protect wallet debits and approvals.',
+                        ? 'Your ${status.pinLength}-digit PIN protects your account credit.'
+                        : 'Set a ${status.pinLength}-digit PIN to protect your orders and approvals.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
@@ -644,8 +644,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final sheetContext = context;
     final first = await PinEntrySheet.show(
       sheetContext,
-      title: 'Create Transaction PIN',
-      subtitle: 'Set a $pinLength-digit PIN to protect wallet debits.',
+      title: 'Create Purchase PIN',
+      subtitle: 'Set a $pinLength-digit PIN to protect your account credit.',
       confirmLabel: 'Continue',
       pinLength: pinLength,
     );
@@ -653,7 +653,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final confirm = await PinEntrySheet.show(
       sheetContext,
-      title: 'Confirm Transaction PIN',
+      title: 'Confirm Purchase PIN',
       subtitle: 'Re-enter your $pinLength-digit PIN.',
       confirmLabel: 'Save PIN',
       pinLength: pinLength,
@@ -670,7 +670,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await service.setup(pin: first, confirmPin: confirm);
       if (!mounted) return;
       ScaffoldMessenger.of(sheetContext).showSnackBar(
-        const SnackBar(content: Text('Transaction PIN created successfully.')),
+        const SnackBar(content: Text('Purchase PIN created successfully.')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -726,7 +726,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(sheetContext).showSnackBar(
-        const SnackBar(content: Text('Transaction PIN updated successfully.')),
+        const SnackBar(content: Text('Purchase PIN updated successfully.')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -983,14 +983,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'These notes cover the most common questions so you can move quickly without leaving the page.',
       actions: [
         _InfoTile(
-          label: 'How do I fund my wallet?',
+          label: 'How do I add account credit?',
           value:
-              'Transfer to your dedicated account and the wallet updates automatically.',
+              'Transfer to your dedicated top-up details and the credit updates automatically.',
           icon: Icons.account_balance_wallet_outlined,
         ),
         const SizedBox(height: 8),
         _InfoTile(
-          label: 'Why is a purchase pending?',
+          label: 'Why is an order pending?',
           value:
               'Some providers confirm a little later. We keep the record visible in History.',
           icon: Icons.schedule_outlined,

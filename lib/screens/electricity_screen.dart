@@ -283,7 +283,7 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
 
     final authorized = await PurchaseAuthService.authorizePin(
       context: context,
-      reason: 'electricity purchase',
+      reason: 'electricity subscription',
       preferredMethod: authMethod,
     );
     if (!mounted || !authorized) return;
@@ -292,7 +292,7 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
       _loading = true;
       _error = null;
     });
-    PurchaseLoadingOverlay.show(context, title: 'Buying electricity');
+    PurchaseLoadingOverlay.show(context, title: 'Processing order');
 
     try {
       _activeRequestId ??= buildRequestId("electricity");
@@ -392,9 +392,9 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
         status: status,
         title: _statusTitle(
           status: status,
-          success: 'Electricity Purchase Successful',
-          pending: 'Electricity Purchase Pending',
-          failed: 'Electricity Purchase Failed',
+          success: 'Electricity Order Successful',
+          pending: 'Electricity Order Pending',
+          failed: 'Electricity Order Failed',
         ),
         subtitle: subtitle,
         fields: [
@@ -444,12 +444,12 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
         .trim();
     if (message.isNotEmpty) return message;
     if (status == 'success') {
-      return 'Electricity purchase completed successfully.';
+      return 'Electricity order completed successfully.';
     }
     if (status == 'pending') {
       return 'Electricity request received and currently processing.';
     }
-    return 'Electricity purchase failed.';
+    return 'Electricity order failed.';
   }
 
   String _formatDate(DateTime value) {
@@ -473,7 +473,7 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
         active: _verificationOk && !_loading && amount >= 500,
         loading: _loading,
         onBuy: _showAuthChoiceSheet,
-        actionLabel: 'Pay Bill',
+        actionLabel: 'Confirm',
         icon: Icons.flash_on_rounded,
       ),
       child: Column(

@@ -90,7 +90,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       setState(() {
         _biometricLoading = false;
         _localError =
-            'Biometric authentication failed. Try signing in with your password.';
+            'Biometric authentication was not completed. Try signing in with your password.';
       });
       return;
     }
@@ -104,7 +104,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       setState(() {
         _biometricLoading = false;
         _localError =
-            'No active session found. Sign in once with password to enable biometric quick sign-in.';
+            'Session expired. Please sign in again with your password to re-enable biometric unlock.';
       });
     }
   }
@@ -145,7 +145,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
     setState(() {
       _localError =
-          session.error ?? 'Login failed. Check your details and try again.';
+          session.error ?? 'Sign in failed. Check your details and try again.';
       _loading = false;
     });
   }
@@ -172,7 +172,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               AuthHeroBlock(
                 title: 'Welcome back',
                 subtitle:
-                    'Sign in to buy data, top up airtime, pay bills, and manage your account services in one place.',
+                    'Sign in to buy data, top up airtime, and manage your utility services in one place.',
                 logoSize: 80,
                 titleSize: 27,
                 tight: true,

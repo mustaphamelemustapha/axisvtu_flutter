@@ -681,7 +681,7 @@ class _DataScreenState extends State<DataScreen> {
       _error = null;
       _submitting = true;
     });
-    PurchaseLoadingOverlay.show(context, title: 'Buying data');
+    PurchaseLoadingOverlay.show(context, title: 'Processing order');
 
     try {
       _activeRequestId ??= "DATA_${DateTime.now().microsecondsSinceEpoch}";
@@ -708,7 +708,7 @@ class _DataScreenState extends State<DataScreen> {
       _showResult({
         'status': uncertain ? 'pending' : 'failed',
         'message': uncertain
-            ? 'Purchase submitted. Provider confirmation is delayed. Check History shortly.'
+            ? 'Order submitted. Provider confirmation is delayed. Check History shortly.'
             : message,
         'provider': 'AxisVTU',
       });
@@ -746,10 +746,10 @@ class _DataScreenState extends State<DataScreen> {
     final subtitle = message.isNotEmpty
         ? message
         : status == 'success'
-        ? 'Data purchase completed successfully.'
+        ? 'Data order completed successfully.'
         : status == 'pending'
-        ? 'Purchase submitted and currently processing.'
-        : 'Data purchase failed.';
+        ? 'Order submitted and currently processing.'
+        : 'Data order failed.';
 
     showModalBottomSheet(
       context: context,
@@ -758,10 +758,10 @@ class _DataScreenState extends State<DataScreen> {
       builder: (context) => PurchaseResultSheet(
         status: status,
         title: status == 'success'
-            ? 'Data Purchase Successful'
+            ? 'Data Order Successful'
             : (status == 'pending'
-                  ? 'Data Purchase Pending'
-                  : 'Data Purchase Failed'),
+                  ? 'Data Order Pending'
+                  : 'Data Order Failed'),
         subtitle: subtitle,
         fields: [
           ReceiptField(label: 'Time', value: _formatDate(DateTime.now())),
