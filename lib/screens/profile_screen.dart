@@ -1362,7 +1362,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
             title: 'Security center',
-            subtitle: 'Protect your wallet and account',
+            subtitle: 'Protect your account and purchases',
             icon: Icons.security_rounded,
             child: Column(
               children: [
@@ -1374,8 +1374,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 8),
                 _ActionTile(
-                  label: 'Transaction PIN',
-                  subtitle: 'Set, change, or reset your purchase PIN',
+                  label: 'Purchase PIN',
+                  subtitle: 'Secure your service orders',
                   icon: Icons.pin_outlined,
                   onTap: _openTransactionPinSheet,
                 ),
@@ -1504,78 +1504,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           SizedBox(height: compact ? 10 : 12),
+          SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
-            title: 'Help & support',
-            subtitle: 'Quick answers and contact options',
+            title: 'Help & Support',
+            subtitle: 'Contact us for utility assistance',
             icon: Icons.support_agent_rounded,
             child: Column(
               children: [
                 _ActionTile(
-                  label: 'Contact support',
-                  subtitle: 'Email the AxisVTU team',
-                  icon: Icons.headset_mic_outlined,
+                  label: '24/7 Support',
+                  subtitle: '+234 8141114647',
+                  icon: Icons.phone_rounded,
+                  onTap: () => launchUrl(Uri.parse('tel:+2348141114647')),
+                ),
+                const SizedBox(height: 8),
+                _ActionTile(
+                  label: 'Website',
+                  subtitle: 'axisvtu.com',
+                  icon: Icons.language_rounded,
+                  onTap: () => launchUrl(Uri.parse('https://axisvtu.com')),
+                ),
+                const SizedBox(height: 8),
+                _ActionTile(
+                  label: 'Email Support',
+                  subtitle: 'mmtechglobe@gmail.com',
+                  icon: Icons.email_outlined,
                   onTap: _contactSupport,
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Help center',
-                  subtitle: 'Browse common answers',
-                  icon: Icons.help_outline_rounded,
-                  onTap: _openFaqSheet,
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Report an issue',
-                  subtitle: 'Flag an issue or failed transaction',
-                  icon: Icons.bug_report_outlined,
-                  onTap: _openIssueSheet,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
             title: 'About AxisVTU',
-            subtitle: 'App information and trust markers',
+            subtitle: 'Service information and legal',
             icon: Icons.info_outline_rounded,
             child: Column(
               children: [
-                _InfoTile(
-                  label: 'App version',
-                  value: 'AxisVTU Flutter v1.0.0',
-                  icon: Icons.info_outline_rounded,
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text(
+                    'AxisVTU is a digital utility services platform that helps users purchase mobile data, airtime, electricity tokens, cable TV subscriptions and exam PINs.',
+                    style: TextStyle(fontSize: 13, height: 1.4),
+                  ),
+                ),
+                const Divider(height: 1),
+                _ActionTile(
+                  label: 'Terms of Service',
+                  subtitle: 'Our commitment to you',
+                  icon: Icons.description_outlined,
+                  onTap: () => launchUrl(Uri.parse('https://axisvtu.com/terms')),
                 ),
                 const SizedBox(height: 8),
-                _InfoTile(
-                  label: 'Designed by',
-                  value: 'M.Mele · MMTECHGLOBE',
-                  icon: Icons.design_services_outlined,
-                ),
-                const SizedBox(height: 8),
-                _InfoTile(
-                  label: 'Certification',
-                  value: 'Certified by CAC',
-                  icon: Icons.verified_outlined,
-                ),
-                const SizedBox(height: 8),
-                _InfoTile(
-                  label: 'Policies',
-                  value: 'Privacy • Terms',
-                  icon: Icons.policy_outlined,
+                _ActionTile(
+                  label: 'Privacy Policy',
+                  subtitle: 'How we protect your data',
+                  icon: Icons.privacy_tip_outlined,
+                  onTap: () => launchUrl(Uri.parse('https://axisvtu.com/privacy')),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 16 : 20),
           PrimaryButton(
-            label: 'Sign out',
+            label: 'Sign Out',
             icon: Icons.logout_rounded,
+            backgroundColor: Colors.red.withValues(alpha: 0.1),
+            textColor: Colors.red,
             onPressed: () async {
               await session.logout();
               if (!context.mounted) return;
-              Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil(WelcomeScreen.route, (route) => false);
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                WelcomeScreen.route,
+                (_) => false,
+              );
             },
           ),
         ],

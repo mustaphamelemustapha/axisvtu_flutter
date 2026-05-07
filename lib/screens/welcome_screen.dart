@@ -172,7 +172,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               AuthHeroBlock(
                 title: 'Welcome back',
                 subtitle:
-                    'Sign in to buy data, top up airtime, pay bills, and manage your wallet in one place.',
+                    'Sign in to buy data, top up airtime, pay bills, and manage your account services in one place.',
                 logoSize: 80,
                 titleSize: 27,
                 tight: true,

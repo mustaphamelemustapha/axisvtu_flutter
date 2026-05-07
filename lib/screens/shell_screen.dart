@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'home_screen.dart';
-import 'wallet_screen.dart';
+import 'services_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 
@@ -25,7 +25,7 @@ class _ShellScreenState extends State<ShellScreen> {
   Widget build(BuildContext context) {
     final screens = [
       HomeScreen(onNavigateTab: _goToTab),
-      WalletScreen(onNavigateTab: _goToTab),
+      const ServicesScreen(),
       const HistoryScreen(),
       const ProfileScreen(),
     ];
@@ -56,9 +56,9 @@ class _ShellScreenState extends State<ShellScreen> {
               label: 'Home',
             ),
             NavigationDestination(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(Icons.account_balance_wallet_rounded),
-              label: 'Wallet',
+              icon: Icon(Icons.grid_view_outlined),
+              selectedIcon: Icon(Icons.grid_view_rounded),
+              label: 'Services',
             ),
             NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined),

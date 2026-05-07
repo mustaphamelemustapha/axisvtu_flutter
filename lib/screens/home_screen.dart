@@ -256,12 +256,12 @@ class _HomeScreenState extends State<HomeScreen> {
   String _txTitleFor(Map<String, dynamic> tx) {
     return switch (_txTypeOf(tx)) {
       'data' => 'Data Purchase',
-      'wallet_fund' => 'Wallet Funding',
+      'wallet_fund' => 'Account Top-up',
       'airtime' => 'Airtime Purchase',
       'cable' => 'Cable Subscription',
       'electricity' => 'Electricity Payment',
       'exam' => 'Exam Pin Purchase',
-      _ => 'Transaction',
+      _ => 'Service Transaction',
     };
   }
 
@@ -396,42 +396,42 @@ class _HomeScreenState extends State<HomeScreen> {
     final services = <_HomeService>[
       _HomeService(
         label: 'Buy Data',
-        subtitle: 'MTN • Glo • Airtel • 9mobile',
+        subtitle: 'Internet bundles',
         icon: Icons.wifi_rounded,
         accent: const Color(0xFF3B82F6),
         onTap: () => _openScreen(const DataScreen()),
       ),
       _HomeService(
         label: 'Airtime',
-        subtitle: 'Top up in seconds',
+        subtitle: 'Mobile top-up',
         icon: Icons.phone_iphone_rounded,
         accent: const Color(0xFF10B981),
         onTap: () => _openScreen(const AirtimeScreen()),
       ),
       _HomeService(
         label: 'Electricity',
-        subtitle: 'Instant meter token',
+        subtitle: 'Meter tokens',
         icon: Icons.bolt_rounded,
         accent: const Color(0xFFF59E0B),
         onTap: () => _openScreen(const ElectricityScreen()),
       ),
       _HomeService(
         label: 'Cable TV',
-        subtitle: 'DSTV • GOTV • Startimes',
+        subtitle: 'TV Subscriptions',
         icon: Icons.live_tv_rounded,
         accent: const Color(0xFF8B5CF6),
         onTap: () => _openScreen(const CableScreen()),
       ),
       _HomeService(
         label: 'Exam Pins',
-        subtitle: 'WAEC • NECO • JAMB',
+        subtitle: 'Educational pins',
         icon: Icons.school_rounded,
         accent: const Color(0xFFEF4444),
         onTap: () => _openScreen(const ExamScreen()),
       ),
       _HomeService(
         label: 'Referrals',
-        subtitle: 'Invite and earn rewards',
+        subtitle: 'Invite rewards',
         icon: Icons.card_giftcard_rounded,
         accent: const Color(0xFFEC4899),
         onTap: () => _openScreen(const ReferralScreen()),
@@ -447,6 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
           children: [
+            // Header
             Row(
               children: [
                 Container(
@@ -484,19 +485,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 1),
-                      Text(
-                        'AxisVTU ${role.isEmpty ? 'Member' : role}',
+                      const Text(
+                        'Fast data, airtime and bills',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: muted,
-                          fontWeight: FontWeight.w600,
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 6),
                 _HeaderIconButton(
                   icon: Icons.notifications_none_rounded,
                   size: 40,
@@ -506,221 +507,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 const ThemeToggleButton(size: 40),
               ],
             ),
-            const SizedBox(height: 12),
-            Container(
-              padding: EdgeInsets.all(compact ? 14 : 16),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F1724) : const Color(0xFFF8FBFF),
-                borderRadius: BorderRadius.circular(compact ? 24 : 28),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(
-                    alpha: isDark ? 0.08 : 0.05,
-                  ),
-                ),
-                boxShadow: AxisShadows.premiumGlow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : const Color(0xFFEAF1FF),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          color: Color(0xFF2457F5),
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            AnimatedSwitcher(
-                              duration: AxisDurations.normal,
-                              switchInCurve: Curves.easeOut,
-                              switchOutCurve: Curves.easeIn,
-                              layoutBuilder: (currentChild, previousChildren) {
-                                return Stack(
-                                  alignment: Alignment.centerLeft,
-                                  children: [
-                                    ...previousChildren,
-                                    if (currentChild != null) currentChild,
-                                  ],
-                                );
-                              },
-                              transitionBuilder: (child, animation) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0, 0.06),
-                                      end: Offset.zero,
-                                    ).animate(
-                                      CurvedAnimation(
-                                        parent: animation,
-                                        curve: Curves.easeOut,
-                                      ),
-                                    ),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: _hideBalance
-                                  ? Text(
-                                      '₦ ••••••',
-                                      key: const ValueKey('hidden_home_balance'),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                                            color: heroText,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 1.8,
-                                            fontSize: compact ? 28 : 32,
-                                          ),
-                                    )
-                                  : Text(
-                                      '₦${_formatNaira(balance)}',
-                                      key: const ValueKey('visible_home_balance'),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                                            color: heroText,
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: compact ? 28 : 32,
-                                          ),
-                                    ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.08)
-                                    : const Color(0xFFF1F5FF),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
-                                ),
-                              ),
-                              child: IconButton(
-                                onPressed: _toggleBalanceVisibility,
-                                icon: AnimatedSwitcher(
-                                  duration: AxisDurations.normal,
-                                  transitionBuilder: (child, animation) {
-                                    return FadeTransition(
-                                      opacity: animation,
-                                      child: ScaleTransition(
-                                        scale: Tween<double>(begin: 0.88, end: 1.0).animate(
-                                          CurvedAnimation(
-                                            parent: animation,
-                                            curve: Curves.easeOut,
-                                          ),
-                                        ),
-                                        child: child,
-                                      ),
-                                    );
-                                  },
-                                  child: Icon(
-                                    _hideBalance
-                                        ? Icons.visibility_off_rounded
-                                        : Icons.visibility_rounded,
-                                    key: ValueKey(_hideBalance),
-                                    color: heroText,
-                                  ),
-                                ),
-                                tooltip: _hideBalance ? 'Show balance' : 'Hide balance',
-                                style: IconButton.styleFrom(
-                                  padding: const EdgeInsets.all(9),
-                                  minimumSize: const Size(40, 40),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  FutureBuilder<Map<String, dynamic>>(
-                    future: _accountsFuture,
-                    builder: (context, snapshot) {
-                      final isLoading =
-                          snapshot.connectionState == ConnectionState.waiting;
-                      final accountsData = snapshot.data ??
-                          ((isLoading || snapshot.hasError) &&
-                                  _cachedAccountsData != null
-                              ? _cachedAccountsData
-                              : null);
-                      if (accountsData == null) {
-                        if (snapshot.hasError) {
-                          return _FundingAccountUnavailable(
-                            message: 'Wallet details are temporarily unavailable.',
-                            actionLabel: 'Open Wallet',
-                            onAction: () => widget.onNavigateTab?.call(1),
-                          );
-                        }
-                        return const _FundingAccountSkeleton();
-                      }
+            const SizedBox(height: 20),
 
-                      final accounts =
-                          (accountsData['accounts'] as List?) ?? const [];
-                      if (accounts.isEmpty) {
-                        return _FundingAccountUnavailable(
-                          message: 'Wallet details will appear shortly.',
-                          actionLabel: 'Open Wallet',
-                          onAction: () => widget.onNavigateTab?.call(1),
-                        );
-                      }
-                      final item = accounts.first is Map
-                          ? Map<String, dynamic>.from(accounts.first as Map)
-                          : <String, dynamic>{};
-                      final rawName = (item['bank_name'] ?? 'Paystack-Titan')
-                          .toString()
-                          .trim();
-                      final rawAccountName = (item['account_name'] ?? name)
-                          .toString()
-                          .trim();
-                      final rawNumber = (item['account_number'] ?? '')
-                          .toString()
-                          .trim();
-                      if (rawNumber.isEmpty) {
-                        return _FundingAccountUnavailable(
-                          message: 'Wallet details will appear shortly.',
-                          actionLabel: 'Open Wallet',
-                          onAction: () => widget.onNavigateTab?.call(1),
-                        );
-                      }
-
-                      final formattedNumber = _formatAccountNumber(rawNumber);
-
-                      return _FundingAccountBlock(
-                        bankName: rawName.isEmpty ? 'Paystack-Titan' : rawName,
-                        accountNumber: formattedNumber,
-                        accountName:
-                            rawAccountName.isEmpty ? name : rawAccountName,
-                        onCopyAccount: () => _copyAccountNumber(rawNumber),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
+            // Services Grid (PRIORITY #1)
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Services',
+                    'Utility Services',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       letterSpacing: 0.2,
                       fontWeight: FontWeight.w800,
@@ -729,7 +523,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -760,13 +554,119 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+
+            // Balance/Top-up (PRIORITY #2 - SECONDARY)
+            Container(
+              padding: EdgeInsets.all(compact ? 16 : 20),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F1724) : const Color(0xFFF8FBFF),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(
+                    alpha: isDark ? 0.08 : 0.05,
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Available Credit',
+                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                color: muted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            _hideBalance
+                                ? Text(
+                                    '₦ ••••••',
+                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  )
+                                : Text(
+                                    '₦${_formatNaira(balance)}',
+                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _toggleBalanceVisibility,
+                        icon: Icon(_hideBalance ? Icons.visibility_off : Icons.visibility, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.surface,
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  
+                  // Top-up Action
+                  GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => _TopUpSheet(
+                          accountsFuture: _accountsFuture,
+                          cachedAccounts: _cachedAccountsData,
+                          onCopy: _copyAccountNumber,
+                          formatNumber: _formatAccountNumber,
+                          name: name,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_circle_outline_rounded, 
+                            size: 20, 
+                            color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Add Credit',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
             _ReferralBanner(referralCode: referralCode),
+            
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Recent activity',
+                    'Purchase History',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       letterSpacing: 0.2,
                       fontWeight: FontWeight.w800,
@@ -775,7 +675,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 TextButton(
                   onPressed: () => widget.onNavigateTab?.call(2),
-                  child: const Text('History'),
+                  child: const Text('View All'),
                 ),
               ],
             ),
@@ -785,41 +685,16 @@ class _HomeScreenState extends State<HomeScreen> {
               initialData: _cachedTransactionsData,
               builder: (context, snapshot) {
                 final isLoading = snapshot.connectionState == ConnectionState.waiting;
-                final hasError = snapshot.hasError;
                 final raw = snapshot.data ?? const <dynamic>[];
                 final items = _normalizeTransactions(raw);
-                final recent = items.take(10).toList();
-                if (recent.isEmpty && isLoading && _cachedTransactionsData == null) {
-                  return const _RecentActivityLoadingState();
+                final recent = items.take(5).toList();
+                
+                if (recent.isEmpty && !isLoading) {
+                  return const Text('No recent purchases');
                 }
-                if (recent.isEmpty && hasError && _cachedTransactionsData == null) {
-                  return _RecentActivityErrorState(
-                    onRetry: _refresh,
-                  );
-                }
-                if (recent.isEmpty) {
-                  return const _RecentActivityEmptyState();
-                }
-                return GlassCard(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < recent.length; i++) ...[
-                        _RealActivityRow(
-                          title: _txTitleFor(recent[i]),
-                          subtitle: _txSubtitleFor(recent[i]),
-                          meta:
-                              '${_txStatusOf(recent[i]).toUpperCase()} • ${_txDateLabel(recent[i])}',
-                          amount: _txAmountLabel(recent[i]),
-                          accent: _txStatusColor(
-                            context,
-                            _txStatusOf(recent[i]),
-                          ),
-                        ),
-                        if (i != recent.length - 1) const Divider(height: 22),
-                      ],
-                    ],
-                  ),
+                
+                return Column(
+                  children: recent.map((tx) => _RecentActivityTile(tx: tx)).toList(),
                 );
               },
             ),
@@ -1856,5 +1731,228 @@ class _ReferralBanner extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+class _TopUpSheet extends StatelessWidget {
+  const _TopUpSheet({
+    required this.accountsFuture,
+    required this.cachedAccounts,
+    required this.onCopy,
+    required this.formatNumber,
+    required this.name,
+  });
+
+  final Future<Map<String, dynamic>>? accountsFuture;
+  final Map<String, dynamic>? cachedAccounts;
+  final Function(String) onCopy;
+  final String Function(String) formatNumber;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Top-up Details',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Transfer to the account below to add credit instantly.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+          const SizedBox(height: 24),
+          FutureBuilder<Map<String, dynamic>>(
+            future: accountsFuture,
+            initialData: cachedAccounts,
+            builder: (context, snapshot) {
+              final data = snapshot.data;
+              if (data == null) {
+                return const Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(),
+                );
+              }
+              final accounts = (data['accounts'] as List?) ?? [];
+              if (accounts.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('No top-up details available yet.'),
+                );
+              }
+              final item = accounts.first;
+              final bank = item['bank_name'] ?? 'Bank';
+              final number = item['account_number'] ?? '';
+              final accName = item['account_name'] ?? name;
+
+              return Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1A2233) : const Color(0xFFF1F5FF),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          bank.toString().toUpperCase(),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () => onCopy(number.toString()),
+                          child: Text(
+                            formatNumber(number.toString()),
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          accName.toString(),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => onCopy(number.toString()),
+                      icon: const Icon(Icons.copy_rounded),
+                      label: const Text('Copy Account Number'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentActivityTile extends StatelessWidget {
+  const _RecentActivityTile({required this.tx});
+  final Map<String, dynamic> tx;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isCredit = tx['tx_type'] == 'wallet_fund';
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: (isCredit ? Colors.green : Colors.blue).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isCredit ? Icons.add_rounded : Icons.shopping_bag_rounded,
+              color: isCredit ? Colors.green : Colors.blue,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _txTitleFor(tx),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  _txSubtitleFor(tx),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            _txAmountLabel(tx),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: isCredit ? Colors.green : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _txTitleFor(Map<String, dynamic> tx) {
+    final type = tx['tx_type']?.toString() ?? '';
+    return switch (type) {
+      'data' => 'Data Bundle',
+      'airtime' => 'Airtime',
+      'wallet_fund' => 'Top-up',
+      'cable' => 'Cable TV',
+      'electricity' => 'Electricity',
+      'exam' => 'Exam PIN',
+      _ => 'Service',
+    };
+  }
+
+  String _txSubtitleFor(Map<String, dynamic> tx) {
+    final network = tx['network']?.toString() ?? '';
+    if (network.isNotEmpty) return network.toUpperCase();
+    return tx['reference']?.toString() ?? '';
+  }
+
+  String _txAmountLabel(Map<String, dynamic> tx) {
+    final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
+    final isCredit = tx['tx_type'] == 'wallet_fund';
+    return '${isCredit ? '+' : '-'}₦${amount.toStringAsFixed(0)}';
   }
 }

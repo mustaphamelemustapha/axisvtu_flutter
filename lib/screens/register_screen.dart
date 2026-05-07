@@ -129,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               AuthHeroBlock(
                 title: 'Create your account',
-                subtitle: 'Open your VTU wallet and start transacting instantly.',
+                subtitle: 'Access utility services and start transacting instantly.',
                 logoSize: 80,
                 titleSize: 27,
                 tight: true,
