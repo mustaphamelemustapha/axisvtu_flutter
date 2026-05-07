@@ -197,7 +197,7 @@ class _ServiceGrid extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        mainAxisExtent: 110,
+        mainAxisExtent: 130,
       ),
       itemBuilder: (context, index) => _ServiceCard(item: items[index]),
     );
@@ -230,7 +230,7 @@ class _ServiceCard extends StatelessWidget {
     return GestureDetector(
       onTap: item.onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF141C2A) : Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -250,25 +250,30 @@ class _ServiceCard extends StatelessWidget {
                 color: item.accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(item.icon, color: item.accent, size: 24),
+              child: Icon(item.icon, color: item.accent, size: 22),
             ),
-            const Spacer(),
+            const SizedBox(height: 10),
             Text(
               item.label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.2,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               item.subtitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-                fontSize: 11,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.55),
+                fontSize: 10.5,
                 fontWeight: FontWeight.w500,
+                height: 1.2,
               ),
             ),
           ],
