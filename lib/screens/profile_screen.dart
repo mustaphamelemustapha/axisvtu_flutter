@@ -1570,7 +1570,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: 'Sign Out',
             icon: Icons.logout_rounded,
             backgroundColor: Colors.red.withValues(alpha: 0.1),
-            textColor: Colors.red,
+            foregroundColor: Colors.red,
             onPressed: () async {
               await session.logout();
               if (!context.mounted) return;

@@ -10,12 +10,16 @@ class PrimaryButton extends StatefulWidget {
     required this.onPressed,
     this.loading = false,
     this.icon,
+    this.backgroundColor,
+    this.foregroundColor,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final bool loading;
   final IconData? icon;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
 
   @override
   State<PrimaryButton> createState() => _PrimaryButtonState();
@@ -55,14 +59,16 @@ class _PrimaryButtonState extends State<PrimaryButton> {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        widget.foregroundColor ?? Colors.white,
+                      ),
                     ),
                   )
                 : Icon(widget.icon ?? Icons.arrow_forward_rounded, size: 20),
             label: Text(widget.label),
             style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: widget.backgroundColor ?? theme.colorScheme.primary,
+              foregroundColor: widget.foregroundColor ?? Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               minimumSize: const Size.fromHeight(54),
               shape: RoundedRectangleBorder(
