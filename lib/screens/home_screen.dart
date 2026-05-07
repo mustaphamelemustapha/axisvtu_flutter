@@ -486,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 1),
                       const Text(
-                        'Fast data, airtime and bills',
+                        'Fast services, simple experience.',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -514,9 +514,9 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Utility Services',
+                    'What would you like to do?',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      letterSpacing: 0.2,
+                      letterSpacing: -0.2,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -1318,6 +1318,14 @@ class _ServiceCardState extends State<_ServiceCard> {
                       decoration: BoxDecoration(
                         color: widget.item.accent.withValues(alpha: 0.14),
                         borderRadius: BorderRadius.circular(13),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.item.accent.withValues(alpha: 0.12),
+                            blurRadius: 10,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Icon(
                         widget.item.icon,
@@ -1325,17 +1333,20 @@ class _ServiceCardState extends State<_ServiceCard> {
                         color: widget.item.accent,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.item.label,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.1,
-                            height: 1.05,
-                          ),
+                    const SizedBox(height: 10),
+                    Flexible(
+                      child: Text(
+                        widget.item.label,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.1,
+                              height: 1.05,
+                              fontSize: compact ? 12 : 13,
+                            ),
+                      ),
                     ),
                   ],
                 ),
@@ -1733,7 +1744,7 @@ class _ReferralBanner extends StatelessWidget {
     );
   }
 }
-class _TopUpSheet extends StatelessWidget {
+class _TopUpSheet extends StatefulWidget {
   const _TopUpSheet({
     required this.accountsFuture,
     required this.cachedAccounts,
@@ -1749,17 +1760,27 @@ class _TopUpSheet extends StatelessWidget {
   final String name;
 
   @override
+  State<_TopUpSheet> createState() => _TopUpSheetState();
+}
+
+class _TopUpSheetState extends State<_TopUpSheet> {
+  bool _revealed = false;
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           Container(
             width: 40,
             height: 4,
@@ -1770,19 +1791,39 @@ class _TopUpSheet extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           const Text(
-            'Top-up Details',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            'Add Credit',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Transfer to the account below to add credit instantly.',
+          Text(
+            'Follow these simple steps to top up your account.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 14),
+            style: TextStyle(color: muted, fontSize: 14),
+          ),
+          const SizedBox(height: 24),
+          _StepTile(
+            number: '1',
+            title: 'Copy account details',
+            subtitle: 'Tap to copy your dedicated bank details.',
+            icon: Icons.copy_rounded,
+          ),
+          _StepTile(
+            number: '2',
+            title: 'Make a transfer',
+            subtitle: 'Send any amount to the account below.',
+            icon: Icons.account_balance_rounded,
+          ),
+          _StepTile(
+            number: '3',
+            title: 'Automatic reflection',
+            subtitle: 'Your credit will reflect instantly.',
+            icon: Icons.flash_on_rounded,
+            isLast: true,
           ),
           const SizedBox(height: 24),
           FutureBuilder<Map<String, dynamic>>(
-            future: accountsFuture,
-            initialData: cachedAccounts,
+            future: widget.accountsFuture,
+            initialData: widget.cachedAccounts,
             builder: (context, snapshot) {
               final data = snapshot.data;
               if (data == null) {
@@ -1793,15 +1834,19 @@ class _TopUpSheet extends StatelessWidget {
               }
               final accounts = (data['accounts'] as List?) ?? [];
               if (accounts.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text('No top-up details available yet.'),
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    'Your dedicated account details are being prepared. Please check back in a moment.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: muted),
+                  ),
                 );
               }
               final item = accounts.first;
               final bank = item['bank_name'] ?? 'Bank';
               final number = item['account_number'] ?? '';
-              final accName = item['account_name'] ?? name;
+              final accName = item['account_name'] ?? widget.name;
 
               return Column(
                 children: [
@@ -1810,56 +1855,160 @@ class _TopUpSheet extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1A2233) : const Color(0xFFF1F5FF),
                       borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      ),
                     ),
                     child: Column(
                       children: [
-                        Text(
-                          bank.toString().toUpperCase(),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                            color: Theme.of(context).colorScheme.primary,
-                            fontSize: 12,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.verified_user_rounded, size: 14, color: Colors.blue),
+                            const SizedBox(width: 6),
+                            Text(
+                              bank.toString().toUpperCase(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.2,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        GestureDetector(
-                          onTap: () => onCopy(number.toString()),
-                          child: Text(
-                            formatNumber(number.toString()),
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 2,
+                        const SizedBox(height: 16),
+                        if (!_revealed)
+                          TextButton.icon(
+                            onPressed: () => setState(() => _revealed = true),
+                            icon: const Icon(Icons.visibility_rounded, size: 18),
+                            label: const Text('Show account details'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          )
+                        else ...[
+                          GestureDetector(
+                            onTap: () => widget.onCopy(number.toString()),
+                            child: Text(
+                              widget.formatNumber(number.toString()),
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          accName.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                          const SizedBox(height: 10),
+                          Text(
+                            accName.toString(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => onCopy(number.toString()),
-                      icon: const Icon(Icons.copy_rounded),
-                      label: const Text('Copy Account Number'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
+                  if (_revealed) ...[
+                    const SizedBox(height: 20),
+                    PrimaryButton(
+                      label: 'Copy Account Number',
+                      icon: Icons.copy_all_rounded,
+                      onPressed: () => widget.onCopy(number.toString()),
                     ),
-                  ),
+                  ],
                 ],
               );
             },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Need help? Contact support at axisvtu.com',
+            style: TextStyle(fontSize: 11, color: muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepTile extends StatelessWidget {
+  const _StepTile({
+    required this.number,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.isLast = false,
+  });
+
+  final String number;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    number,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(icon, size: 14, color: muted),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: muted, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

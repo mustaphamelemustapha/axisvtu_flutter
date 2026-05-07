@@ -1346,6 +1346,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           SizedBox(height: compact ? 10 : 12),
+          _HelpCard(),
+          SizedBox(height: compact ? 10 : 12),
           _ProfileSection(
             title: 'Referrals',
             subtitle: 'Invite friends and earn rewards',
@@ -1879,6 +1881,118 @@ class _ActionTile extends StatelessWidget {
                   ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HelpCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF141C2A) : const Color(0xFFF3F7FF),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.headset_mic_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Need help?',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5),
+                    ),
+                    Text(
+                      'We are here for you 24/7.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _SupportAction(
+                  label: 'Call Us',
+                  icon: Icons.phone_rounded,
+                  onTap: () => launchUrl(Uri.parse('tel:+2348141114647')),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SupportAction(
+                  label: 'Website',
+                  icon: Icons.language_rounded,
+                  onTap: () => launchUrl(Uri.parse('https://axisvtu.com')),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SupportAction extends StatelessWidget {
+  const _SupportAction({required this.label, required this.icon, required this.onTap});
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+          ],
         ),
       ),
     );

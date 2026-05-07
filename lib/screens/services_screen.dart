@@ -64,40 +64,83 @@ class ServicesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Services',
-          style: TextStyle(fontWeight: FontWeight.w800),
+          'Services Hub',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
         centerTitle: false,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
-          Text(
-            'Digital Utility Services',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w600,
-            ),
+          _SectionHeader(
+            title: 'Mobile Services',
+            subtitle: 'Data bundles and airtime top-up',
           ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: services.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: size.width < 430 ? 2 : 3,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-              mainAxisExtent: compact ? 140 : 154,
-            ),
-            itemBuilder: (context, index) {
-              final item = services[index];
-              return _ServiceCard(item: item);
-            },
+          _ServiceGrid(
+            items: [
+              _ServiceItem(
+                label: 'Buy Data',
+                subtitle: 'MTN, Glo, Airtel...',
+                icon: Icons.wifi_rounded,
+                accent: const Color(0xFF2563EB),
+                onTap: () => _openScreen(context, const DataScreen()),
+              ),
+              _ServiceItem(
+                label: 'Airtime',
+                subtitle: 'Instant recharge',
+                icon: Icons.phone_iphone_rounded,
+                accent: const Color(0xFF059669),
+                onTap: () => _openScreen(context, const AirtimeScreen()),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
+          _SectionHeader(
+            title: 'Bill Payments',
+            subtitle: 'Electricity and Cable TV subscriptions',
+          ),
+          _ServiceGrid(
+            items: [
+              _ServiceItem(
+                label: 'Electricity',
+                subtitle: 'Prepaid meter tokens',
+                icon: Icons.bolt_rounded,
+                accent: const Color(0xFFD97706),
+                onTap: () => _openScreen(context, const ElectricityScreen()),
+              ),
+              _ServiceItem(
+                label: 'Cable TV',
+                subtitle: 'DSTV, GOTV, Startimes',
+                icon: Icons.live_tv_rounded,
+                accent: const Color(0xFF7C3AED),
+                onTap: () => _openScreen(context, const CableScreen()),
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+          _SectionHeader(
+            title: 'Educational',
+            subtitle: 'Exam results and registration PINs',
+          ),
+          _ServiceGrid(
+            items: [
+              _ServiceItem(
+                label: 'Exam PINs',
+                subtitle: 'WAEC, NECO, JAMB',
+                icon: Icons.school_rounded,
+                accent: const Color(0xFFDC2626),
+                onTap: () => _openScreen(context, const ExamScreen()),
+              ),
+              _ServiceItem(
+                label: 'Referrals',
+                subtitle: 'Invite & earn rewards',
+                icon: Icons.card_giftcard_rounded,
+                accent: const Color(0xFFDB2777),
+                onTap: () => _openScreen(context, const ReferralScreen()),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
           _SupportCard(),
         ],
       ),
@@ -107,6 +150,57 @@ class ServicesScreen extends StatelessWidget {
   void _openScreen(BuildContext context, Widget screen) {
     HapticFeedback.selectionClick();
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2,
+                ),
+          ),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ServiceGrid extends StatelessWidget {
+  const _ServiceGrid({required this.items});
+  final List<_ServiceItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: 110,
+      ),
+      itemBuilder: (context, index) => _ServiceCard(item: items[index]),
+    );
   }
 }
 

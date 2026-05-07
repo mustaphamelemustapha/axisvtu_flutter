@@ -123,13 +123,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   String _titleFor(Map<String, dynamic> tx) {
     return switch (_typeOf(tx)) {
-      'data' => 'Data Purchase',
-      'wallet_fund' => 'Wallet Funding',
-      'airtime' => 'Airtime Purchase',
-      'cable' => 'Cable Subscription',
-      'electricity' => 'Electricity Payment',
-      'exam' => 'Exam Pin Purchase',
-      _ => 'Transaction',
+      'data' => 'Data Bundle',
+      'wallet_fund' => 'Account Top-up',
+      'airtime' => 'Airtime Recharge',
+      'cable' => 'Cable TV',
+      'electricity' => 'Electricity Token',
+      'exam' => 'Exam PIN',
+      _ => 'Service',
     };
   }
 
@@ -648,16 +648,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   children: [
                                     Text(
                                       status == 'success'
-                                          ? 'Transaction successful'
+                                          ? 'Purchase successful'
                                           : (status == 'pending'
-                                                ? 'Transaction pending'
-                                                : 'Transaction failed'),
+                                                ? 'Processing order'
+                                                : 'Order failed'),
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleLarge
                                           ?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: -0.18,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: -0.5,
                                           ),
                                     ),
                                     const SizedBox(height: 2),
