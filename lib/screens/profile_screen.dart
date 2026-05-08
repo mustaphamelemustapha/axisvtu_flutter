@@ -1574,12 +1574,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             backgroundColor: Colors.red.withValues(alpha: 0.1),
             foregroundColor: Colors.red,
             onPressed: () async {
-              await session.logout();
-              if (!context.mounted) return;
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                WelcomeScreen.route,
-                (_) => false,
-              );
+              try {
+                debugPrint('[Profile] Sign out initiated...');
+                await session.logout();
+                debugPrint('[Profile] Session cleared. Navigating to welcome...');
+                if (!context.mounted) return;
+                
+                // Use rootNavigator to ensure we clear the shell and tabs
+                Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+                  WelcomeScreen.route,
+                  (_) => false,
+                );
+              } catch (e) {
+                debugPrint('[Profile] Sign out failed: $e');
+              }
             },
           ),
         ],
