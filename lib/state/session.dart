@@ -11,6 +11,7 @@ class SessionController extends ChangeNotifier {
 
   static const String lastIdentifierKey = 'axisvtu_last_identifier';
   static const String _tokenKey = 'axisvtu_secure_token_v1';
+  static const String _biometricTokenKey = 'axisvtu_biometric_token_v1';
   
   static const _secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -202,6 +203,56 @@ class SessionController extends ChangeNotifier {
     _token = null;
     _user = null;
     notifyListeners();
+  }
+
+  /// Saves the current session token specifically for biometric quick-login.
+  Future<void> enableBiometrics() async {
+    if (_token == null || _token!.isEmpty) return;
+    try {
+      await _secureStorage.write(key: _biometricTokenKey, value: _token!);
+      debugPrint('[Session] Biometric token saved.');
+    } catch (e) {
+      debugPrint('[Session] Failed to save biometric token: $e');
+    }
+  }
+
+  /// Removes any saved biometric quick-login credentials.
+  Future<void> disableBiometrics() async {
+    try {
+      await _secureStorage.delete(key: _biometricTokenKey);
+      debugPrint('[Session] Biometric token deleted.');
+    } catch (e) {
+      debugPrint('[Session] Failed to delete biometric token: $e');
+    }
+  }
+
+  /// Attempts to restore the session using the saved biometric token.
+  Future<bool> loginWithBiometrics() async {
+    try {
+      final bioToken = await _secureStorage.read(key: _biometricTokenKey);
+      if (bioToken == null || bioToken.isEmpty) {
+        debugPrint('[Session] No biometric token found.');
+        return false;
+      }
+
+      // Test the token by fetching user profile
+      final user = await _fetchMe(bioToken);
+      if (user == null) {
+        debugPrint('[Session] Biometric token is invalid or expired.');
+        await disableBiometrics();
+        return false;
+      }
+
+      // Success - promote bioToken to active token
+      _token = bioToken;
+      _user = user;
+      await _secureStorage.write(key: _tokenKey, value: _token!);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('[Session] loginWithBiometrics error: $e');
+      return false;
+    }
   }
 
   void updateUser(Map<String, dynamic> user) {

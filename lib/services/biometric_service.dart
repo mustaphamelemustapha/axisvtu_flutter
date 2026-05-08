@@ -110,9 +110,10 @@ class BiometricService {
     try {
       return await _auth.authenticate(
         localizedReason: reason,
-        biometricOnly: false, // Allow device credential fallback on Android
-        persistAcrossBackgrounding:
-            true, // Keep auth alive if app is minimized briefly
+        options: const AuthenticationOptions(
+          biometricOnly: true, // Prefer FaceID/TouchID over passcode
+          stickyAuth: true,    // Keep auth alive if system overlay appears
+        ),
       );
     } on PlatformException {
       return false;

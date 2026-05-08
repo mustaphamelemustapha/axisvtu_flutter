@@ -94,17 +94,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       });
       return;
     }
-    // Restore session from saved token
+    // Restore session from saved biometric token
     final session = context.read<SessionController>();
-    await session.bootstrap();
+    final ok = await session.loginWithBiometrics();
     if (!mounted) return;
-    if (session.isAuthenticated) {
+    if (ok) {
       Navigator.of(context).pushReplacementNamed(ShellScreen.route);
     } else {
       setState(() {
         _biometricLoading = false;
         _localError =
-            'Please sign in once to enable biometric quick sign-in.';
+            'Please sign in once with your password to enable biometric quick sign-in.';
       });
     }
   }

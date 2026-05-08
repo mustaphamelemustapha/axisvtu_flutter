@@ -918,6 +918,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (_biometricEnabled) {
         setState(() => _biometricEnabled = false);
         await BiometricService.setAppLockEnabled(false);
+        final session = context.read<SessionController>();
+        await session.disableBiometrics();
         return;
       }
 
@@ -927,6 +929,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (authenticated) {
         setState(() => _biometricEnabled = true);
         await BiometricService.setAppLockEnabled(true);
+        // Also save the token specifically for biometrics so it persists after logout
+        final session = context.read<SessionController>();
+        await session.enableBiometrics();
+        
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Biometric unlock enabled.')),
