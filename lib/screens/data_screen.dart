@@ -63,16 +63,8 @@ class _DataScreenState extends State<DataScreen> {
     '9mobile': ['0809', '0817', '0818', '0908', '0909'],
   };
 
-  static const Map<String, int> _airtelBundleOrder = {
-    '2GB': 0,
-    '3GB': 1,
-    '4GB': 2,
-    '8GB': 3,
-    '10GB': 4,
-    '13GB': 5,
-    '18GB': 6,
-    '25GB': 7,
-  };
+  // Removed manual ordering to allow price-based sorting for all bundles
+  static const Map<String, int> _airtelBundleOrder = {};
 
   static const double _planTileExtent = 174;
 
