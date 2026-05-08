@@ -405,7 +405,7 @@ class _TrustFooter extends StatelessWidget {
         const SizedBox(height: 12),
         TextButton(
           onPressed: () {
-            // Support logic
+            launchUrl(Uri.parse('mailto:mmtechglobe@gmail.com?subject=AxisVTU%20Support%20Request'));
           },
           style: TextButton.styleFrom(
             visualDensity: VisualDensity.compact,
