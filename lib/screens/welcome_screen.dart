@@ -205,7 +205,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       controller: _passwordCtrl,
                       focusNode: _passwordFocus,
                       hint: 'Password',
-                      icon: Icons.shield_lock_outlined,
+                      icon: Icons.lock_person_outlined,
                       obscureText: _obscure,
                       suffix: IconButton(
                         onPressed: () => setState(() => _obscure = !_obscure),

@@ -98,7 +98,7 @@ class AuthBackdrop extends StatelessWidget {
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(26),
-                                  gradient: AxisPalette.gradient.withValues(alpha: 0.05),
+                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(24),
