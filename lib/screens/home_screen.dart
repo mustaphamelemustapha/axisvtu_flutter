@@ -255,13 +255,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _txTitleFor(Map<String, dynamic> tx) {
     return switch (_txTypeOf(tx)) {
-      'data' => 'Data Purchase',
-      'wallet_fund' => 'Account Top-up',
-      'airtime' => 'Airtime Purchase',
-      'cable' => 'Cable Subscription',
-      'electricity' => 'Electricity Payment',
-      'exam' => 'Exam Pin Purchase',
-      _ => 'Service Transaction',
+      'data' => 'Data Bundle',
+      'wallet_fund' => 'Credit Added',
+      'airtime' => 'Mobile Airtime',
+      'cable' => 'TV Subscription',
+      'electricity' => 'Power Token',
+      'exam' => 'Educational Pin',
+      _ => 'Utility Service',
     };
   }
 
@@ -300,6 +300,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final time = TimeOfDay.fromDateTime(date.toLocal()).format(context);
     if (txDay == day) return 'Today • $time';
     return '${date.day} ${_monthShort(date.month)} • $time';
+  }
+
+  String _greetingText() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   }
 
   String _monthShort(int month) {
@@ -447,52 +454,61 @@ class _HomeScreenState extends State<HomeScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
           children: [
-            // Header
+            // Header - Refined & Human
             Row(
               children: [
                 Container(
-                  height: 44,
-                  width: 44,
+                  height: 48,
+                  width: 48,
                   decoration: BoxDecoration(
                     gradient: AxisPalette.gradient,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: AxisShadows.softGlow,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                        blurRadius: 15,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: Center(
                     child: Text(
                       initials.isEmpty ? 'AX' : initials,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AxisSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hi, $name',
+                        '${_greetingText()}, $name 👋',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.35,
-                          fontSize: compact ? 18 : 19,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.8,
+                          fontSize: compact ? 20 : 22,
+                          color: heroText,
                         ),
                       ),
-                      const SizedBox(height: 1),
-                      const Text(
-                        'Fast services, simple experience.',
+                      const SizedBox(height: 2),
+                      Text(
+                        'What would you like to do today?',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
+                          color: heroSoftText.withValues(alpha: 0.7),
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
+                          letterSpacing: -0.1,
                         ),
                       ),
                     ],
@@ -500,25 +516,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _HeaderIconButton(
                   icon: Icons.notifications_none_rounded,
-                  size: 40,
+                  size: 42,
                   onTap: _openNotificationsCenter,
                 ),
-                const SizedBox(width: 6),
-                const ThemeToggleButton(size: 40),
+                const SizedBox(width: 8),
+                const ThemeToggleButton(size: 42),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
 
             // Services Grid (PRIORITY #1)
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    'What would you like to do?',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      letterSpacing: -0.2,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Quick Services',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          letterSpacing: -0.5,
+                          fontWeight: FontWeight.w900,
+                          color: heroText,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tap to start a new transaction',
+                        style: TextStyle(
+                          color: heroSoftText.withValues(alpha: 0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -556,46 +587,65 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Balance/Top-up (PRIORITY #2 - SECONDARY)
+            // Balance/Top-up (Refined & Premium)
             Container(
-              padding: EdgeInsets.all(compact ? 16 : 20),
+              padding: EdgeInsets.all(compact ? 18 : 22),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F1724) : const Color(0xFFF8FBFF),
-                borderRadius: BorderRadius.circular(28),
+                color: isDark ? const Color(0xFF111927) : Colors.white,
+                borderRadius: BorderRadius.circular(AxisRadii.xxl),
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outline.withValues(
-                    alpha: isDark ? 0.08 : 0.05,
+                    alpha: isDark ? 0.08 : 0.06,
                   ),
                 ),
+                boxShadow: AxisShadows.softGlow,
               ),
               child: Column(
                 children: [
                   Row(
                     children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Available Credit',
-                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                color: muted,
-                                fontWeight: FontWeight.w600,
+                              'WALLET BALANCE',
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: heroSoftText.withValues(alpha: 0.6),
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.8,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             _hideBalance
                                 ? Text(
                                     '₦ ••••••',
-                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1.5,
+                                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 2,
+                                      color: heroText,
                                     ),
                                   )
                                 : Text(
                                     '₦${_formatNaira(balance)}',
-                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                      fontWeight: FontWeight.w800,
+                                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.5,
+                                      color: heroText,
+                                      fontFeatures: const [FontFeature.tabularFigures()],
                                     ),
                                   ),
                           ],
@@ -603,62 +653,48 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       IconButton(
                         onPressed: _toggleBalanceVisibility,
-                        icon: Icon(_hideBalance ? Icons.visibility_off : Icons.visibility, size: 20),
+                        icon: Icon(
+                          _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                          size: 20,
+                        ),
                         style: IconButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.surface,
-                          padding: const EdgeInsets.all(8),
+                          backgroundColor: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF1F5F9),
+                          foregroundColor: heroSoftText,
+                          padding: const EdgeInsets.all(10),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-                  
-                  // Top-up Action
-                  GestureDetector(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) => _TopUpSheet(
-                          accountsFuture: _accountsFuture,
-                          cachedAccounts: _cachedAccountsData,
-                          onCopy: _copyAccountNumber,
-                          formatNumber: _formatAccountNumber,
-                          name: name,
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: PrimaryButton(
+                          label: 'Add Credit',
+                          compact: true,
+                          icon: Icons.add_rounded,
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => _TopUpSheet(
+                                accountsFuture: _accountsFuture,
+                                cachedAccounts: _cachedAccountsData,
+                                onCopy: _copyAccountNumber,
+                                formatNumber: _formatAccountNumber,
+                                name: name,
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_circle_outline_rounded, 
-                            size: 20, 
-                            color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Add Credit',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
             _ReferralBanner(referralCode: referralCode),
             
@@ -687,16 +723,104 @@ class _HomeScreenState extends State<HomeScreen> {
                 final isLoading = snapshot.connectionState == ConnectionState.waiting;
                 final raw = snapshot.data ?? const <dynamic>[];
                 final items = _normalizeTransactions(raw);
-                final recent = items.take(5).toList();
+                final recent = items.take(4).toList();
                 
                 if (recent.isEmpty && !isLoading) {
-                  return const Text('No recent purchases');
+                  return Container(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(
+                        'No transactions yet',
+                        style: TextStyle(color: muted, fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  );
                 }
                 
                 return Column(
-                  children: recent.map((tx) => _RecentActivityTile(tx: tx)).toList(),
+                  children: recent.map((tx) => _RecentActivityTile(
+                    tx: tx,
+                    title: _txTitleFor(tx),
+                    subtitle: _txSubtitleFor(tx),
+                    amount: _txAmountLabel(tx),
+                    date: _txDateLabel(tx).split(' • ').first,
+                  )).toList(),
                 );
               },
+            ),
+            const SizedBox(height: 32),
+
+            // Support/Help Section - Human Warmth
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF1F5F9).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.05),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF0EA5E9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.support_agent_rounded, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Need any help?',
+                          style: TextStyle(
+                            color: heroText,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'We are here for you 24/7',
+                          style: TextStyle(
+                            color: heroSoftText.withValues(alpha: 0.6),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      // Logic for support
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Chat now', style: TextStyle(fontWeight: FontWeight.w800)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+            Center(
+              child: Text(
+                'AXISVTU v1.0.3 • SECURE & TRUSTED',
+                style: TextStyle(
+                  color: muted.withValues(alpha: 0.4),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
             ),
           ],
         ),
@@ -1281,10 +1405,12 @@ class _ServiceCardState extends State<_ServiceCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final compact = MediaQuery.sizeOf(context).width < 360;
+    
     return AnimatedScale(
-      scale: _pressed ? 0.98 : 1,
-      duration: const Duration(milliseconds: 130),
+      scale: _pressed ? 0.96 : 1,
+      duration: const Duration(milliseconds: 100),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -1293,64 +1419,45 @@ class _ServiceCardState extends State<_ServiceCard> {
             widget.item.onTap();
           },
           onHighlightChanged: (value) => setState(() => _pressed = value),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(22),
           child: Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(18),
+              color: isDark ? const Color(0xFF161F2C) : Colors.white,
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.05),
               ),
-              boxShadow: AxisShadows.softGlow,
+              boxShadow: _pressed ? [] : AxisShadows.softGlow,
             ),
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: compact ? 8 : 10,
-                  vertical: compact ? 8 : 10,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: compact ? 38 : 42,
+                  height: compact ? 38 : 42,
+                  decoration: BoxDecoration(
+                    color: widget.item.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    widget.item.icon,
+                    size: compact ? 20 : 22,
+                    color: widget.item.accent,
+                  ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: compact ? 34 : 38,
-                      height: compact ? 34 : 38,
-                      decoration: BoxDecoration(
-                        color: widget.item.accent.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(13),
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.item.accent.withValues(alpha: 0.12),
-                            blurRadius: 10,
-                            spreadRadius: 0,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                const SizedBox(height: 12),
+                Text(
+                  widget.item.label,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        fontSize: compact ? 12 : 13,
                       ),
-                      child: Icon(
-                        widget.item.icon,
-                        size: compact ? 18 : 20,
-                        color: widget.item.accent,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Flexible(
-                      child: Text(
-                        widget.item.label,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.1,
-                              height: 1.05,
-                              fontSize: compact ? 12 : 13,
-                            ),
-                      ),
-                    ),
-                  ],
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -2003,35 +2110,54 @@ class _StepTile extends StatelessWidget {
 }
 
 class _RecentActivityTile extends StatelessWidget {
-  const _RecentActivityTile({required this.tx});
+  const _RecentActivityTile({
+    required this.tx,
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+    required this.date,
+  });
   final Map<String, dynamic> tx;
+  final String title;
+  final String subtitle;
+  final String amount;
+  final String date;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isCredit = tx['tx_type'] == 'wallet_fund';
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
+    final status = (tx['status'] ?? 'success').toString().toLowerCase();
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? const Color(0xFF161F2C) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.05),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: (isCredit ? Colors.green : Colors.blue).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: (isCredit ? const Color(0xFF10B981) : const Color(0xFF3B82F6)).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
-              isCredit ? Icons.add_rounded : Icons.shopping_bag_rounded,
-              color: isCredit ? Colors.green : Colors.blue,
+              isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+              color: isCredit ? const Color(0xFF10B981) : const Color(0xFF3B82F6),
               size: 20,
             ),
           ),
@@ -2041,25 +2167,61 @@ class _RecentActivityTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _txTitleFor(tx),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      ),
                 ),
-                Text(
-                  _txSubtitleFor(tx),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: muted,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 3,
+                      height: 3,
+                      decoration: BoxDecoration(color: muted, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      status.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                        color: status == 'success' ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          Text(
-            _txAmountLabel(tx),
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              color: isCredit ? Colors.green : null,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                amount,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: isCredit ? const Color(0xFF10B981) : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+              ),
+              Text(
+                date,
+                style: TextStyle(fontSize: 10, color: muted, fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
         ],
       ),

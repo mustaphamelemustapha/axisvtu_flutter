@@ -12,6 +12,7 @@ class PrimaryButton extends StatefulWidget {
     this.icon,
     this.backgroundColor,
     this.foregroundColor,
+    this.compact = false,
   });
 
   final String label;
@@ -20,6 +21,7 @@ class PrimaryButton extends StatefulWidget {
   final IconData? icon;
   final Color? backgroundColor;
   final Color? foregroundColor;
+  final bool compact;
 
   @override
   State<PrimaryButton> createState() => _PrimaryButtonState();
@@ -93,8 +95,11 @@ class _PrimaryButtonState extends State<PrimaryButton> {
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 foregroundColor: widget.foregroundColor ?? Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                minimumSize: const Size.fromHeight(56),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: widget.compact ? 12 : 16,
+                ),
+                minimumSize: Size.fromHeight(widget.compact ? 48 : 56),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AxisRadii.lg),
                 ),
