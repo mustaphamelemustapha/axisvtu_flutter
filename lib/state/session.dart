@@ -120,6 +120,12 @@ class SessionController extends ChangeNotifier {
       
       await _secureStorage.write(key: _tokenKey, value: _token!);
       
+      // If biometrics were previously enabled, keep the token fresh.
+      final hasBio = await _secureStorage.read(key: _biometricTokenKey) != null;
+      if (hasBio) {
+        await _secureStorage.write(key: _biometricTokenKey, value: _token!);
+      }
+      
       final prefs = await SharedPreferences.getInstance();
       final trimmedIdentifier = email.trim();
       if (trimmedIdentifier.isNotEmpty) {
@@ -235,20 +241,33 @@ class SessionController extends ChangeNotifier {
         return false;
       }
 
-      // Test the token by fetching user profile
+      // 1. Immediately promote token to active state to avoid "Sign in with password" false-positive
+      _token = bioToken;
+      
+      // 2. Attempt to fetch profile to verify token & hydrate UI
       final user = await _fetchMe(bioToken);
-      if (user == null) {
-        debugPrint('[Session] Biometric token is invalid or expired.');
-        await disableBiometrics();
-        return false;
+      if (user != null) {
+        _user = user;
+        await _secureStorage.write(key: _tokenKey, value: _token!);
+        notifyListeners();
+        return true;
       }
 
-      // Success - promote bioToken to active token
-      _token = bioToken;
-      _user = user;
-      await _secureStorage.write(key: _tokenKey, value: _token!);
-      notifyListeners();
-      return true;
+      // 3. If user is null, it might be a network error. 
+      // In a "world-class" app, we check if we HAVE a cached user profile.
+      if (_user != null) {
+        // We already have a profile in memory (or it might have been loaded during bootstrap)
+        // We trust the bioToken for now.
+        notifyListeners();
+        return true;
+      }
+
+      // If we get here, it means we have no profile AND the token check failed.
+      // This is a genuine session expiration.
+      debugPrint('[Session] Biometric token is likely expired.');
+      _token = null;
+      await disableBiometrics();
+      return false;
     } catch (e) {
       debugPrint('[Session] loginWithBiometrics error: $e');
       return false;

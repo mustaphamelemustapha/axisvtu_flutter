@@ -196,21 +196,21 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ),
                     _AuthInput(
                       controller: _identifierCtrl,
-                      hint: 'Email address or phone number',
-                      icon: Icons.person_outline_rounded,
+                      hint: 'Email or phone number',
+                      icon: Icons.alternate_email_rounded,
                       keyboardType: TextInputType.emailAddress,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
                     _AuthInput(
                       controller: _passwordCtrl,
                       focusNode: _passwordFocus,
                       hint: 'Password',
-                      icon: Icons.lock_outline_rounded,
+                      icon: Icons.shield_lock_outlined,
                       obscureText: _obscure,
                       suffix: IconButton(
                         onPressed: () => setState(() => _obscure = !_obscure),
                         icon: Icon(
-                          _obscure ? Icons.visibility_off : Icons.visibility,
+                          _obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                           size: 20,
                         ),
                       ),
@@ -254,14 +254,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     const SizedBox(height: 10),
                     PrimaryButton(
                       label: session.isLoading || _loading
-                          ? 'Signing in...'
-                          : 'Continue',
+                          ? 'Authenticating...'
+                          : 'Sign In Securely',
                       loading: session.isLoading || _loading,
-                      icon: Icons.login_rounded,
+                      icon: Icons.lock_outline_rounded,
                       onPressed: (session.isLoading || _loading) ? null : _login,
                     ),
                     if (_biometricAvailable) ...[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 18),
                       _BiometricSignInButton(
                         loading: _biometricLoading,
                         onPressed: (session.isLoading ||
@@ -370,36 +370,47 @@ class _TrustFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45);
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.shield_outlined, size: 14, color: muted),
-            const SizedBox(width: 6),
+            Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(color: muted, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
             Text(
-              'Secure access • Fast services',
+              'SECURE ACCESS • INSTANT DELIVERY • 24/7 TRUST',
               style: TextStyle(
                 color: muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
               ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(color: muted, shape: BoxShape.circle),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 12),
         TextButton(
           onPressed: () {
             // Support logic
           },
           style: TextButton.styleFrom(
             visualDensity: VisualDensity.compact,
-            foregroundColor: muted,
+            foregroundColor: muted.withValues(alpha: 0.8),
           ),
           child: const Text(
-            'Need help? Contact support',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            'Need any help? Contact Support',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
         ),
       ],
@@ -407,7 +418,7 @@ class _TrustFooter extends StatelessWidget {
   }
 }
 
-class _AuthInput extends StatelessWidget {
+class _AuthInput extends StatefulWidget {
   const _AuthInput({
     required this.controller,
     required this.hint,
@@ -427,40 +438,93 @@ class _AuthInput extends StatelessWidget {
   final FocusNode? focusNode;
 
   @override
+  State<_AuthInput> createState() => _AuthInputState();
+}
+
+class _AuthInputState extends State<_AuthInput> {
+  late FocusNode _effectiveFocus;
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _effectiveFocus = widget.focusNode ?? FocusNode();
+    _effectiveFocus.addListener(_handleFocusChange);
+  }
+
+  void _handleFocusChange() {
+    if (mounted) setState(() => _isFocused = _effectiveFocus.hasFocus);
+  }
+
+  @override
+  void dispose() {
+    if (widget.focusNode == null) _effectiveFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 20),
-        suffixIcon: suffix,
-        filled: true,
-        fillColor: isDark ? const Color(0xFF151E31) : const Color(0xFFF7FAFF),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          if (_isFocused)
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.08 : 0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: TextField(
+        controller: widget.controller,
+        focusNode: _effectiveFocus,
+        keyboardType: widget.keyboardType,
+        obscureText: widget.obscureText,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          hintStyle: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
           ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Icon(
+              widget.icon,
+              size: 20,
+              color: _isFocused ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
           ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-            width: 1.5,
+          prefixIconConstraints: const BoxConstraints(minWidth: 40),
+          suffixIcon: widget.suffix,
+          filled: true,
+          fillColor: isDark ? const Color(0xFF111827) : Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(
+              color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.15 : 0.08),
+            ),
           ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(
+              color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.06),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(
+              color: theme.colorScheme.primary.withValues(alpha: 0.8),
+              width: 1.5,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       ),
     );
   }
@@ -474,36 +538,77 @@ class _BiometricSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return SizedBox(
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Container(
       width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          side: BorderSide(color: primary.withValues(alpha: 0.25), width: 1.2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          backgroundColor: isDark
-              ? primary.withValues(alpha: 0.08)
-              : primary.withValues(alpha: 0.05),
-          foregroundColor: primary,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: isDark ? Colors.white.withValues(alpha: 0.02) : const Color(0xFFF1F5F9),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.05),
         ),
-        icon: loading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: primary,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: loading
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: primary,
+                          ),
+                        )
+                      : Icon(Icons.fingerprint_rounded, size: 22, color: primary),
                 ),
-              )
-            : const Icon(Icons.fingerprint_rounded, size: 22),
-        label: Text(
-          loading ? 'Authenticating…' : 'Sign in with Biometric',
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Quick Secure Access',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        loading ? 'Authenticating...' : 'Use biometric access',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

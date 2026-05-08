@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
@@ -24,151 +25,172 @@ class AuthBackdrop extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: isDark
-            ? AxisPalette.softBackgroundGradient
-            : AxisPalette.lightWashGradient,
+        color: isDark ? const Color(0xFF0A0F1D) : const Color(0xFFF8FAFF),
       ),
-      child: SafeArea(
-        child: Stack(
-          children: [
-            Positioned(
-              top: -54,
-              right: -48,
-              child: _Orb(
-                width: 180,
-                height: 180,
-                colors: [
-                  const Color(0xFF2457F5).withValues(alpha: isDark ? 0.22 : 0.12),
-                  const Color(0xFF14B8A6).withValues(alpha: isDark ? 0.12 : 0.05),
-                ],
-              ),
+      child: Stack(
+        children: [
+          // Ambient Glow Layer 1
+          Positioned(
+            top: -100,
+            right: -80,
+            child: _Orb(
+              width: 320,
+              height: 320,
+              blur: 80,
+              colors: [
+                const Color(0xFF2457F5).withValues(alpha: isDark ? 0.15 : 0.08),
+                const Color(0xFF14B8A6).withValues(alpha: 0.0),
+              ],
             ),
-            Positioned(
-              bottom: -70,
-              left: -56,
-              child: _Orb(
-                width: 190,
-                height: 190,
-                colors: [
-                  const Color(0xFF14B8A6).withValues(alpha: isDark ? 0.18 : 0.1),
-                  const Color(0xFF2457F5).withValues(alpha: isDark ? 0.1 : 0.04),
-                ],
-              ),
+          ),
+          // Ambient Glow Layer 2
+          Positioned(
+            bottom: -120,
+            left: -100,
+            child: _Orb(
+              width: 360,
+              height: 360,
+              blur: 100,
+              colors: [
+                const Color(0xFF14B8A6).withValues(alpha: isDark ? 0.12 : 0.06),
+                const Color(0xFF2457F5).withValues(alpha: 0.0),
+              ],
             ),
-            if (showBrandText) ...[
-              Positioned(top: 16, left: 18, child: _BrandPill(isDark: isDark)),
-              if (overlay case final Widget overlayWidget) overlayWidget,
-              Positioned(
-                top: 96,
-                left: 24,
-                right: 24,
-                child: Column(
-                  children: [
-                    Container(
-                      height: 94,
-                      width: 94,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: isDark
-                              ? const Color(0x3357A1FF)
-                              : const Color(0x1F2457F5),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: isDark ? 0.24 : 0.12,
+          ),
+          
+          SafeArea(
+            child: Stack(
+              children: [
+                if (showBrandText) ...[
+                  Positioned(top: 16, left: 18, child: _BrandPill(isDark: isDark)),
+                  if (overlay case final Widget overlayWidget) overlayWidget,
+                  Positioned(
+                    top: 86,
+                    left: 24,
+                    right: 24,
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 98,
+                          width: 98,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: isDark
+                                  ? const Color(0x3D57A1FF)
+                                  : const Color(0x242457F5),
+                              width: 1.5,
                             ),
-                            blurRadius: 26,
-                            offset: const Offset(0, 14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.35 : 0.12,
+                                ),
+                                blurRadius: 32,
+                                offset: const Offset(0, 16),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Hero(
-                          tag: 'axis-logo',
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: Image.asset(
-                              'assets/brand/axisvtu-icon.png',
-                              width: 94,
-                              height: 94,
-                              fit: BoxFit.cover,
+                          child: Center(
+                            child: Hero(
+                              tag: 'axis-logo',
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(26),
+                                  gradient: AxisPalette.gradient.withValues(alpha: 0.05),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Image.asset(
+                                    'assets/brand/axisvtu-icon.png',
+                                    width: 98,
+                                    height: 98,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'AxisVTU',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                        color: brandColor,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Fast services. Clean receipts. One simple app.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500,
-                        color: muted,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: const [
-                        _TrustChip(
-                          icon: Icons.flash_on_rounded,
-                          label: 'Fast delivery',
+                        const SizedBox(height: 18),
+                        Text(
+                          'AxisVTU',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1.2,
+                            color: brandColor,
+                          ),
                         ),
-                        _TrustChip(
-                          icon: Icons.security_rounded,
-                          label: 'Secure access',
+                        const SizedBox(height: 6),
+                        Text(
+                          'Fast services. Secure access. Trusted by thousands.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.4,
+                            letterSpacing: -0.1,
+                            fontWeight: FontWeight.w500,
+                            color: muted,
+                          ),
                         ),
-                        _TrustChip(
-                          icon: Icons.receipt_long_rounded,
-                          label: 'Instant receipts',
+                        const SizedBox(height: 16),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: const [
+                            _TrustChip(
+                              icon: Icons.verified_user_rounded,
+                              label: 'Secure',
+                            ),
+                            _TrustChip(
+                              icon: Icons.bolt_rounded,
+                              label: 'Instant',
+                            ),
+                            _TrustChip(
+                              icon: Icons.headset_mic_rounded,
+                              label: '24/7 Support',
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-            ],
-            if (overlay case final Widget overlayWidget) overlayWidget,
-            Positioned.fill(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    child: child,
+                  ),
+                ],
+                Positioned.fill(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                        child: child,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _Orb extends StatelessWidget {
-  const _Orb({required this.width, required this.height, required this.colors});
+  const _Orb({
+    required this.width,
+    required this.height,
+    required this.colors,
+    this.blur = 60,
+  });
 
   final double width;
   final double height;
   final List<Color> colors;
+  final double blur;
 
   @override
   Widget build(BuildContext context) {
@@ -176,8 +198,12 @@ class _Orb extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        gradient: RadialGradient(colors: colors, radius: 0.92),
+        gradient: RadialGradient(colors: colors, radius: 0.8),
         shape: BoxShape.circle,
+      ),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: const SizedBox.shrink(),
       ),
     );
   }

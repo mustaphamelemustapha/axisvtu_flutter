@@ -77,64 +77,67 @@ class AuthHeroBlock extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.fromLTRB(
             24,
-            compact ? 0 : 6,
+            compact ? 0 : 8,
             24,
-            compact ? 12 : 18,
+            compact ? 12 : 24,
           ),
           child: Column(
             children: [
               Container(
-                width: compact ? logoSize * 0.82 : logoSize,
-                height: compact ? logoSize * 0.82 : logoSize,
+                width: compact ? logoSize * 0.8 : logoSize,
+                height: compact ? logoSize * 0.8 : logoSize,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(compact ? 22 : 24),
+                  borderRadius: BorderRadius.circular(compact ? 24 : 28),
                   border: Border.all(
                     color: isDark
-                        ? const Color(0x2660A5FA)
-                        : const Color(0x152563EB),
+                        ? const Color(0x3D60A5FA)
+                        : const Color(0x1F2563EB),
+                    width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                    color: Colors.black.withValues(
-                        alpha: isDark ? 0.14 : 0.08,
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.22 : 0.1,
                       ),
-                      blurRadius: compact ? 12 : 14,
-                      offset: Offset(0, compact ? 6 : 8),
+                      blurRadius: compact ? 16 : 22,
+                      offset: Offset(0, compact ? 8 : 12),
                     ),
                   ],
                 ),
                 child: Center(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(compact ? 20 : 22),
+                    borderRadius: BorderRadius.circular(compact ? 22 : 26),
                     child: Image.asset(
                       'assets/brand/axisvtu-icon.png',
-                      width: compact ? logoSize * 0.82 : logoSize,
-                      height: compact ? logoSize * 0.82 : logoSize,
+                      width: compact ? logoSize * 0.8 : logoSize,
+                      height: compact ? logoSize * 0.8 : logoSize,
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: compact ? 12 : 16),
+              SizedBox(height: compact ? 16 : 24),
               Text(
                 title,
                 textAlign: titleAlign,
                 style: TextStyle(
-                  fontSize: compact ? titleSize * 0.92 : titleSize,
+                  fontSize: compact ? titleSize * 0.9 : titleSize,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -0.6,
+                  letterSpacing: -1.2,
                   color: brandColor,
+                  height: 1.1,
                 ),
               ),
-              SizedBox(height: compact ? 6 : 8),
+              SizedBox(height: compact ? 8 : 12),
               Text(
                 subtitle,
                 textAlign: subtitleAlign,
                 style: TextStyle(
                   fontSize: compact ? 13 : 14,
-                  height: compact ? 1.35 : 1.45,
+                  height: 1.5,
+                  letterSpacing: -0.1,
                   fontWeight: FontWeight.w500,
-                  color: subtitleColor,
+                  color: subtitleColor.withValues(alpha: 0.85),
                 ),
               ),
             ],
