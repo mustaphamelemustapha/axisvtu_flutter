@@ -1764,7 +1764,6 @@ class _TopUpSheet extends StatefulWidget {
 }
 
 class _TopUpSheetState extends State<_TopUpSheet> {
-  bool _revealed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1878,45 +1877,32 @@ class _TopUpSheetState extends State<_TopUpSheet> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        if (!_revealed)
-                          TextButton.icon(
-                            onPressed: () => setState(() => _revealed = true),
-                            icon: const Icon(Icons.visibility_rounded, size: 18),
-                            label: const Text('Show account details'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: Theme.of(context).colorScheme.primary,
-                            ),
-                          )
-                        else ...[
-                          GestureDetector(
-                            onTap: () => widget.onCopy(number.toString()),
-                            child: Text(
-                              widget.formatNumber(number.toString()),
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 2,
-                              ),
+                        GestureDetector(
+                          onTap: () => widget.onCopy(number.toString()),
+                          child: Text(
+                            widget.formatNumber(number.toString()),
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 2,
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            accName.toString(),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                          ),
-                        ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          accName.toString(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                        ),
                       ],
                     ),
                   ),
-                  if (_revealed) ...[
-                    const SizedBox(height: 20),
-                    PrimaryButton(
-                      label: 'Copy Account Number',
-                      icon: Icons.copy_all_rounded,
-                      onPressed: () => widget.onCopy(number.toString()),
-                    ),
-                  ],
+                  const SizedBox(height: 20),
+                  PrimaryButton(
+                    label: 'Copy Account Number',
+                    icon: Icons.copy_all_rounded,
+                    onPressed: () => widget.onCopy(number.toString()),
+                  ),
                 ],
               );
             },
