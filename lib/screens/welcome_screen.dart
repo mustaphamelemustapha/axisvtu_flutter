@@ -373,31 +373,34 @@ class _TrustFooter extends StatelessWidget {
     final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45);
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(color: muted, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'SECURE ACCESS • INSTANT DELIVERY • 24/7 TRUST',
-              style: TextStyle(
-                color: muted,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(color: muted, shape: BoxShape.circle),
               ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(color: muted, shape: BoxShape.circle),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Text(
+                'SECURE ACCESS • INSTANT DELIVERY • 24/7 TRUST',
+                style: TextStyle(
+                  color: muted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(color: muted, shape: BoxShape.circle),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         TextButton(
