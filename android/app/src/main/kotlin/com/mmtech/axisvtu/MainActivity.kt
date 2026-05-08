@@ -1,4 +1,4 @@
-package com.mmtechglobe.axisvtu_flutter
+package com.mmtech.axisvtu
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
