@@ -77,7 +77,12 @@ class SessionController extends ChangeNotifier {
     if (_bootstrapped && isAuthenticated) return;
     
     try {
-      _token = await _secureStorage.read(key: _tokenKey);
+      try {
+        _token = await _secureStorage.read(key: _tokenKey);
+      } catch (e) {
+        debugPrint('[Session] Secure storage read failed: $e');
+        _token = null;
+      }
       if (_token != null && _token!.isNotEmpty) {
         final fetched = await _fetchMe(_token!);
         if (fetched != null) {
@@ -189,7 +194,11 @@ class SessionController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _secureStorage.delete(key: _tokenKey);
+    try {
+      await _secureStorage.delete(key: _tokenKey);
+    } catch (e) {
+      debugPrint('[Session] Secure storage delete failed: $e');
+    }
     _token = null;
     _user = null;
     notifyListeners();
