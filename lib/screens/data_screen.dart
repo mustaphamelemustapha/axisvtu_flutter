@@ -278,12 +278,13 @@ class _DataScreenState extends State<DataScreen> {
     }
   }
 
+  final FlutterContactPicker _contactPicker = FlutterContactPicker();
+
   Future<void> _pickContact() async {
-    final status = await Permission.contacts.request();
-    if (status.isGranted) {
-      final contact = await FlutterContacts.openExternalPicker();
-      if (contact != null && contact.phones.isNotEmpty) {
-        String phone = contact.phones.first.number.replaceAll(RegExp(r'\D'), '');
+    try {
+      final Contact? contact = await _contactPicker.selectContact();
+      if (contact != null && contact.phoneNumbers != null && contact.phoneNumbers!.isNotEmpty) {
+        String phone = contact.phoneNumbers!.first.replaceAll(RegExp(r'\D'), '');
         // Strip 234 prefix if present
         if (phone.startsWith('234') && phone.length > 10) {
           phone = '0${phone.substring(3)}';
@@ -291,10 +292,10 @@ class _DataScreenState extends State<DataScreen> {
         _phoneCtrl.text = phone;
         _onPhoneChanged();
       }
-    } else {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contacts permission is required to pick a number.')),
+        SnackBar(content: Text('Error picking contact: $e')),
       );
     }
   }

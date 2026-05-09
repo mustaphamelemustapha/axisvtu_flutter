@@ -15,7 +15,7 @@ import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/elite_phone_input.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class AirtimeScreen extends StatefulWidget {
@@ -211,12 +211,13 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     );
   }
 
+  final FlutterContactPicker _contactPicker = FlutterContactPicker();
+
   Future<void> _pickContact() async {
-    final status = await Permission.contacts.request();
-    if (status.isGranted) {
-      final contact = await FlutterContacts.openExternalPicker();
-      if (contact != null && contact.phones.isNotEmpty) {
-        String phone = contact.phones.first.number.replaceAll(RegExp(r'\D'), '');
+    try {
+      final Contact? contact = await _contactPicker.selectContact();
+      if (contact != null && contact.phoneNumbers != null && contact.phoneNumbers!.isNotEmpty) {
+        String phone = contact.phoneNumbers!.first.replaceAll(RegExp(r'\D'), '');
         // Strip 234 prefix if present
         if (phone.startsWith('234') && phone.length > 10) {
           phone = '0${phone.substring(3)}';
@@ -224,10 +225,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         _phoneCtrl.text = phone;
         _onPhoneChanged();
       }
-    } else {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contacts permission is required to pick a number.')),
+        SnackBar(content: Text('Error picking contact: $e')),
       );
     }
   }
