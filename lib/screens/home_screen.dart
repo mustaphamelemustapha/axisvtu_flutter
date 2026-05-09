@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:ui';
+import 'package:intl/intl.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -714,11 +716,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
 
                   // Account Details Section
-                  FutureBuilder<List<dynamic>>(
+                  FutureBuilder<Map<String, dynamic>>(
                     future: _accountsFuture,
                     initialData: _cachedAccountsData,
                     builder: (context, snapshot) {
-                      final accounts = snapshot.data ?? [];
+                      final data = snapshot.data;
+                      final accounts = (data?['accounts'] as List?) ?? [];
                       if (accounts.isEmpty) return const SizedBox.shrink();
                       
                       final first = accounts.first as Map;
