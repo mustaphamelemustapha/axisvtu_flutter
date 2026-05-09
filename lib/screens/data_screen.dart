@@ -1122,6 +1122,7 @@ class _EliteSelectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -1466,6 +1467,7 @@ class _HeroChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
@@ -2165,6 +2167,7 @@ class _NetworkCard extends StatelessWidget {
   final bool isDark;
 
   const _NetworkCard({
+    super.key,
     required this.name,
     required this.isSelected,
     required this.onTap,
@@ -2173,6 +2176,7 @@ class _NetworkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
