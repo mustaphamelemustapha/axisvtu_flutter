@@ -667,29 +667,33 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         ),
                                       )
-                                    : Row(
-                                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                                        textBaseline: TextBaseline.alphabetic,
-                                        children: [
-                                          Text(
-                                            _formatNaira(balance).split('.').first,
-                                            style: const TextStyle(
-                                              fontSize: 38,
-                                              fontWeight: FontWeight.w900,
-                                              color: Colors.white,
-                                              letterSpacing: -1,
-                                              fontFeatures: [FontFeature.tabularFigures()],
+                                    : FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                                          textBaseline: TextBaseline.alphabetic,
+                                          children: [
+                                            Text(
+                                              _formatNaira(balance).split('.').first,
+                                              style: const TextStyle(
+                                                fontSize: 38,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                                letterSpacing: -1,
+                                                fontFeatures: [FontFeature.tabularFigures()],
+                                              ),
                                             ),
-                                          ),
-                                          Text(
-                                            '.${_formatNaira(balance).split('.').last}',
-                                            style: TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white.withOpacity(0.3),
+                                            Text(
+                                              '.${_formatNaira(balance).split('.').last}',
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white.withOpacity(0.3),
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                               ),
                               const SizedBox(width: 12),
