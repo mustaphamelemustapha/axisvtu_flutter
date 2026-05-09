@@ -515,6 +515,7 @@ class _DataScreenState extends State<DataScreen> {
                                   final isSelected = selectedCode == code;
 
                                   return _ElitePlanTile(
+                                    key: ValueKey(code),
                                     plan: plan,
                                     selected: isSelected,
                                     onTap: () {
@@ -864,24 +865,28 @@ class _DataScreenState extends State<DataScreen> {
                   child: Row(
                     children: [
                       _NetworkCard(
+                        key: const ValueKey('mtn'),
                         name: 'mtn',
                         isSelected: _network == 'mtn',
                         onTap: () => _selectNetwork('mtn'),
                         isDark: isDark,
                       ),
                       _NetworkCard(
+                        key: const ValueKey('airtel'),
                         name: 'airtel',
                         isSelected: _network == 'airtel',
                         onTap: () => _selectNetwork('airtel'),
                         isDark: isDark,
                       ),
                       _NetworkCard(
+                        key: const ValueKey('glo'),
                         name: 'glo',
                         isSelected: _network == 'glo',
                         onTap: () => _selectNetwork('glo'),
                         isDark: isDark,
                       ),
                       _NetworkCard(
+                        key: const ValueKey('9mobile'),
                         name: '9mobile',
                         isSelected: _network == '9mobile',
                         onTap: () => _selectNetwork('9mobile'),
@@ -1032,10 +1037,10 @@ class _DataScreenState extends State<DataScreen> {
                 ) else Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                      color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
                       width: 2,
                     ),
                   ),
@@ -1049,7 +1054,7 @@ class _DataScreenState extends State<DataScreen> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                              color: isDark ? const Color(0xFF08101F) : const Color(0xFFD1D5DB),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -1126,7 +1131,7 @@ class _EliteSelectionCard extends StatelessWidget {
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+            color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
             style: BorderStyle.solid,
           ),
         ),
@@ -1135,7 +1140,7 @@ class _EliteSelectionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: Theme.of(context).colorScheme.primary),
@@ -1322,13 +1327,11 @@ class _TransactionHeroCard extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.10),
+          color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withOpacity(isDark ? 0.14 : 0.08),
+            color: isDark ? const Color(0xFF08101F) : const Color(0xFFE2E8F0),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1344,9 +1347,7 @@ class _TransactionHeroCard extends StatelessWidget {
               height: 76,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withOpacity(0.06),
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
               ),
             ),
           ),
@@ -1359,9 +1360,7 @@ class _TransactionHeroCard extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withOpacity(0.10),
+                      color: isDark ? const Color(0xFF1B3171) : const Color(0xFFD3E0FF),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -1407,9 +1406,7 @@ class _TransactionHeroCard extends StatelessWidget {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surface.withOpacity(0.72),
+                      color: isDark ? const Color(0xFF2D3748) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
@@ -1472,10 +1469,10 @@ class _HeroChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.78),
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.14),
+          color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
         ),
       ),
       child: Row(
@@ -1637,7 +1634,9 @@ class _NetworkMetaPill extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.14),
+          color: Theme.of(context).brightness == Brightness.dark 
+              ? const Color(0xFF2A3A52) 
+              : const Color(0xFFE2E8F0),
         ),
       ),
       child: Column(
@@ -2106,12 +2105,12 @@ class _ElitePhoneInput extends StatelessWidget {
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            color: isDark ? const Color(0xFF08101F) : const Color(0xFFE2E8F0),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -2123,7 +2122,7 @@ class _ElitePhoneInput extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
               shape: BoxShape.circle,
             ),
             child: _NetworkIcon(network: network, size: 24),
@@ -2416,9 +2415,7 @@ class _PlanShimmerGrid extends StatelessWidget {
             color: base,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withOpacity(0.12),
+              color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
             ),
           ),
           padding: const EdgeInsets.all(16),
@@ -2483,16 +2480,16 @@ class _PlanMetaPill extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: selected
-            ? primary.withOpacity(0.16)
+            ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))
             : (isDark
-                  ? Colors.white.withOpacity(0.06)
+                  ? const Color(0xFF111827)
                   : const Color(0xFFF4F6FA)),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
           color: selected
-              ? primary.withOpacity(0.5)
+              ? primary
               : (isDark
-                    ? Colors.white.withOpacity(0.12)
+                    ? const Color(0xFF2A3A52)
                     : const Color(0xFFDDE4F0)),
         ),
       ),
