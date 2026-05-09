@@ -2255,6 +2255,7 @@ class _ElitePlanTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ElitePlanTile({
+    super.key,
     required this.plan,
     required this.selected,
     required this.onTap,
