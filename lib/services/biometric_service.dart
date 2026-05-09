@@ -21,7 +21,9 @@ class BiometricAvailability {
 
 class BiometricService {
   static final _auth = LocalAuthentication();
-  static const _secureStorage = FlutterSecureStorage();
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
   static const _appLockKey = 'app_biometric_lock';
   static const _securePinKey = 'secure_transaction_pin';
 
@@ -39,7 +41,12 @@ class BiometricService {
 
   /// Securely store the transaction PIN.
   static Future<void> savePin(String pin) async {
-    await _secureStorage.write(key: _securePinKey, value: pin);
+    try {
+      await _secureStorage.write(key: _securePinKey, value: pin);
+    } catch (_) {
+      // Fallback if encrypted storage is unavailable
+      await const FlutterSecureStorage().write(key: _securePinKey, value: pin);
+    }
   }
 
   /// Retrieve the stored transaction PIN.

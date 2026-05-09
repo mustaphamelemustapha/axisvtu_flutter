@@ -24,50 +24,18 @@ class PurchaseAuthService {
 
     final service = TransactionPinService(token: token);
 
-    // Optimization: Show UI immediately for known PIN length (usually 4) 
-    // or fetch status in parallel. For now, we fetch status but handle it gracefully.
-    try {
-      final status = await service.statusOrNull().timeout(const Duration(seconds: 5), onTimeout: () => null);
-      if (!context.mounted) return false;
+    // Speed: Start status fetch in background but don't block UI immediately.
+    // We only block if we reach a point where we MUST know the status.
+    final statusFuture = service.statusOrNull().timeout(const Duration(seconds: 2), onTimeout: () => null);
 
-      // If service is down or slow, default to a sensible state
-      if (status == null) {
-        return _verifyFlow(
-          context: context,
-          service: service,
-          reason: reason,
-          pinLength: 4, // Sensible default
-          preferredMethod: preferredMethod,
-        );
-      }
-
-      if (!status.isSet) {
-        return _setupFlow(
-          context: context,
-          service: service,
-          reason: reason,
-          pinLength: status.pinLength,
-        );
-      }
-
-      return _verifyFlow(
-        context: context,
-        service: service,
-        reason: reason,
-        pinLength: status.pinLength,
-        preferredMethod: preferredMethod,
-      );
-    } catch (e) {
-      // Fallback for any error during status fetch
-      if (!context.mounted) return false;
-      return _verifyFlow(
-        context: context,
-        service: service,
-        reason: reason,
-        pinLength: 4,
-        preferredMethod: preferredMethod,
-      );
-    }
+    return _verifyFlow(
+      context: context,
+      service: service,
+      reason: reason,
+      pinLength: 4, 
+      preferredMethod: preferredMethod,
+      statusFuture: statusFuture,
+    );
   }
 
   static Future<bool> _setupFlow({
@@ -128,8 +96,17 @@ class PurchaseAuthService {
     required String reason,
     required int pinLength,
     required String preferredMethod,
+    Future<TransactionPinStatus?>? statusFuture,
   }) async {
-    // 1. Check for Biometric Unlock
+    // 1. Check if PIN is even set (using the background future if available)
+    if (statusFuture != null) {
+      final status = await statusFuture;
+      if (status != null && !status.isSet) {
+        return _setupFlow(context: context, service: service, reason: reason, pinLength: status.pinLength);
+      }
+    }
+
+    // 2. Check for Biometric Unlock
     final bioEnabled = await BiometricService.isAppLockEnabled;
     final savedPin = await BiometricService.getPin();
     final availability = await BiometricService.getAvailability();
@@ -142,6 +119,7 @@ class PurchaseAuthService {
         useBiometric = false;
       } else {
         final choice = await _askAuthMethod(context, reason);
+        if (choice == null) return false; // Cancelled
         useBiometric = choice == true;
       }
 
@@ -155,24 +133,22 @@ class PurchaseAuthService {
               await service.verify(savedPin);
               return true;
             } catch (_) {
-              // If saved PIN fails (maybe user changed it), delete it and fallback
+              // If saved PIN fails, it might be outdated
               await BiometricService.deletePin();
             }
           }
-          // If we reach here, biometric was successful but PIN is missing or invalid
+          // Biometric worked but no valid saved PIN — continue to manual entry
           _showSnack(
             context,
-            'Biometric verified. Please enter your PIN to enable quick purchase.',
+            'Biometric verified. Please enter your PIN once to enable touch purchase.',
           );
         } else if (preferredMethod == methodBiometric) {
-          // If biometric was explicitly requested but failed/cancelled, return false 
-          // to avoid unexpected fallback to PIN sheet if they just wanted to cancel
           return false;
         }
       }
     }
 
-    // 2. Manual PIN entry (Fallback or Primary)
+    // 2. Manual PIN entry
     if (!context.mounted) return false;
     final pin = await _requestPinInput(
       context: context,
@@ -180,19 +156,16 @@ class PurchaseAuthService {
           ? 'Enable Biometric PIN' 
           : 'Enter Purchase PIN',
       subtitle: (bioEnabled && availability.ready && savedPin == null)
-          ? 'Verify your PIN once to enable fingerprint purchases.'
-          : 'Authorize this $reason with your $pinLength-digit PIN.',
+          ? 'Verify your PIN once to enable biometric purchases.'
+          : 'Authorize this $reason with your PIN.',
       confirmLabel: 'Verify',
       pinLength: pinLength,
       onForgotPin: () async {
         try {
           await service.requestReset();
-          _showSnack(
-            context,
-            'Reset link sent to your email. Open it to set a new PIN.',
-          );
+          _showSnack(context, 'Reset link sent to your email.');
         } catch (e) {
-          _showSnack(context, 'Unable to request PIN reset: $e');
+          _showSnack(context, 'Unable to request reset: $e');
         }
       },
       onSubmit: (value) async {
@@ -200,6 +173,10 @@ class PurchaseAuthService {
           await service.verify(value);
           return null;
         } on ApiException catch (e) {
+          if (e.statusCode == 404 || e.message.toLowerCase().contains('not set')) {
+             // PIN not set! This is where the loop happens if we don't handle it.
+             return 'PIN not set. Please create one.';
+          }
           return _friendlyError(e.message, e.statusCode);
         } catch (e) {
           return _friendlyError(e.toString());
@@ -209,7 +186,10 @@ class PurchaseAuthService {
 
     if (pin == null || !context.mounted) return false;
 
-    // 3. Sync PIN for future biometric use if enabled
+    // If the error was "PIN not set", the user will cancel and we should show setup.
+    // Actually, let's just trigger setup if verify fails with 404.
+    
+    // 3. Sync PIN for future biometric use
     if (bioEnabled && availability.ready) {
       await BiometricService.savePin(pin);
     }

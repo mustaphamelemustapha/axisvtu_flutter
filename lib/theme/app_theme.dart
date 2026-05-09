@@ -142,7 +142,7 @@ class AppTheme {
       scaffoldBackgroundColor: isDark ? _darkBg : _lightBg,
       textTheme: textTheme,
       shadowColor: Colors.black.withOpacity(isDark ? 0.15 : 0.05),
-      splashFactory: InkSparkle.splashFactory,
+      splashFactory: InkRipple.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
@@ -282,15 +282,15 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         height: 72,
-        labelTextStyle: WidgetStateProperty.all(
+        labelTextStyle: MaterialStateProperty.all(
           textTheme.labelMedium?.copyWith(
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
         ),
         indicatorColor: scheme.primary.withOpacity(isDark ? 0.18 : 0.14),
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          final selected = states.contains(WidgetState.selected);
+        iconTheme: MaterialStateProperty.resolveWith((states) {
+          final selected = states.contains(MaterialState.selected);
           return IconThemeData(
             size: 24,
             color: selected

@@ -36,12 +36,10 @@ class AxisVTUApp extends StatelessWidget {
             themeMode: mode,
             builder: (context, child) {
               final media = MediaQuery.of(context);
-              final clamped = media.textScaler.clamp(
-                minScaleFactor: 0.95,
-                maxScaleFactor: 1.12,
-              );
+              // Use textScaleFactor for better compatibility
+              final scale = media.textScaleFactor.clamp(0.95, 1.12);
               return MediaQuery(
-                data: media.copyWith(textScaler: clamped),
+                data: media.copyWith(textScaleFactor: scale),
                 child: child ?? const SizedBox.shrink(),
               );
             },

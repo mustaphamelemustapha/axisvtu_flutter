@@ -308,7 +308,9 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   List<dynamic> get _networkPlans {
+    if (_network == null) return [];
     return _plans.where((plan) {
+      if (plan == null || plan is! Map) return false;
       final net = (plan['network'] ?? '').toString().toLowerCase();
       return net == _network;
     }).toList();
@@ -317,6 +319,7 @@ class _DataScreenState extends State<DataScreen> {
   List<dynamic> get _sortedNetworkPlans {
     final plans = List<dynamic>.from(_networkPlans);
     plans.sort((a, b) {
+      if (a == null || b == null || a is! Map || b is! Map) return 0;
       if (_network == 'airtel') {
         final aOrder =
             _airtelBundleOrder[_planCapacity(a).toUpperCase()] ?? 999;
@@ -767,9 +770,9 @@ class _DataScreenState extends State<DataScreen> {
       _invalidateRequestId();
       _network = value;
       // Clear selection if it doesn't belong to the new network
-      final plans = _plans.where((p) => p['network']?.toString().toLowerCase() == value).toList();
+      final plans = _plans.where((p) => p != null && (p as Map)['network']?.toString().toLowerCase() == value).toList();
       final current = _selectedPlanCode;
-      if (current != null && !plans.any((p) => p['plan_code']?.toString() == current)) {
+      if (current != null && !plans.any((p) => p != null && (p as Map)['plan_code']?.toString() == current)) {
         _selectedPlanCode = null;
       }
       _error = null;

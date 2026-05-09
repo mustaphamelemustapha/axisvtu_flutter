@@ -1399,14 +1399,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onChanged: _biometricBusy
                         ? null
                         : (_) => _toggleBiometric(),
-                    thumbColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
+                    thumbColor: MaterialStateProperty.resolveWith((states) {
+                      if (states.contains(MaterialState.selected)) {
                         return Colors.white;
                       }
                       return Theme.of(context).colorScheme.surface;
                     }),
-                    trackColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
+                    trackColor: MaterialStateProperty.resolveWith((states) {
+                      if (states.contains(MaterialState.selected)) {
                         return Theme.of(context).colorScheme.primary;
                       }
                       return Theme.of(context).colorScheme.outline;
