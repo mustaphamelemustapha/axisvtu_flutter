@@ -245,7 +245,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _formatNaira(dynamic value) {
     final parsed = double.tryParse(value?.toString() ?? '') ?? 0;
-    return parsed.toStringAsFixed(2);
+    return NumberFormat.currency(
+      symbol: '',
+      decimalDigits: 2,
+    ).format(parsed);
   }
 
   List<Map<String, dynamic>> _normalizeTransactions(List<dynamic> raw) {
@@ -615,9 +618,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Balance/Top-up (Refined & Premium)
+            // Balance/Top-up (Glowing Fintech Style)
             Container(
-              padding: EdgeInsets.all(compact ? 18 : 22),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF111927) : Colors.white,
                 borderRadius: BorderRadius.circular(AxisRadii.xxl),
@@ -626,98 +628,189 @@ class _HomeScreenState extends State<HomeScreen> {
                     alpha: isDark ? 0.08 : 0.06,
                   ),
                 ),
-                boxShadow: AxisShadows.softGlow,
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.08 : 0.04),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.account_balance_wallet_rounded,
-                          size: 18,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                  // Glowing Balance Header
+                  Container(
+                    padding: EdgeInsets.all(compact ? 18 : 22),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark 
+                          ? [Theme.of(context).colorScheme.primary.withValues(alpha: 0.05), Colors.transparent]
+                          : [Theme.of(context).colorScheme.primary.withValues(alpha: 0.03), Colors.transparent],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'WALLET BALANCE',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: heroSoftText.withValues(alpha: 0.6),
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            _hideBalance
-                                ? Text(
-                                    '₦ ••••••',
-                                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(AxisRadii.xxl)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'TOTAL BALANCE',
+                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: heroSoftText.withValues(alpha: 0.6),
                                       fontWeight: FontWeight.w900,
-                                      letterSpacing: 2,
-                                      color: heroText,
-                                    ),
-                                  )
-                                : Text(
-                                    '₦${_formatNaira(balance)}',
-                                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: -0.5,
-                                      color: heroText,
-                                      fontFeatures: const [FontFeature.tabularFigures()],
+                                      letterSpacing: 1.2,
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.verified_user_rounded,
+                                    size: 12,
+                                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              _hideBalance
+                                  ? Text(
+                                      '₦ ••••••',
+                                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 2,
+                                        color: heroText,
+                                      ),
+                                    )
+                                  : Text(
+                                      '₦${_formatNaira(balance)}',
+                                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -0.5,
+                                        color: heroText,
+                                        fontSize: compact ? 28 : 32,
+                                        fontFeatures: const [FontFeature.tabularFigures()],
+                                      ),
+                                    ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _toggleBalanceVisibility,
+                          icon: Icon(
+                            _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            size: 20,
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF1F5F9),
+                            foregroundColor: heroSoftText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Account Details Section
+                  FutureBuilder<List<dynamic>>(
+                    future: _accountsFuture,
+                    initialData: _cachedAccountsData,
+                    builder: (context, snapshot) {
+                      final accounts = snapshot.data ?? [];
+                      if (accounts.isEmpty) return const SizedBox.shrink();
+                      
+                      final first = accounts.first as Map;
+                      final bank = first['bank_name'] ?? 'Bank';
+                      final number = first['account_number'] ?? '';
+                      
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.02) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.05),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.account_balance_rounded,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    bank.toString().toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1,
+                                      color: heroSoftText.withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatAccountNumber(number.toString()),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1,
+                                      color: heroText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => _copyAccountNumber(number.toString()),
+                              icon: const Icon(Icons.copy_rounded, size: 14),
+                              label: const Text('COPY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Theme.of(context).colorScheme.primary,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        onPressed: _toggleBalanceVisibility,
-                        icon: Icon(
-                          _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                          size: 20,
-                        ),
-                        style: IconButton.styleFrom(
-                          backgroundColor: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF1F5F9),
-                          foregroundColor: heroSoftText,
-                          padding: const EdgeInsets.all(10),
-                        ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PrimaryButton(
-                          label: 'Add Credit',
-                          compact: true,
-                          icon: Icons.add_rounded,
-                          onPressed: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (context) => _TopUpSheet(
-                                accountsFuture: _accountsFuture,
-                                cachedAccounts: _cachedAccountsData,
-                                onCopy: _copyAccountNumber,
-                                formatNumber: _formatAccountNumber,
-                                name: name,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                  
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                    child: PrimaryButton(
+                      label: 'Add Credit',
+                      compact: true,
+                      icon: Icons.add_rounded,
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => _TopUpSheet(
+                            accountsFuture: _accountsFuture,
+                            cachedAccounts: _cachedAccountsData,
+                            onCopy: _copyAccountNumber,
+                            formatNumber: _formatAccountNumber,
+                            name: name,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
