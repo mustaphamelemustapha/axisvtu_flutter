@@ -739,34 +739,44 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              'BANK NAME:',
-                                              style: TextStyle(
-                                                color: Colors.white.withOpacity(0.3),
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.w900,
-                                                letterSpacing: 1,
+                                        Flexible(
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'BANK NAME:',
+                                                style: TextStyle(
+                                                  color: Colors.white.withOpacity(0.3),
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 1,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              bank,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w900,
+                                              const SizedBox(width: 8),
+                                              Flexible(
+                                                child: Text(
+                                                  bank,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w900,
+                                                  ),
+                                                ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                        Text(
-                                          name.toUpperCase(),
-                                          style: TextStyle(
-                                            color: Colors.blue.withOpacity(0.8),
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w900,
+                                        const SizedBox(width: 12),
+                                        Flexible(
+                                          child: Text(
+                                            name.toUpperCase(),
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: Colors.blue.withOpacity(0.8),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w900,
+                                            ),
                                           ),
                                         ),
                                       ],
