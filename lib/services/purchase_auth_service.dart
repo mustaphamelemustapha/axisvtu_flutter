@@ -169,6 +169,17 @@ class PurchaseAuthService {
       subtitle: 'Authorize this $reason with your $pinLength-digit PIN.',
       confirmLabel: 'Verify',
       pinLength: pinLength,
+      onForgotPin: () async {
+        try {
+          await service.requestReset();
+          _showSnack(
+            context,
+            'Reset link sent to your email. Open it to set a new PIN.',
+          );
+        } catch (e) {
+          _showSnack(context, 'Unable to request PIN reset: $e');
+        }
+      },
       onSubmit: (value) async {
         try {
           await service.verify(value);
@@ -290,6 +301,7 @@ class PurchaseAuthService {
     required String subtitle,
     required String confirmLabel,
     required int pinLength,
+    VoidCallback? onForgotPin,
     Future<String?> Function(String pin)? onSubmit,
   }) {
     return PinEntrySheet.show(
@@ -298,6 +310,7 @@ class PurchaseAuthService {
       subtitle: subtitle,
       confirmLabel: confirmLabel,
       pinLength: pinLength,
+      onForgotPin: onForgotPin,
       onSubmit: onSubmit,
     );
   }

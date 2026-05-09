@@ -22,6 +22,8 @@ import 'data_screen.dart';
 import 'electricity_screen.dart';
 import 'exam_screen.dart';
 import 'referral_screen.dart';
+import '../services/purchase_auth_service.dart';
+import '../services/transaction_pin_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onNavigateTab});
@@ -50,6 +52,32 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadBalancePreference();
+    Future.delayed(Duration.zero, () {
+      if (mounted) _initialSecurityCheck();
+    });
+  }
+
+  Future<void> _initialSecurityCheck() async {
+    final session = context.read<SessionController>();
+    final token = (session.token ?? '').trim();
+    if (token.isEmpty) return;
+
+    final service = TransactionPinService(token: token);
+    try {
+      final status = await service.statusOrNull();
+      if (!mounted) return;
+
+      if (status != null && !status.isSet) {
+        // Show the setup flow proactively for new/web users
+        await PurchaseAuthService.authorizePin(
+          context: context,
+          reason: 'account security',
+          preferredMethod: PurchaseAuthService.methodPin,
+        );
+      }
+    } catch (_) {
+      // Silently fail to avoid blocking the home screen
+    }
   }
 
   @override

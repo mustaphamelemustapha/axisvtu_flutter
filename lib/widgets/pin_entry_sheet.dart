@@ -14,6 +14,7 @@ class PinEntrySheet {
     String confirmLabel = 'Continue',
     int pinLength = 4,
     bool autoSubmit = true,
+    VoidCallback? onForgotPin,
     Future<String?> Function(String pin)? onSubmit,
   }) {
     final normalizedLength = pinLength == 6 ? 6 : 4;
@@ -29,6 +30,7 @@ class PinEntrySheet {
         confirmLabel: confirmLabel,
         pinLength: normalizedLength,
         autoSubmit: autoSubmit,
+        onForgotPin: onForgotPin,
         onSubmit: onSubmit,
       ),
       transitionBuilder: (context, animation, _, child) {
@@ -56,6 +58,7 @@ class _PinPadDialog extends StatefulWidget {
     required this.confirmLabel,
     required this.pinLength,
     required this.autoSubmit,
+    this.onForgotPin,
     required this.onSubmit,
   });
 
@@ -64,6 +67,7 @@ class _PinPadDialog extends StatefulWidget {
   final String confirmLabel;
   final int pinLength;
   final bool autoSubmit;
+  final VoidCallback? onForgotPin;
   final Future<String?> Function(String pin)? onSubmit;
 
   @override
@@ -369,6 +373,29 @@ class _PinPadDialogState extends State<_PinPadDialog>
                           ),
                   ),
                 ),
+                if (widget.onForgotPin != null) ...[
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      widget.onForgotPin!();
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      'Forgot PIN?',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.6)
+                            : theme.colorScheme.primary.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

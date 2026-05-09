@@ -39,7 +39,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
   Future<void> _shareInvite(Map<String, dynamic> data) async {
     final code = (data['referral_code'] ?? '').toString().trim();
-    final link = (data['referral_link'] ?? '').toString().trim();
+    final rawLink = (data['referral_link'] ?? '').toString().trim();
+    final link = rawLink.replaceAll('.vercel.app', 'axisvtu.com');
     final text = StringBuffer()
       ..writeln('AxisVTU')
       ..writeln('Buy data, pay bills, and manage your wallet in one place.')
@@ -88,7 +89,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
               final data = snapshot.data;
               final items = (data?['referrals'] as List?) ?? const [];
               final referralCode = (data?['referral_code'] ?? '—').toString();
-              final referralLink = (data?['referral_link'] ?? '').toString();
+              final rawLink = (data?['referral_link'] ?? '').toString();
+              final referralLink = rawLink.replaceAll('.vercel.app', 'axisvtu.com');
               final totalReferrals = (data?['total_referrals'] ?? 0).toString();
               final rewardedReferrals = (data?['rewarded_referrals'] ?? 0).toString();
               final totalEarned = _money(data?['total_earned']);
