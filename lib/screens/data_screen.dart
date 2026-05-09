@@ -17,7 +17,7 @@ import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
 import '../widgets/elite_phone_input.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class DataScreen extends StatefulWidget {

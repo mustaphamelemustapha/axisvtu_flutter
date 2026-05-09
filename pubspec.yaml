@@ -40,7 +40,7 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   url_launcher: ^6.3.1
   flutter_animate: ^4.5.0
-  flutter_contacts: ^1.1.9+2
+  flutter_native_contact_picker: ^0.0.12
   permission_handler: ^11.3.1
 
   # The following adds the Cupertino Icons font to your application.
