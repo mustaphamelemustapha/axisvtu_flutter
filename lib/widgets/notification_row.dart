@@ -19,10 +19,10 @@ class NotificationRow extends StatelessWidget {
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final muted = onSurface.withOpacity(isDark ? 0.68 : 0.64);
     final borderColor = item.unread
-        ? item.accent.withOpacity(isDark ? 0.28 : 0.18)
-        : Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.18,);
+        ? (isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0))
+        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9));
     final bg = item.unread
-        ? item.accent.withOpacity(isDark ? 0.10 : 0.06)
+        ? (isDark ? const Color(0xFF17233B) : const Color(0xFFF9FBFF))
         : surface;
 
     return Material(

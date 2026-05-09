@@ -165,7 +165,9 @@ class ServiceChoiceChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
           color: selected
-              ? color.withOpacity(0.10)
+              ? (Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E293B)
+                  : const Color(0xFFF1F5F9))
               : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
@@ -221,7 +223,7 @@ class ServiceSectionCard extends StatelessWidget {
         color: isDark ? const Color(0xFF111827) : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(isDark ? 0.40 : 0.72),
+          color: isDark ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0),
         ),
         boxShadow: AxisShadows.softGlow,
       ),

@@ -639,13 +639,13 @@ class _FilterPill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
             color: selected
-                ? Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.22 : 0.12)
+                ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))
                 : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: selected
-                  ? Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.42 : 0.22)
-                  : Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.16 : 0.18),
+                  ? Theme.of(context).colorScheme.primary
+                  : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             ),
           ),
           child: Text(

@@ -159,11 +159,17 @@ class _PinPadDialogState extends State<_PinPadDialog>
       height: widget.pinLength == 6 ? 14 : 16,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: filled ? const Color(0xFF4C8DFF) : Colors.transparent,
+        color: filled
+            ? const Color(0xFF4C8DFF)
+            : (Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E293B)
+                : const Color(0xFFF1F5F9)),
         border: Border.all(
           color: filled
               ? const Color(0xFF4C8DFF)
-              : Colors.white.withOpacity(0.35),
+              : (Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF334155)
+                  : const Color(0xFFE2E8F0)),
           width: 1.4,
         ),
       ),

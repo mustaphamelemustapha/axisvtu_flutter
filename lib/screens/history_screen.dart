@@ -1305,13 +1305,17 @@ class _MiniFilterChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? color.withOpacity(0.10)
+              ? (Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E293B)
+                  : const Color(0xFFF1F5F9))
               : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? color.withOpacity(0.20)
-                : Theme.of(context).colorScheme.outline.withOpacity(0.08),
+                ? color
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFE2E8F0)),
           ),
         ),
         child: Text(

@@ -66,8 +66,9 @@ class ThemeToggleButton extends StatelessWidget {
                       height: size * 0.62,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: isDark ? null : AxisPalette.gradient,
-                        color: isDark ? const Color(0xFF17233B) : null,
+                        gradient: isDark 
+                            ? LinearGradient(colors: [const Color(0xFF17233B), const Color(0xFF17233B)]) 
+                            : AxisPalette.gradient,
                       ),
                       child: AnimatedSwitcher(
                         duration: AxisDurations.normal,

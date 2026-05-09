@@ -918,7 +918,7 @@ class _DataScreenState extends State<DataScreen> {
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                      color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
                     ),
                   ),
                   child: Column(
@@ -2183,13 +2183,13 @@ class _NetworkCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).colorScheme.primary
-              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+              ? (isDark ? const Color(0xFF2457F5) : const Color(0xFF2457F5))
+              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF)),
           borderRadius: BorderRadius.circular(20),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    color: isDark ? const Color(0xFF08101F) : const Color(0xFFD1D5DB),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -2197,7 +2197,7 @@ class _NetworkCard extends StatelessWidget {
               : null,
           border: Border.all(
             color: isSelected
-                ? Theme.of(context).colorScheme.primary
+                ? const Color(0xFF2457F5)
                 : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             width: 1,
           ),
@@ -2272,8 +2272,8 @@ class _ElitePlanTile extends StatelessWidget {
         duration: const Duration(milliseconds: 250),
         decoration: BoxDecoration(
           color: selected
-              ? primary.withOpacity(0.08)
-              : (isDark ? const Color(0xFF1E293B).withOpacity(0.4) : Colors.white),
+              ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))
+              : (isDark ? const Color(0xFF111827) : Colors.white),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: selected 
@@ -2283,7 +2283,7 @@ class _ElitePlanTile extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+              color: isDark ? const Color(0xFF08101F) : const Color(0xFFE2E8F0),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
