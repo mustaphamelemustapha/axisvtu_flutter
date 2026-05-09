@@ -12,8 +12,8 @@ import '../services/services_service.dart';
 import '../state/session.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
-import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
+import '../widgets/elite_phone_input.dart';
 
 class ElectricityScreen extends StatefulWidget {
   const ElectricityScreen({super.key});
@@ -480,13 +480,13 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
         children: [
           ServiceSectionCard(
             title: 'Disco',
-            subtitle: 'Select your electricity distribution company.',
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: _discos
-                  .map(
-                    (n) => ServiceChoiceChip(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _discos.map((n) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: ServiceChoiceChip(
                       label: n.toUpperCase(),
                       selected: _disco == n,
                       onTap: () {
@@ -501,14 +501,14 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                         });
                       },
                     ),
-                  )
-                  .toList(),
+                  );
+                }).toList(),
+              ),
             ),
           ),
           ServiceSectionCard(
             title: 'Meter Type',
-            child: Wrap(
-              spacing: 10,
+            child: Row(
               children: [
                 ServiceChoiceChip(
                   label: 'PREPAID',
@@ -525,6 +525,7 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                     });
                   },
                 ),
+                const SizedBox(width: 10),
                 ServiceChoiceChip(
                   label: 'POSTPAID',
                   selected: _meterType == 'postpaid',
@@ -545,15 +546,27 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
           ),
           ServiceSectionCard(
             title: 'Payment Details',
-            subtitle: 'Fill meter number, phone and amount.',
             child: Column(
               children: [
                 TextField(
                   controller: _meterNumberCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  decoration: InputDecoration(
                     labelText: 'Meter Number',
-                    prefixIcon: Icon(Icons.pin_outlined),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    prefixIcon: const Icon(Icons.pin_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(width: 1.5),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        width: 1.5,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -561,7 +574,7 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: FilledButton.icon(
                         onPressed: _verifying ? null : _verifyMeter,
                         icon: _verifying
                             ? const SizedBox(
@@ -569,11 +582,19 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                                 height: 16,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
+                                  color: Colors.white,
                                 ),
                               )
-                            : const Icon(Icons.search_rounded, size: 18),
+                            : const Icon(Icons.verified_user_rounded, size: 18),
                         label: Text(
-                          _verifying ? 'Verifying...' : 'Verify Meter',
+                          _verifying ? 'Verifying...' : 'Verify Meter Account',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
                     ),
@@ -646,24 +667,35 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
                     },
                   ),
                 ],
-                const SizedBox(height: 12),
-                TextField(
+                const SizedBox(height: 16),
+                ElitePhoneInput(
                   controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.call_outlined),
-                  ),
+                  network: 'mtn', // Default icon for electricity
+                  onChanged: (v) => _invalidateRequestId(),
+                  onContactTap: () {},
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _amountCtrl,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  decoration: InputDecoration(
                     labelText: 'Amount (₦)',
-                    prefixIcon: Icon(Icons.payments_outlined),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    prefixIcon: const Icon(Icons.payments_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(width: 1.5),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        width: 1.5,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),

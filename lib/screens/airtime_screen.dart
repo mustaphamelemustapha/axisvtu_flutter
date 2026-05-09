@@ -14,6 +14,7 @@ import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/elite_phone_input.dart';
 
 class AirtimeScreen extends StatefulWidget {
   const AirtimeScreen({super.key});
@@ -507,38 +508,38 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         children: [
           ServiceSectionCard(
             title: 'Network',
-            subtitle: 'Detected automatically while typing.',
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: _networks.map((network) {
-                return ServiceChoiceChip(
-                  label: network.toUpperCase(),
-                  selected: _network == network,
-                  leading: _networkLogo(network),
-                  onTap: () {
-                    _invalidateRequestId();
-                    setState(() => _network = network);
-                  },
-                );
-              }).toList(),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _networks.map((network) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: ServiceChoiceChip(
+                      label: network.toUpperCase(),
+                      selected: _network == network,
+                      leading: _NetworkIcon(network: network, size: 20),
+                      onTap: () {
+                        _invalidateRequestId();
+                        setState(() => _network = network);
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ),
           ServiceSectionCard(
             title: 'Recipient',
-            subtitle: 'Enter beneficiary number and amount.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
+                ElitePhoneInput(
                   controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    hintText: '081...',
-                    prefixIcon: Icon(Icons.call_outlined),
-                  ),
+                  network: _network,
+                  onChanged: (v) => _onPhoneChanged(),
+                  onContactTap: () {
+                    // Contact picker logic
+                  },
                 ),
                 if (_suggestions.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -627,10 +628,23 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  decoration: InputDecoration(
                     labelText: 'Amount (₦)',
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
                     hintText: 'Enter amount',
-                    prefixIcon: Icon(Icons.payments_outlined),
+                    prefixIcon: const Icon(Icons.payments_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(width: 1.5),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        width: 1.5,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -717,24 +731,37 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       ),
     );
   }
+}
 
-  Widget _networkLogo(String network) {
-    final normalized = _normalizeNetworkName(network);
-    final asset = switch (normalized) {
+class _NetworkIcon extends StatelessWidget {
+  final String network;
+  final double size;
+  const _NetworkIcon({required this.network, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = switch (network.toLowerCase()) {
       'mtn' => 'assets/networks/mtn.svg',
       'airtel' => 'assets/networks/airtel.svg',
       'glo' => 'assets/networks/glo.svg',
       '9mobile' => 'assets/networks/9mobile.svg',
       _ => '',
     };
+
     if (asset.isEmpty) {
-      return const Icon(Icons.network_cell, size: 16);
+      return Icon(Icons.cell_tower_rounded, size: size * 0.7);
     }
-    return SvgPicture.asset(
-      asset,
-      height: 16,
-      width: 16,
-      placeholderBuilder: (_) => const Icon(Icons.network_cell, size: 16),
+
+    return RepaintBoundary(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: SvgPicture.asset(
+          asset,
+          fit: BoxFit.contain,
+          placeholderBuilder: (_) => Icon(Icons.cell_tower_rounded, size: size * 0.7),
+        ),
+      ),
     );
   }
 }

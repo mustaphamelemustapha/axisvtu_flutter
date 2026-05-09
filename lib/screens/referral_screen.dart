@@ -5,6 +5,8 @@ import 'package:share_plus/share_plus.dart';
 
 import '../services/referral_service.dart';
 import '../state/session.dart';
+import '../widgets/service_shell.dart';
+import '../widgets/glass_card.dart';
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -83,278 +85,242 @@ class _ReferralScreenState extends State<ReferralScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final compact = size.width < 360 || size.height < 760;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surface = Theme.of(context).colorScheme.surface;
     final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.66);
 
-    return Scaffold(
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            final token = (context.read<SessionController>().token ?? '').trim();
-            if (token.isEmpty) return;
-            setState(() {
-              _future = ReferralService(token: token).getMe();
-            });
-            await _future;
-          },
-          child: FutureBuilder<Map<String, dynamic>>(
-            future: _future,
-            builder: (context, snapshot) {
-              final loading = _future == null || snapshot.connectionState == ConnectionState.waiting;
-              final data = snapshot.data;
-              final items = (data?['referrals'] as List?) ?? const [];
-              final referralCode = (data?['referral_code'] ?? '—').toString();
-              final referralLink = data != null ? _getReferralLink(data) : '';
-              final totalReferrals = (data?['total_referrals'] ?? 0).toString();
-              final rewardedReferrals = (data?['rewarded_referrals'] ?? 0).toString();
-              final totalEarned = _money(data?['total_earned']);
+    return ServiceShell(
+      title: 'Referrals',
+      subtitle: 'Invite friends and earn when they keep buying data.',
+      icon: Icons.group_add_rounded,
+      child: FutureBuilder<Map<String, dynamic>>(
+        future: _future,
+        builder: (context, snapshot) {
+          final loading = _future == null || snapshot.connectionState == ConnectionState.waiting;
+          final data = snapshot.data;
+          final items = (data?['referrals'] as List?) ?? const [];
+          final referralCode = (data?['referral_code'] ?? '—').toString();
+          final referralLink = data != null ? _getReferralLink(data) : '';
+          final totalReferrals = (data?['total_referrals'] ?? 0).toString();
+          final rewardedReferrals = (data?['rewarded_referrals'] ?? 0).toString();
+          final totalEarned = _money(data?['total_earned']);
 
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(compact ? 16 : 20, 14, compact ? 16 : 20, 28),
-                children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: () => Navigator.of(context).pop(),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF4F7FF),
-                            borderRadius: BorderRadius.circular(14),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ServiceSectionCard(
+                title: 'Share Code',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            referralCode,
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
                           ),
-                          child: Icon(Icons.arrow_back_rounded, color: Theme.of(context).colorScheme.onSurface),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Referrals',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Invite friends and earn when they keep buying data.',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
-                            ),
-                          ],
+                        IconButton.filledTonal(
+                          onPressed: referralCode == '—' ? null : () => _copyCode(referralCode),
+                          icon: const Icon(Icons.copy_rounded, size: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filled(
+                          onPressed: (loading || referralCode == '—') ? null : () => _shareInvite(data ?? const {}),
+                          icon: const Icon(Icons.share_rounded, size: 20),
+                        ),
+                      ],
+                    ),
+                    if (referralLink.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        referralLink,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: muted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      _StatPill(label: 'Invited', value: totalReferrals, icon: Icons.group_outlined),
+                      const SizedBox(width: 10),
+                      _StatPill(label: 'Rewarded', value: rewardedReferrals, icon: Icons.verified_outlined),
+                      const SizedBox(width: 10),
+                      _StatPill(label: 'Total Earned', value: totalEarned, icon: Icons.payments_outlined),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: EdgeInsets.all(compact ? 14 : 16),
+                ),
+              ),
+              ServiceSectionCard(
+                title: 'Reward Policy',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Earn 2% of your friend\'s first deposit.',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Reward is credited after the first successful wallet funding only.',
+                      style: TextStyle(color: muted, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  'REFERRAL HISTORY',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                    color: Colors.grey,
+                  ),
+                ),
+                       if (loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: _ReferralLoading(),
+                )
+              else if (snapshot.hasError)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: surface,
-                      borderRadius: BorderRadius.circular(24),
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(22),
                       border: Border.all(
                         color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Your referral code',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: muted,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                referralCode,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1.1,
-                                    ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            IconButton(
-                              onPressed: referralCode == '—' ? null : () => _copyCode(referralCode),
-                              icon: const Icon(Icons.copy_rounded),
-                              tooltip: 'Copy code',
-                            ),
-                            IconButton(
-                              onPressed: (loading || referralCode == '—') ? null : () => _shareInvite(data ?? const {}),
-                              icon: const Icon(Icons.share_rounded),
-                              tooltip: 'Share invite',
-                            ),
-                          ],
-                        ),
-                        if (referralLink.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            referralLink,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
-                          ),
-                        ],
-                      ],
+                    child: Text(
+                      'Referral details are temporarily unavailable. Pull to refresh and try again.',
+                      style: TextStyle(color: muted, height: 1.45),
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _StatPill(label: 'Friends invited', value: totalReferrals, icon: Icons.group_outlined),
-                      _StatPill(label: 'Rewards earned', value: rewardedReferrals, icon: Icons.verified_outlined),
-                      _StatPill(label: 'Total earned', value: totalEarned, icon: Icons.payments_outlined),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: EdgeInsets.all(compact ? 14 : 16),
+                )
+              else if (items.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: surface,
-                      borderRadius: BorderRadius.circular(24),
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(22),
                       border: Border.all(
                         color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Reward rule',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: muted,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Earn 2% of your friend\'s first deposit.',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        Text(
-                          'Reward is credited after the first successful wallet funding only.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
-                        ),
-                      ],
+                    child: Text(
+                      'No referrals yet. Share your code to start earning once your friend begins buying data.',
+                      style: TextStyle(color: muted, height: 1.45),
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Text(
-                    'Referral history',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 10),
-                  if (loading)
-                    const _ReferralLoading()
-                  else if (snapshot.hasError)
-                    Container(
+                )
+              else
+                ...items.whereType<Map>().map((raw) {
+                  final item = raw.map((k, v) => MapEntry(k.toString(), v));
+                  final status = (item['status'] ?? 'pending').toString();
+                  final itemName = (item['referred_user_name'] ?? 'Referral').toString();
+                  final firstDeposit = _money(item['first_deposit_amount'] ?? 0);
+                  final reward = _money(item['reward_amount'] ?? 0);
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: surface,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
                           color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
                         ),
                       ),
-                      child: Text(
-                        'Referral details are temporarily unavailable. Pull to refresh and try again.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: muted, height: 1.45),
-                      ),
-                    )
-                  else if (items.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: surface,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
-                        ),
-                      ),
-                      child: Text(
-                        'No referrals yet. Share your code to start earning once your friend begins buying data.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: muted, height: 1.45),
-                      ),
-                    )
-                  else
-                    ...items.whereType<Map>().map((raw) {
-                      final item = raw.map((k, v) => MapEntry(k.toString(), v));
-                      final status = (item['status'] ?? 'pending').toString();
-                      final itemName = (item['referred_user_name'] ?? 'Referral').toString();
-                      final firstDeposit = _money(item['first_deposit_amount'] ?? 0);
-                      final reward = _money(item['reward_amount'] ?? 0);
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Container(
-                          padding: EdgeInsets.all(compact ? 14 : 16),
-                          decoration: BoxDecoration(
-                            color: surface,
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(
-                              color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          itemName,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          'Code ${item['referral_code_used'] ?? '—'}',
-                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
-                                        ),
-                                      ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      itemName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
                                     ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Code ${item['referral_code_used'] ?? '—'}',
+                                      style: TextStyle(color: muted, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _StatusChip(label: status),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'First Deposit',
+                                    style: TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w700),
                                   ),
-                                  _StatusChip(label: status),
+                                  Text(
+                                    firstDeposit,
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                                  ),
                                 ],
                               ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'First deposit $firstDeposit',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Reward $reward',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Your Reward',
+                                    style: TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w700),
+                                  ),
+                                  Text(
+                                    reward,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 15,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ),
-                      );
-                    }),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+          ],
     );
   }
 }

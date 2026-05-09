@@ -12,8 +12,8 @@ import '../services/services_service.dart';
 import '../state/session.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
-import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
+import '../widgets/elite_phone_input.dart';
 
 class CableScreen extends StatefulWidget {
   const CableScreen({super.key});
@@ -405,13 +405,13 @@ class _CableScreenState extends State<CableScreen> {
         children: [
           ServiceSectionCard(
             title: 'Choose Provider',
-            subtitle: 'Select your cable platform.',
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: _providers
-                  .map(
-                    (p) => ServiceChoiceChip(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _providers.map((p) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: ServiceChoiceChip(
                       label: (p['name'] ?? p['id'] ?? '').toString(),
                       selected: _provider == p['id'],
                       onTap: () {
@@ -422,49 +422,86 @@ class _CableScreenState extends State<CableScreen> {
                         );
                       },
                     ),
-                  )
-                  .toList(),
+                  );
+                }).toList(),
+              ),
             ),
           ),
           ServiceSectionCard(
             title: 'Subscription Details',
-            subtitle: 'Fill decoder number, package and contact.',
             child: Column(
               children: [
                 TextField(
                   controller: _smartcardCtrl,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  decoration: InputDecoration(
                     labelText: 'Smartcard Number',
-                    prefixIcon: Icon(Icons.confirmation_number_outlined),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    prefixIcon: const Icon(Icons.confirmation_number_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(width: 1.5),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        width: 1.5,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _packageCtrl,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  decoration: InputDecoration(
                     labelText: 'Package Code',
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
                     hintText: 'e.g. basic',
-                    prefixIcon: Icon(Icons.grid_view_rounded),
+                    prefixIcon: const Icon(Icons.grid_view_rounded),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(width: 1.5),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        width: 1.5,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextField(
+                const SizedBox(height: 16),
+                ElitePhoneInput(
                   controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.call_outlined),
-                  ),
+                  network: 'mtn',
+                  onChanged: (v) => _invalidateRequestId(),
+                  onContactTap: () {},
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _amountCtrl,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  decoration: InputDecoration(
                     labelText: 'Amount (₦)',
-                    prefixIcon: Icon(Icons.payments_outlined),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    prefixIcon: const Icon(Icons.payments_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(width: 1.5),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        width: 1.5,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),

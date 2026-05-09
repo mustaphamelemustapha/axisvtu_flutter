@@ -740,47 +740,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 child: Column(
                                   children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Flexible(
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                'BANK NAME:',
-                                                style: TextStyle(
-                                                  color: Colors.white.withOpacity(0.3),
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.w900,
-                                                  letterSpacing: 1,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Flexible(
-                                                child: Text(
-                                                  bank,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w900,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                        Text(
+                                          bank,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: -0.2,
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
-                                        Flexible(
-                                          child: Text(
-                                            name.toUpperCase(),
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: Colors.blue.withOpacity(0.8),
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w900,
-                                            ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          name.toUpperCase(),
+                                          style: TextStyle(
+                                            color: Colors.blue.withAlpha(230),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.1,
                                           ),
                                         ),
                                       ],
@@ -1474,15 +1453,27 @@ class _FundingAccountBlock extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  bankName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: heroText,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bankName,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: heroText,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                            letterSpacing: -0.2,
+                          ),
+                    ),
+                    Text(
+                      accountName.toUpperCase(),
+                      style: TextStyle(
+                        color: softText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                       ),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -11,9 +11,8 @@ import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
 import '../widgets/primary_button.dart';
-import '../widgets/purchase_loading_overlay.dart';
-import '../widgets/purchase_result_sheet.dart';
-import '../widgets/service_shell.dart';
+import '../widgets/sticky_checkout_bar.dart';
+import '../widgets/elite_phone_input.dart';
 
 class ExamScreen extends StatefulWidget {
   const ExamScreen({super.key});
@@ -341,17 +340,27 @@ class _ExamScreenState extends State<ExamScreen> {
       title: 'Exam Pins',
       subtitle: 'Buy WAEC, NECO and JAMB pins with premium checkout.',
       icon: Icons.school_rounded,
+      footer: StickyCheckoutBar(
+        title: _exam.toUpperCase(),
+        subtitle: 'Qty: $_quantity',
+        amount: '$_quantity Pins',
+        active: !_loading,
+        loading: _loading,
+        onBuy: _showAuthChoiceSheet,
+        actionLabel: 'Confirm Order',
+        icon: Icons.school_rounded,
+      ),
       child: Column(
         children: [
           ServiceSectionCard(
             title: 'Exam Type',
-            subtitle: 'Choose the exam service you want.',
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: _examTypes
-                  .map(
-                    (exam) => ServiceChoiceChip(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _examTypes.map((exam) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: ServiceChoiceChip(
                       label: exam.toUpperCase(),
                       selected: _exam == exam,
                       onTap: () {
@@ -360,13 +369,13 @@ class _ExamScreenState extends State<ExamScreen> {
                         setState(() => _exam = exam);
                       },
                     ),
-                  )
-                  .toList(),
+                  );
+                }).toList(),
+              ),
             ),
           ),
           ServiceSectionCard(
             title: 'Quantity',
-            subtitle: 'You can buy 1 to 10 pins at once.',
             child: Row(
               children: [
                 _CounterBtn(
@@ -383,8 +392,10 @@ class _ExamScreenState extends State<ExamScreen> {
                   child: Center(
                     child: Text(
                       '$_quantity',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 ),
@@ -403,116 +414,11 @@ class _ExamScreenState extends State<ExamScreen> {
           ),
           ServiceSectionCard(
             title: 'Phone (Optional)',
-            subtitle: 'Some providers require recipient number.',
-            child: TextField(
+            child: ElitePhoneInput(
               controller: _phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number (optional)',
-                hintText: '08123456789',
-                prefixIcon: Icon(Icons.call_outlined),
-              ),
-            ),
-          ),
-          ServiceSectionCard(
-            title: 'Checkout',
-            subtitle: 'Review request before purchase.',
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.12),
-                    const Color(0xFF0FB5AE).withOpacity(0.1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withOpacity(0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${_exam.toUpperCase()} • Qty $_quantity',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _phoneCtrl.text.trim().isEmpty
-                        ? 'Phone: optional'
-                        : 'Phone: ${_phoneCtrl.text.trim()}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          ServiceSectionCard(
-            title: 'Beneficiary',
-            subtitle: 'Save this profile for quick repeat purchase.',
-            child: Column(
-              children: [
-                if (_beneficiaries.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Theme.of(context).dividerColor),
-                    ),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _beneficiaries.map((item) {
-                        final exam = (item['exam'] ?? '')
-                            .toString()
-                            .toUpperCase();
-                        final qty = (item['quantity'] ?? '').toString();
-                        final phone = (item['phone_number'] ?? '').toString();
-                        return ActionChip(
-                          avatar: const Icon(Icons.school_rounded, size: 16),
-                          label: Text(
-                            '$exam • Qty $qty${phone.isEmpty ? '' : ' • $phone'}',
-                          ),
-                          onPressed: () => _applyBeneficiary(item),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                if (_beneficiaries.isNotEmpty) const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Icon(Icons.bookmark_added_outlined),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Auto-save exam profile',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Switch(
-                      value: _saveBeneficiary,
-                      onChanged: (v) {
-                        HapticFeedback.selectionClick();
-                        setState(() => _saveBeneficiary = v);
-                        _savePreference(v);
-                      },
-                    ),
-                  ],
-                ),
-              ],
+              network: 'mtn',
+              onChanged: (v) => _invalidateRequestId(),
+              onContactTap: () {},
             ),
           ),
           if (_error != null)
@@ -520,24 +426,12 @@ class _ExamScreenState extends State<ExamScreen> {
               title: 'Validation',
               child: Text(
                 _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          PrimaryButton(
-            label: 'Order Exam Pin',
-            icon: Icons.school_rounded,
-            loading: _loading,
-            onPressed: _submit,
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _loading ? null : _showAuthChoiceSheet,
-              icon: const Icon(Icons.verified_user_outlined),
-              label: const Text('Continue to Authorization'),
-            ),
-          ),
         ],
       ),
     );
