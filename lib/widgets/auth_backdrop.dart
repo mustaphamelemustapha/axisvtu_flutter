@@ -20,7 +20,7 @@ class AuthBackdrop extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final brandColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final muted = isDark
-        ? Colors.white.withOpacity(0.72)
+        ? Colors.white.withValues(alpha: 0.72)
         : const Color(0xFF475569);
 
     return Container(
@@ -38,8 +38,8 @@ class AuthBackdrop extends StatelessWidget {
               height: 320,
               blur: 80,
               colors: [
-                const Color(0xFF2457F5).withOpacity(isDark ? 0.15 : 0.08),
-                const Color(0xFF14B8A6).withOpacity(0.0),
+                const Color(0xFF2457F5).withValues(alpha: isDark ? 0.15 : 0.08),
+                const Color(0xFF14B8A6).withValues(alpha: 0.0),
               ],
             ),
           ),
@@ -52,8 +52,8 @@ class AuthBackdrop extends StatelessWidget {
               height: 360,
               blur: 100,
               colors: [
-                const Color(0xFF14B8A6).withOpacity(isDark ? 0.12 : 0.06),
-                const Color(0xFF2457F5).withOpacity(0.0),
+                const Color(0xFF14B8A6).withValues(alpha: isDark ? 0.12 : 0.06),
+                const Color(0xFF2457F5).withValues(alpha: 0.0),
               ],
             ),
           ),
@@ -83,7 +83,7 @@ class AuthBackdrop extends StatelessWidget {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(isDark ? 0.35 : 0.12,),
+                                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12,),
                                 blurRadius: 32,
                                 offset: const Offset(0, 16),
                               ),
@@ -96,7 +96,7 @@ class AuthBackdrop extends StatelessWidget {
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(26),
-                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(24),
@@ -219,14 +219,14 @@ class _BrandPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? const Color(0xFF0D1726)
-            : Colors.white.withOpacity(0.94),
+            : Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.22 : 0.08),
+            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.08),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -266,7 +266,7 @@ class _TrustChip extends StatelessWidget {
         color: isDark ? const Color(0xFF0F1B2C) : Colors.white,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.45),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.45),
         ),
       ),
       child: Row(

@@ -438,11 +438,11 @@ class _HomeScreenState extends State<HomeScreen> {
         .join()
         .toUpperCase();
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withOpacity(0.66);
+    final muted = onSurface.withValues(alpha: 0.66);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final heroText = isDark ? Colors.white : const Color(0xFF0F172A);
     final heroSoftText = isDark
-        ? Colors.white.withOpacity(0.84)
+        ? Colors.white.withValues(alpha: 0.84)
         : const Color(0xFF5B6B82);
     final balance = _extractBalance(_cachedWalletData);
 
@@ -511,12 +511,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     gradient: LinearGradient(
                       colors: [
                         Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -543,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _greetingText(),
                         style: TextStyle(
                           fontSize: 11,
-                          color: heroSoftText.withOpacity(0.5),
+                          color: heroSoftText.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -580,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: _openNotificationsCenter,
                       icon: const Icon(Icons.notifications_outlined, size: 22),
                       style: IconButton.styleFrom(
-                        backgroundColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9),
+                        backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -598,7 +598,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: isDark ? const Color(0xFF0F172A) : const Color(0xFF1E293B),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 30,
                     offset: const Offset(0, 15),
                   ),
@@ -617,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 150,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.blue.withOpacity(0.05),
+                          color: Colors.blue.withValues(alpha: 0.05),
                         ),
                       ),
                     ),
@@ -632,7 +632,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Text(
                                 'TOTAL BALANCE',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.4),
+                                  color: Colors.white.withValues(alpha: 0.4),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 1.5,
@@ -689,7 +689,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               style: TextStyle(
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.w600,
-                                                color: Colors.white.withOpacity(0.3),
+                                                color: Colors.white.withValues(alpha: 0.3),
                                               ),
                                             ),
                                           ],
@@ -702,7 +702,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.08),
+                                    color: Colors.white.withValues(alpha: 0.08),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -732,10 +732,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.03),
+                                  color: Colors.white.withValues(alpha: 0.03),
                                   borderRadius: BorderRadius.circular(18),
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.05),
+                                    color: Colors.white.withValues(alpha: 0.05),
                                   ),
                                 ),
                                 child: Column(
@@ -747,7 +747,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           bank,
                                           style: const TextStyle(
                                             color: Colors.white,
-                                            fontSize: 17,
+                                            fontSize: 20,
                                             fontWeight: FontWeight.w900,
                                             letterSpacing: -0.2,
                                           ),
@@ -788,7 +788,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               child: Icon(
                                                 Icons.copy_rounded,
                                                 size: 16,
-                                                color: Colors.white.withOpacity(0.4),
+                                                color: Colors.white.withValues(alpha: 0.4),
                                               ),
                                             ),
                                           ),
@@ -824,7 +824,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'Tap to start a new transaction',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: heroSoftText.withOpacity(0.5),
+                          color: heroSoftText.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -839,7 +839,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.12),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
                 ),
               ),
               child: LayoutBuilder(
@@ -921,10 +921,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF1F5F9).withOpacity(0.5),
+                color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF1F5F9).withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.05),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.05),
                 ),
               ),
               child: Row(
@@ -955,7 +955,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           'We are here for you 24/7',
                           style: TextStyle(
-                            color: heroSoftText.withOpacity(0.6),
+                            color: heroSoftText.withValues(alpha: 0.6),
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -966,7 +966,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   TextButton(
                     onPressed: _launchSupport,
                     style: TextButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text('Chat now', style: TextStyle(fontWeight: FontWeight.w900)),
@@ -979,7 +979,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 'AXISVTU v1.0.4 • SECURE & TRUSTED',
                 style: TextStyle(
-                  color: muted.withOpacity(0.4),
+                  color: muted.withValues(alpha: 0.4),
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.2,
@@ -1010,7 +1010,7 @@ class _RealActivityRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.62);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
     final amountColor = amount.startsWith('-')
         ? Theme.of(context).colorScheme.onSurface
         : accent;
@@ -1022,7 +1022,7 @@ class _RealActivityRow extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.14),
+              color: accent.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(Icons.receipt_long_rounded, size: 20, color: accent),
@@ -1157,7 +1157,7 @@ class _RecentActivitySkeleton extends StatelessWidget {
               height: 18,
               width: 54,
               decoration: BoxDecoration(
-                color: base.withOpacity(0.12),
+                color: base.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
@@ -1173,7 +1173,7 @@ class _RecentActivityEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.62);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
@@ -1182,7 +1182,7 @@ class _RecentActivityEmptyState extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.10),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
@@ -1216,7 +1216,7 @@ class _RecentActivityErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.62);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
@@ -1225,7 +1225,7 @@ class _RecentActivityErrorState extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.error.withOpacity(0.10),
+              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
@@ -1281,7 +1281,7 @@ class _HeaderIconButton extends StatelessWidget {
           border: Border.all(
             color: Theme.of(
               context,
-            ).colorScheme.outline.withOpacity(0.22),
+            ).colorScheme.outline.withValues(alpha: 0.22),
           ),
         ),
         child: Icon(icon, size: size <= 40 ? 19 : 21),
@@ -1309,7 +1309,7 @@ class _NoticeTile extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.22),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.22),
         ),
       ),
       child: Row(
@@ -1319,7 +1319,7 @@ class _NoticeTile extends StatelessWidget {
             radius: 16,
             backgroundColor: Theme.of(
               context,
-            ).colorScheme.primary.withOpacity(0.12),
+            ).colorScheme.primary.withValues(alpha: 0.12),
             child: Icon(
               icon,
               size: 16,
@@ -1358,10 +1358,10 @@ class _HeroTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.75),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Text(label, style: Theme.of(context).textTheme.labelMedium),
@@ -1406,10 +1406,10 @@ class _FundingAccountBlock extends StatelessWidget {
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final heroText = isDark ? Colors.white : const Color(0xFF0F172A);
     final softText = isDark
-        ? Colors.white.withOpacity(0.76)
+        ? Colors.white.withValues(alpha: 0.76)
         : const Color(0xFF5B6B82);
     final subtleLine = isDark
-        ? Colors.white.withOpacity(0.08)
+        ? Colors.white.withValues(alpha: 0.08)
         : const Color(0xFFE2E8F0);
     final formattedNumber = accountNumber.trim().isEmpty ? '—' : accountNumber;
 
@@ -1429,7 +1429,7 @@ class _FundingAccountBlock extends StatelessWidget {
               ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.08 : 0.06,),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.06,),
         ),
         boxShadow: AxisShadows.softGlow,
       ),
@@ -1461,7 +1461,7 @@ class _FundingAccountBlock extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: heroText,
                             fontWeight: FontWeight.w900,
-                            fontSize: 18,
+                            fontSize: 20,
                             letterSpacing: -0.2,
                           ),
                     ),
@@ -1515,7 +1515,7 @@ class _FundingAccountBlock extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withOpacity(0.10)
+                        ? Colors.white.withValues(alpha: 0.10)
                         : Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: subtleLine),
@@ -1555,7 +1555,7 @@ class _FundingAccountBlock extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: softText.withOpacity(isDark ? 0.78 : 0.72),
+                  color: softText.withValues(alpha: isDark ? 0.78 : 0.72),
                   height: 1.25,
                 ),
           ),
@@ -1599,7 +1599,7 @@ class _ServiceCardState extends State<_ServiceCard> {
               color: isDark ? const Color(0xFF161F2C) : Colors.white,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.08 : 0.05),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.05),
               ),
               boxShadow: _pressed ? [] : AxisShadows.softGlow,
             ),
@@ -1610,7 +1610,7 @@ class _ServiceCardState extends State<_ServiceCard> {
                   width: compact ? 38 : 42,
                   height: compact ? 38 : 42,
                   decoration: BoxDecoration(
-                    color: widget.item.accent.withOpacity(0.12),
+                    color: widget.item.accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
@@ -1647,7 +1647,7 @@ class _DashboardBalanceSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fill = isDark
-        ? Colors.white.withOpacity(0.10)
+        ? Colors.white.withValues(alpha: 0.10)
         : const Color(0xFFE8EEF9);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1691,7 +1691,7 @@ class _DashboardBalanceError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.64);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1724,7 +1724,7 @@ class _FundingAccountSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fill = isDark
-        ? Colors.white.withOpacity(0.10)
+        ? Colors.white.withValues(alpha: 0.10)
         : const Color(0xFFE8EEF9);
     return Container(
       padding: const EdgeInsets.all(15),
@@ -1732,7 +1732,7 @@ class _FundingAccountSkeleton extends StatelessWidget {
         color: isDark ? const Color(0xFF0E1624) : const Color(0xFFFEFFFF),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.12 : 0.14,),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.14,),
         ),
       ),
       child: Column(
@@ -1812,7 +1812,7 @@ class _FundingAccountUnavailable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.64);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64);
     return GlassCard(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -1869,7 +1869,7 @@ class _StatTile extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.16),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.16),
         ),
         boxShadow: AxisShadows.softGlow,
       ),
@@ -1889,7 +1889,7 @@ class _StatTile extends StatelessWidget {
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.65),
+                  ).colorScheme.onSurface.withValues(alpha: 0.65),
                 ),
               ),
             ],
@@ -1907,7 +1907,7 @@ class _StatTile extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurface.withOpacity(0.62),
+              ).colorScheme.onSurface.withValues(alpha: 0.62),
             ),
           ),
         ],
@@ -1926,7 +1926,7 @@ class _ReferralBanner extends StatelessWidget {
     if (referralCode.isEmpty) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.65);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1935,7 +1935,7 @@ class _ReferralBanner extends StatelessWidget {
         color: isDark ? const Color(0xFF141C2A) : const Color(0xFFF3F7FF),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.06 : 0.04,),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.06 : 0.04,),
         ),
       ),
       child: Row(
@@ -1943,7 +1943,7 @@ class _ReferralBanner extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -1959,9 +1959,11 @@ class _ReferralBanner extends StatelessWidget {
               children: [
                 Text(
                   'Invite & Earn Rewards',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.1,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: isDark ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.15,
+                        fontSize: 20,
                       ),
                 ),
                 const SizedBox(height: 1),
@@ -1990,7 +1992,7 @@ class _ReferralBanner extends StatelessWidget {
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.12,),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12,),
                 ),
                 boxShadow: AxisShadows.softGlow,
               ),
@@ -2043,7 +2045,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -2059,7 +2061,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.3),
+              color: Colors.grey.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -2130,7 +2132,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
                       color: isDark ? const Color(0xFF1A2233) : const Color(0xFFF1F5FF),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Column(
@@ -2210,7 +2212,7 @@ class _StepTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2221,7 +2223,7 @@ class _StepTile extends StatelessWidget {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -2240,7 +2242,7 @@ class _StepTile extends StatelessWidget {
                   child: Container(
                     width: 2,
                     margin: const EdgeInsets.symmetric(vertical: 4),
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
                   ),
                 ),
             ],
@@ -2295,7 +2297,7 @@ class _RecentActivityTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isCredit = tx['tx_type'] == 'wallet_fund';
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.5);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
     final status = (tx['status'] ?? 'success').toString().toLowerCase();
     
     return Container(
@@ -2305,11 +2307,11 @@ class _RecentActivityTile extends StatelessWidget {
         color: isDark ? const Color(0xFF161F2C) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.08 : 0.05),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.05),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.1 : 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -2320,7 +2322,7 @@ class _RecentActivityTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: (isCredit ? const Color(0xFF10B981) : const Color(0xFF3B82F6)).withOpacity(0.12),
+              color: (isCredit ? const Color(0xFF10B981) : const Color(0xFF3B82F6)).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(

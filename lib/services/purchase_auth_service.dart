@@ -211,7 +211,7 @@ class PurchaseAuthService {
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.24),
+                color: theme.colorScheme.outline.withValues(alpha: 0.24),
               ),
             ),
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
@@ -224,7 +224,7 @@ class PurchaseAuthService {
                     width: 44,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.outline.withOpacity(0.35),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
@@ -236,7 +236,7 @@ class PurchaseAuthService {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.12,),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.12,),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -259,7 +259,7 @@ class PurchaseAuthService {
                 Text(
                   'Use biometrics for quick approval, or continue with your purchase PIN.',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.72),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
                   ),
                 ),
                 const SizedBox(height: 14),

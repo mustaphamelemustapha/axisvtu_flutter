@@ -28,7 +28,7 @@ class ElitePhoneInput extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withOpacity(0.4),
+            color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withValues(alpha: 0.4),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -68,7 +68,7 @@ class ElitePhoneInput extends StatelessWidget {
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ),
           ),

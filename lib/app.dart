@@ -106,13 +106,21 @@ class _AppEntryGateState extends State<AppEntryGate> {
     final resetFlag = (uri.queryParameters['reset'] ?? '').toLowerCase();
     final path = uri.path.toLowerCase();
     if (token != null && token.isNotEmpty) {
-      if (flow == 'pin' ||
+      final isPinReset = flow == 'pin' ||
           resetFlag == '1' ||
           resetFlag == 'pin' ||
-          path.contains('reset-pin')) {
+          path.contains('reset-pin') ||
+          path.contains('pin/reset');
+
+      if (isPinReset) {
         return ResetPinScreen(token: token);
       }
-      if (flow == 'password' || path.contains('reset-password')) {
+
+      final isPasswordReset = flow == 'password' ||
+          path.contains('reset-password') ||
+          path.contains('password/reset');
+
+      if (isPasswordReset) {
         return ResetPasswordScreen(token: token);
       }
     }

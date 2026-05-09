@@ -207,7 +207,7 @@ class _ServiceCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withOpacity(0.3),
+              color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withValues(alpha: 0.3),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -219,7 +219,7 @@ class _ServiceCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: item.accent.withOpacity(isDark ? 0.15 : 0.1),
+                color: item.accent.withValues(alpha: isDark ? 0.15 : 0.1),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Icon(item.icon, color: item.accent, size: 24),
@@ -273,7 +273,7 @@ class _SupportCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF2457F5).withOpacity(0.1),
+              color: const Color(0xFF2457F5).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.headset_mic_rounded, size: 32, color: Color(0xFF2457F5)),

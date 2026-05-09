@@ -20,7 +20,7 @@ class ThemeToggleButton extends StatelessWidget {
     final bgColor = isDark ? const Color(0xFF101A2A) : const Color(0xFFF9FBFF);
     final borderColor = isDark
         ? const Color(0xFF2A3A52)
-        : colorScheme.outline.withOpacity(0.92);
+        : colorScheme.outline.withValues(alpha: 0.92);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -47,7 +47,7 @@ class ThemeToggleButton extends StatelessWidget {
                 border: Border.all(color: borderColor),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.28 : 0.12),
+                    color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.12),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -126,7 +126,7 @@ class ThemeToggleButton extends StatelessWidget {
                               label,
                               style: TextStyle(
                                 color: isDark
-                                    ? Colors.white.withOpacity(0.92)
+                                    ? Colors.white.withValues(alpha: 0.92)
                                     : colorScheme.onSurface,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,

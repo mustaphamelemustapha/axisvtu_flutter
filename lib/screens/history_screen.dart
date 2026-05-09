@@ -234,7 +234,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             decoration: BoxDecoration(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.outline.withOpacity(0.35),
+                              ).colorScheme.outline.withValues(alpha: 0.35),
                               borderRadius: BorderRadius.circular(999),
                             ),
                           ),
@@ -596,7 +596,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withOpacity(0.18),
+                          ).colorScheme.outline.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -610,7 +610,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         border: Border.all(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withOpacity(0.08),
+                          ).colorScheme.outline.withValues(alpha: 0.08),
                         ),
                         boxShadow: AxisShadows.softGlow,
                       ),
@@ -670,7 +670,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSurface
-                                                .withOpacity(0.60),
+                                                .withValues(alpha: 0.60),
                                           ),
                                     ),
                                   ],
@@ -682,9 +682,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: color.withOpacity(0.08),
+                                  color: color.withValues(alpha: 0.08),
                                   border: Border.all(
-                                    color: color.withOpacity(0.16),
+                                    color: color.withValues(alpha: 0.16),
                                   ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
@@ -728,7 +728,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         border: Border.all(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withOpacity(0.07),
+                          ).colorScheme.outline.withValues(alpha: 0.07),
                         ),
                       ),
                       child: Column(
@@ -777,7 +777,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface
-                                          .withOpacity(0.60),
+                                          .withValues(alpha: 0.35),
                                     ),
                               ),
                             ),
@@ -839,7 +839,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final compact = size.width < 360 || size.height < 760;
     final muted = Theme.of(
       context,
-    ).colorScheme.onSurface.withOpacity(0.64);
+    ).colorScheme.onSurface.withValues(alpha: 0.64);
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _reload,
@@ -902,7 +902,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       border: Border.all(
                         color: Theme.of(
                           context,
-                        ).colorScheme.outline.withOpacity(0.12),
+                        ).colorScheme.outline.withValues(alpha: 0.12),
                       ),
                     ),
                     child: Text(
@@ -965,7 +965,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       border: Border.all(
                         color: Theme.of(
                           context,
-                        ).colorScheme.outline.withOpacity(0.12),
+                        ).colorScheme.outline.withValues(alpha: 0.12),
                       ),
                     ),
                     child: Text(
@@ -1251,7 +1251,7 @@ class _HeaderActionBtn extends StatelessWidget {
               border: Border.all(
                 color: Theme.of(
                   context,
-                ).colorScheme.outline.withOpacity(0.22),
+                ).colorScheme.outline.withValues(alpha: 0.22),
               ),
             ),
             child: Icon(icon),
@@ -1325,7 +1325,7 @@ class _MiniFilterChip extends StatelessWidget {
                 ? color
                 : Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.72),
+                  ).colorScheme.onSurface.withValues(alpha: 0.72),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -1350,9 +1350,9 @@ class _MetricCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.16)),
+        border: Border.all(color: color.withValues(alpha: 0.16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1362,7 +1362,7 @@ class _MetricCard extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurface.withOpacity(0.62),
+              ).colorScheme.onSurface.withValues(alpha: 0.62),
             ),
           ),
           const SizedBox(height: 2),
@@ -1388,7 +1388,7 @@ class _HistoryEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = Theme.of(
       context,
-    ).colorScheme.onSurface.withOpacity(0.62);
+    ).colorScheme.onSurface.withValues(alpha: 0.62);
     return GlassCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 4),
@@ -1400,7 +1400,7 @@ class _HistoryEmptyState extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
-                ).colorScheme.primary.withOpacity(0.10),
+                ).colorScheme.primary.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
@@ -1529,7 +1529,7 @@ class _HistorySkeletonRow extends StatelessWidget {
               height: 20,
               width: 54,
               decoration: BoxDecoration(
-                color: base.withOpacity(0.12),
+                color: base.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
@@ -1559,7 +1559,7 @@ class _HistoryNoticeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = Theme.of(
       context,
-    ).colorScheme.onSurface.withOpacity(0.62);
+    ).colorScheme.onSurface.withValues(alpha: 0.62);
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1570,7 +1570,7 @@ class _HistoryNoticeCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.primary.withOpacity(0.10),
+              ).colorScheme.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: Theme.of(context).colorScheme.primary),
@@ -1621,13 +1621,13 @@ class _FilterChipBtn extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: selected
-              ? color.withOpacity(0.12)
+              ? color.withValues(alpha: 0.12)
               : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? color.withOpacity(0.18)
-                : Theme.of(context).colorScheme.outline.withOpacity(0.10),
+                ? color.withValues(alpha: 0.18)
+                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
           ),
         ),
         child: Text(
@@ -1637,7 +1637,7 @@ class _FilterChipBtn extends StatelessWidget {
                 ? color
                 : Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.70),
+                  ).colorScheme.onSurface.withValues(alpha: 0.70),
             fontWeight: FontWeight.w700,
             fontSize: 12,
           ),
@@ -1688,7 +1688,7 @@ class _HistoryTxCard extends StatelessWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.08),
+                          color: statusColor.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(icon, color: statusColor, size: 20),
@@ -1718,7 +1718,7 @@ class _HistoryTxCard extends StatelessWidget {
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurface
-                                        .withOpacity(0.62),
+                                        .withValues(alpha: 0.62),
                                   ),
                             ),
                           ],
@@ -1734,7 +1734,7 @@ class _HistoryTxCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.54),
+                          ).colorScheme.onSurface.withValues(alpha: 0.54),
                         ),
                       ),
                       const Spacer(),
@@ -1759,9 +1759,9 @@ class _HistoryTxCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.08),
+                        color: statusColor.withValues(alpha: 0.08),
                         border: Border.all(
-                          color: statusColor.withOpacity(0.14),
+                          color: statusColor.withValues(alpha: 0.14),
                         ),
                         borderRadius: BorderRadius.circular(999),
                       ),
@@ -1783,7 +1783,7 @@ class _HistoryTxCard extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.08),
+                      color: statusColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(icon, color: statusColor, size: 20),
@@ -1812,7 +1812,7 @@ class _HistoryTxCard extends StatelessWidget {
                               ?.copyWith(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.62),
+                                ).colorScheme.onSurface.withValues(alpha: 0.62),
                               ),
                         ),
                         const SizedBox(height: 2),
@@ -1822,7 +1822,7 @@ class _HistoryTxCard extends StatelessWidget {
                               ?.copyWith(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.54),
+                                ).colorScheme.onSurface.withValues(alpha: 0.54),
                               ),
                         ),
                       ],
@@ -1849,9 +1849,9 @@ class _HistoryTxCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.08),
+                          color: statusColor.withValues(alpha: 0.08),
                           border: Border.all(
-                            color: statusColor.withOpacity(0.14),
+                            color: statusColor.withValues(alpha: 0.14),
                           ),
                           borderRadius: BorderRadius.circular(999),
                         ),
@@ -1871,7 +1871,7 @@ class _HistoryTxCard extends StatelessWidget {
                     Icons.chevron_right_rounded,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.35),
+                    ).colorScheme.onSurface.withValues(alpha: 0.35),
                   ),
                 ],
               ),
@@ -1902,7 +1902,7 @@ class _DetailRow extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.08),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
         ),
       ),
       child: Row(
@@ -1916,7 +1916,7 @@ class _DetailRow extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.60),
+                    ).colorScheme.onSurface.withValues(alpha: 0.60),
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -1954,7 +1954,7 @@ class _ReceiptDetailLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = Theme.of(
       context,
-    ).colorScheme.onSurface.withOpacity(0.60);
+    ).colorScheme.onSurface.withValues(alpha: 0.60);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(

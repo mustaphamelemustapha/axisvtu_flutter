@@ -67,7 +67,7 @@ class AuthHeroBlock extends StatelessWidget {
     final size = MediaQuery.sizeOf(context);
     final compact = tight || size.height < 760 || size.width < 390;
     final subtitleColor = isDark
-        ? Colors.white.withOpacity(0.72)
+        ? Colors.white.withValues(alpha: 0.72)
         : const Color(0xFF475569);
     final brandColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
@@ -96,7 +96,7 @@ class AuthHeroBlock extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.22 : 0.1,),
+                      color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.1,),
                       blurRadius: compact ? 16 : 22,
                       offset: Offset(0, compact ? 8 : 12),
                     ),
@@ -135,7 +135,7 @@ class AuthHeroBlock extends StatelessWidget {
                   height: 1.5,
                   letterSpacing: -0.1,
                   fontWeight: FontWeight.w500,
-                  color: subtitleColor.withOpacity(0.85),
+                  color: subtitleColor.withValues(alpha: 0.85),
                 ),
               ),
             ],
@@ -170,7 +170,7 @@ class _HeaderIconButton extends StatelessWidget {
             border: Border.all(
               color: Theme.of(
                 context,
-              ).colorScheme.outline.withOpacity(0.24),
+              ).colorScheme.outline.withValues(alpha: 0.24),
             ),
           ),
           child: Icon(icon, size: 18),

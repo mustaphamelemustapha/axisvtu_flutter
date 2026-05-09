@@ -74,11 +74,11 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
         color: isDark ? const Color(0xFF10182B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.28 : 0.1),
+            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.1),
             blurRadius: 24,
             offset: const Offset(0, 14),
           ),
@@ -117,7 +117,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
             ),
@@ -139,7 +139,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
             ),
@@ -171,11 +171,11 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
         color: isDark ? const Color(0xFF10182B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.28 : 0.1),
+            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.1),
             blurRadius: 24,
             offset: const Offset(0, 14),
           ),
@@ -189,7 +189,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6).withOpacity(0.12),
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -251,7 +251,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
   @override
   Widget build(BuildContext context) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withOpacity(0.66);
+    final muted = onSurface.withValues(alpha: 0.66);
 
     return Scaffold(
       body: GestureDetector(

@@ -333,7 +333,7 @@ class _WalletScreenState extends State<WalletScreen> {
       return const Color(0xFFF59E0B);
     }
     if (s == 'failed') return Theme.of(context).colorScheme.error;
-    return Theme.of(context).colorScheme.onSurface.withOpacity(0.54);
+    return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54);
   }
 
 
@@ -477,11 +477,11 @@ class _WalletScreenState extends State<WalletScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final heroText = isDark ? Colors.white : const Color(0xFF0F172A);
     final heroSoftText = isDark
-        ? Colors.white.withOpacity(0.84)
+        ? Colors.white.withValues(alpha: 0.84)
         : const Color(0xFF5B6B82);
     final muted = Theme.of(
       context,
-    ).colorScheme.onSurface.withOpacity(0.64);
+    ).colorScheme.onSurface.withValues(alpha: 0.64);
 
     return SafeArea(
       child: RefreshIndicator(
@@ -561,9 +561,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withOpacity(0.18),
+                  ).colorScheme.outline.withValues(alpha: 0.18),
                 ),
                 boxShadow: AxisShadows.premiumGlow,
               ),
@@ -577,8 +575,8 @@ class _WalletScreenState extends State<WalletScreen> {
                         height: 40,
                         decoration: BoxDecoration(
                           color: isDark
-                              ? Colors.white.withOpacity(0.24)
-                              : Colors.white.withOpacity(0.96),
+                              ? Colors.white.withValues(alpha: 0.24)
+                              : Colors.white.withValues(alpha: 0.96),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: const Icon(
@@ -636,7 +634,7 @@ class _WalletScreenState extends State<WalletScreen> {
                           tooltip: _hideBalance ? 'Show balance' : 'Hide balance',
                           style: IconButton.styleFrom(
                             backgroundColor: isDark
-                                ? Colors.white.withOpacity(0.12)
+                                ? Colors.white.withValues(alpha: 0.12)
                                 : const Color(0xFFF3F7FE),
                             padding: const EdgeInsets.all(10),
                             minimumSize: const Size(40, 40),
@@ -1122,7 +1120,7 @@ class _WalletActionPill extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final enabled = onTap != null;
     final compact = MediaQuery.sizeOf(context).width < 360;
-    final surface = Theme.of(context).colorScheme.surface.withOpacity(isDark ? 0.95 : 0.88,);
+    final surface = Theme.of(context).colorScheme.surface.withValues(alpha: isDark ? 0.95 : 0.88,);
 
     return Material(
       color: Colors.transparent,
@@ -1141,7 +1139,7 @@ class _WalletActionPill extends StatelessWidget {
               color: surface,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.12 : 0.08,),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.08,),
               ),
               boxShadow: AxisShadows.softGlow,
             ),
@@ -1151,7 +1149,7 @@ class _WalletActionPill extends StatelessWidget {
                   width: compact ? 28 : 32,
                   height: compact ? 28 : 32,
                   decoration: BoxDecoration(
-                    color: accent.withOpacity(isDark ? 0.18 : 0.12),
+                    color: accent.withValues(alpha: isDark ? 0.18 : 0.12),
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: Icon(icon, size: compact ? 16 : 18, color: accent),
@@ -1200,10 +1198,10 @@ class _InsightCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(compact ? 11 : 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(isDark ? 0.94 : 0.9,),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: isDark ? 0.94 : 0.9,),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.12 : 0.08,),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.08,),
         ),
         boxShadow: AxisShadows.softGlow,
       ),
@@ -1216,7 +1214,7 @@ class _InsightCard extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: accent.withOpacity(isDark ? 0.16 : 0.12),
+                  color: accent.withValues(alpha: isDark ? 0.16 : 0.12),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(icon, size: 15, color: accent),
@@ -1226,7 +1224,7 @@ class _InsightCard extends StatelessWidget {
                 width: 7,
                 height: 7,
                 decoration: BoxDecoration(
-                  color: accent.withOpacity(0.9),
+                  color: accent.withValues(alpha: 0.9),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -1238,7 +1236,7 @@ class _InsightCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6,),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54,),
                 ),
           ),
           const SizedBox(height: 2),
@@ -1257,7 +1255,7 @@ class _InsightCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.58,),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.58,),
                 ),
           ),
         ],
@@ -1289,10 +1287,10 @@ class _WalletInsightsSkeleton extends StatelessWidget {
           ),
           itemBuilder: (context, index) => Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.06),
               ),
             ),
             child: const Padding(
@@ -1353,10 +1351,10 @@ class _RecentActivityRow extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface.withOpacity(isDark ? 0.94 : 0.9,),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: isDark ? 0.94 : 0.9,),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.10 : 0.08,),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.10 : 0.08,),
             ),
           ),
           child: Row(
@@ -1365,7 +1363,7 @@ class _RecentActivityRow extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(isDark ? 0.14 : 0.10),
+                  color: statusColor.withValues(alpha: isDark ? 0.14 : 0.10),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(icon, color: statusColor, size: 20),
@@ -1393,7 +1391,7 @@ class _RecentActivityRow extends StatelessWidget {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withOpacity(0.60),
+                                .withValues(alpha: 0.60),
                           ),
                     ),
                     const SizedBox(height: 8),
@@ -1403,7 +1401,7 @@ class _RecentActivityRow extends StatelessWidget {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withOpacity(0.52),
+                                .withValues(alpha: 0.52),
                           ),
                     ),
                   ],
@@ -1425,7 +1423,7 @@ class _RecentActivityRow extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(isDark ? 0.16 : 0.12),
+                      color: statusColor.withValues(alpha: isDark ? 0.16 : 0.12),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -1472,10 +1470,10 @@ class _RecentActivitySkeletonRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.06),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.06),
         ),
       ),
       child: const Row(
@@ -1526,7 +1524,7 @@ class _SkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(radius),
       ),
     );
@@ -1569,7 +1567,7 @@ class _BankCard extends StatelessWidget {
               ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.10 : 0.08,),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.10 : 0.08,),
         ),
         boxShadow: AxisShadows.softGlow,
       ),
@@ -1597,10 +1595,11 @@ class _BankCard extends StatelessWidget {
                   bankName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: isDark ? Colors.white : Colors.black87,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w900,
                         letterSpacing: -0.15,
+                        fontSize: 22,
                       ),
                 ),
               ),
@@ -1638,13 +1637,13 @@ class _BankCard extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .primary
-                        .withOpacity(isDark ? 0.14 : 0.10),
+                        .withValues(alpha: isDark ? 0.14 : 0.10),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: Theme.of(context)
                           .colorScheme
                           .primary
-                          .withOpacity(isDark ? 0.12 : 0.08),
+                          .withValues(alpha: isDark ? 0.12 : 0.08),
                     ),
                   ),
                   child: IconButton(
@@ -1703,7 +1702,7 @@ class _BankCard extends StatelessWidget {
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withOpacity(0.58),
+                      .withValues(alpha: 0.58),
                   height: 1.25,
                 ),
           ),
@@ -1734,7 +1733,7 @@ class _WalletAccountSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fill = isDark
-        ? Colors.white.withOpacity(0.10)
+        ? Colors.white.withValues(alpha: 0.10)
         : const Color(0xFFE8EEF9);
     return GlassCard(
       padding: const EdgeInsets.all(18),
@@ -1795,7 +1794,7 @@ class _WalletAccountUnavailable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.64);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64);
     return GlassCard(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -1838,7 +1837,7 @@ class _DashboardBalanceSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fill = isDark
-        ? Colors.white.withOpacity(0.10)
+        ? Colors.white.withValues(alpha: 0.10)
         : const Color(0xFFE8EEF9);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1881,7 +1880,7 @@ class _DashboardBalanceError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.64);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.64);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

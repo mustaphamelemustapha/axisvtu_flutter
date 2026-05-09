@@ -16,6 +16,7 @@ import '../widgets/sticky_checkout_bar.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/elite_phone_input.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
 import 'package:permission_handler/permission_handler.dart';
 
 class AirtimeScreen extends StatefulWidget {
@@ -211,11 +212,11 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     );
   }
 
-  final FlutterContactPicker _contactPicker = FlutterContactPicker();
+  final FlutterNativeContactPicker _contactPicker = FlutterNativeContactPicker();
 
   Future<void> _pickContact() async {
     try {
-      final Contact? contact = await _contactPicker.selectContact();
+      final native_contact.Contact? contact = await _contactPicker.selectContact();
       if (contact != null && contact.phoneNumbers != null && contact.phoneNumbers!.isNotEmpty) {
         String phone = contact.phoneNumbers!.first.replaceAll(RegExp(r'\D'), '');
         // Strip 234 prefix if present
@@ -590,12 +591,12 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.05),
+                      ).colorScheme.primary.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: Theme.of(
                           context,
-                        ).colorScheme.primary.withOpacity(0.1),
+                        ).colorScheme.primary.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Column(
@@ -639,7 +640,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
                                     color: Theme.of(context).colorScheme.outline
-                                        .withOpacity(0.12),
+                                        .withValues(alpha: 0.12),
                                   ),
                                 ),
                                 child: Row(
@@ -682,7 +683,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide(
-                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                         width: 1.5,
                       ),
                     ),
@@ -751,12 +752,12 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
-                  ).colorScheme.error.withOpacity(0.08),
+                  ).colorScheme.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: Theme.of(
                       context,
-                    ).colorScheme.error.withOpacity(0.2),
+                    ).colorScheme.error.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Text(
@@ -830,7 +831,7 @@ class _ToggleTile extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.12),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
         ),
       ),
       child: Row(
@@ -839,7 +840,7 @@ class _ToggleTile extends StatelessWidget {
             radius: 18,
             backgroundColor: Theme.of(
               context,
-            ).colorScheme.primary.withOpacity(0.14),
+            ).colorScheme.primary.withValues(alpha: 0.14),
             child: Icon(
               icon,
               size: 18,
@@ -884,7 +885,7 @@ class _PremiumSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = Theme.of(
       context,
-    ).colorScheme.onSurface.withOpacity(0.62);
+    ).colorScheme.onSurface.withValues(alpha: 0.62);
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -1140,7 +1141,7 @@ class _SuccessModalState extends State<_SuccessModal> {
             decoration: BoxDecoration(
               color: isDark ? Colors.white10 : Colors.white,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.grey.withOpacity(0.1)),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
             ),
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -1164,7 +1165,7 @@ class _SuccessModalState extends State<_SuccessModal> {
                             (widget.ok
                                     ? const Color(0xFF22C55E)
                                     : const Color(0xFFEF4444))
-                                .withOpacity(0.1),
+                                .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -1295,7 +1296,7 @@ class _SuccessToggle extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 18),
@@ -1452,7 +1453,7 @@ class _ShareableReceipt extends StatelessWidget {
               const Divider(height: 1),
               const SizedBox(height: 24),
               const Text(
-                'www.axisvtu.com',
+                'axisvtu.com',
                 style: TextStyle(color: Colors.grey, fontSize: 11),
               ),
             ],
@@ -1512,7 +1513,7 @@ class _ReceiptTableItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Divider(color: Colors.grey.withOpacity(0.1)),
+          Divider(color: Colors.grey.withValues(alpha: 0.1)),
         ],
       ),
     );

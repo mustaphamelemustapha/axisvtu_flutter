@@ -114,11 +114,11 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
                     border: Border.all(
                       color: Theme.of(
                         context,
-                      ).colorScheme.outline.withOpacity(0.2),
+                      ).colorScheme.outline.withValues(alpha: 0.2),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.28 : 0.1,),
+                        color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.1,),
                         blurRadius: 24,
                         offset: const Offset(0, 14),
                       ),
@@ -139,7 +139,7 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
                           border: Border.all(
                             color: Theme.of(
                               context,
-                            ).colorScheme.outline.withOpacity(0.2),
+                            ).colorScheme.outline.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
@@ -183,7 +183,7 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
                             borderSide: BorderSide(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.outline.withOpacity(0.2),
+                              ).colorScheme.outline.withValues(alpha: 0.2),
                             ),
                           ),
                         ),

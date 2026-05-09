@@ -222,7 +222,7 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                           const Divider(height: 1),
                           const SizedBox(height: 24),
                           const Text(
-                            'www.axisvtu.com',
+                            'axisvtu.com',
                             style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
                           ),
                         ],
@@ -309,7 +309,7 @@ class _ReceiptTableItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Divider(color: Colors.grey.withOpacity(0.1)),
+          Divider(color: Colors.grey.withValues(alpha: 0.1)),
         ],
       ),
     );

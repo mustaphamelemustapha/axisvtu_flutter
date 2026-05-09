@@ -40,7 +40,7 @@ class AppHeader extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.68),
+                    ).colorScheme.onSurface.withValues(alpha: 0.68),
                   ),
                 ),
               ],

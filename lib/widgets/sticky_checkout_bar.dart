@@ -40,9 +40,9 @@ class StickyCheckoutBar extends StatelessWidget {
           compact ? 9 : 10,
         ),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF0D1522) : Colors.white.withOpacity(0.96),
+          color: isDark ? const Color(0xFF0D1522) : Colors.white.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.06)),
+          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.06)),
           boxShadow: AxisShadows.softGlow,
         ),
         child: Row(
@@ -61,7 +61,7 @@ class StickyCheckoutBar extends StatelessWidget {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.78),
+                              .withValues(alpha: 0.78),
                         ),
                   ),
                   const SizedBox(height: 1),
@@ -81,7 +81,7 @@ class StickyCheckoutBar extends StatelessWidget {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.54),
+                              .withValues(alpha: 0.54),
                         ),
                   ),
                 ],

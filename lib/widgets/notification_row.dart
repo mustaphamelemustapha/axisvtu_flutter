@@ -17,7 +17,7 @@ class NotificationRow extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = Theme.of(context).colorScheme.surface;
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withOpacity(isDark ? 0.68 : 0.64);
+    final muted = onSurface.withValues(alpha: isDark ? 0.68 : 0.64);
     final borderColor = item.unread
         ? (isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0))
         : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9));
@@ -41,8 +41,8 @@ class NotificationRow extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: isDark
-                    ? Colors.black.withOpacity(0.08)
-                    : Colors.black.withOpacity(0.02),
+                    ? Colors.black.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.02),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -55,7 +55,7 @@ class NotificationRow extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: item.accent.withOpacity(isDark ? 0.20 : 0.12),
+                  color: item.accent.withValues(alpha: isDark ? 0.20 : 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(item.icon, color: item.accent, size: 20),
@@ -129,7 +129,7 @@ class NotificationRow extends StatelessWidget {
               const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right_rounded,
-                color: onSurface.withOpacity(isDark ? 0.52 : 0.42),
+                color: onSurface.withValues(alpha: isDark ? 0.52 : 0.42),
               ),
             ],
           ),

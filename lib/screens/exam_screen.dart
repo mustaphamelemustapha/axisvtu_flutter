@@ -15,6 +15,9 @@ import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/sticky_checkout_bar.dart';
+import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
+import 'package:permission_handler/permission_handler.dart';
 import '../widgets/elite_phone_input.dart';
 
 class ExamScreen extends StatefulWidget {
@@ -99,6 +102,28 @@ class _ExamScreenState extends State<ExamScreen> {
 
   void _invalidateRequestId() {
     _activeRequestId = null;
+  }
+
+  final FlutterNativeContactPicker _contactPicker = FlutterNativeContactPicker();
+
+  Future<void> _pickContact() async {
+    try {
+      final native_contact.Contact? contact = await _contactPicker.selectContact();
+      if (contact != null && contact.phoneNumbers != null && contact.phoneNumbers!.isNotEmpty) {
+        String phone = contact.phoneNumbers!.first.replaceAll(RegExp(r'\D'), '');
+        // Strip 234 prefix if present
+        if (phone.startsWith('234') && phone.length > 10) {
+          phone = '0${phone.substring(3)}';
+        }
+        _phoneCtrl.text = phone;
+        _invalidateRequestId();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking contact: $e')),
+      );
+    }
   }
 
   Future<void> _savePreference(bool value) async {
@@ -421,7 +446,7 @@ class _ExamScreenState extends State<ExamScreen> {
               controller: _phoneCtrl,
               network: 'mtn',
               onChanged: (v) => _invalidateRequestId(),
-              onContactTap: () {},
+              onContactTap: _pickContact,
             ),
           ),
           if (_error != null)

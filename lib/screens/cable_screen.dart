@@ -14,6 +14,9 @@ import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
+import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
+import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
+import 'package:permission_handler/permission_handler.dart';
 import '../widgets/elite_phone_input.dart';
 
 class CableScreen extends StatefulWidget {
@@ -126,6 +129,28 @@ class _CableScreenState extends State<CableScreen> {
 
   void _invalidateRequestId() {
     _activeRequestId = null;
+  }
+
+  final FlutterNativeContactPicker _contactPicker = FlutterNativeContactPicker();
+
+  Future<void> _pickContact() async {
+    try {
+      final native_contact.Contact? contact = await _contactPicker.selectContact();
+      if (contact != null && contact.phoneNumbers != null && contact.phoneNumbers!.isNotEmpty) {
+        String phone = contact.phoneNumbers!.first.replaceAll(RegExp(r'\D'), '');
+        // Strip 234 prefix if present
+        if (phone.startsWith('234') && phone.length > 10) {
+          phone = '0${phone.substring(3)}';
+        }
+        _phoneCtrl.text = phone;
+        _invalidateRequestId();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking contact: $e')),
+      );
+    }
   }
 
   Future<void> _savePreference(bool value) async {
@@ -446,7 +471,7 @@ class _CableScreenState extends State<CableScreen> {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide(
-                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                         width: 1.5,
                       ),
                     ),
@@ -468,7 +493,7 @@ class _CableScreenState extends State<CableScreen> {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide(
-                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                         width: 1.5,
                       ),
                     ),
@@ -479,7 +504,7 @@ class _CableScreenState extends State<CableScreen> {
                   controller: _phoneCtrl,
                   network: 'mtn',
                   onChanged: (v) => _invalidateRequestId(),
-                  onContactTap: () {},
+                  onContactTap: _pickContact,
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -499,7 +524,7 @@ class _CableScreenState extends State<CableScreen> {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide(
-                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                         width: 1.5,
                       ),
                     ),
@@ -532,12 +557,12 @@ class _CableScreenState extends State<CableScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
-                  ).colorScheme.error.withOpacity(0.1),
+                  ).colorScheme.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: Theme.of(
                       context,
-                    ).colorScheme.error.withOpacity(0.2),
+                    ).colorScheme.error.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(

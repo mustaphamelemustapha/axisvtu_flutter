@@ -180,7 +180,7 @@ class ServiceChoiceChip extends StatelessWidget {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: primary.withOpacity(0.3),
+                    color: primary.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -237,7 +237,7 @@ class ServiceSectionCard extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withOpacity(0.2),
+            color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -252,7 +252,7 @@ class ServiceSectionCard extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
-              color: const Color(0xFF2457F5).withOpacity(0.6),
+              color: const Color(0xFF2457F5).withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 16),

@@ -21,7 +21,7 @@ class PinEntrySheet {
     return showGeneralDialog<String>(
       context: context,
       barrierLabel: 'PIN',
-      barrierColor: Colors.black.withOpacity(0.55),
+      barrierColor: Colors.black.withValues(alpha: 0.55),
       barrierDismissible: false,
       transitionDuration: const Duration(milliseconds: 260),
       pageBuilder: (context, animation, secondaryAnimation) => _PinPadDialog(
@@ -186,8 +186,8 @@ class _PinPadDialogState extends State<_PinPadDialog>
       height: 68,
       child: Material(
         color: enabled
-            ? Colors.white.withOpacity(0.14)
-            : Colors.white.withOpacity(0.08),
+            ? Colors.white.withValues(alpha: 0.14)
+            : Colors.white.withValues(alpha: 0.08),
         shape: const CircleBorder(),
         child: InkWell(
           customBorder: const CircleBorder(),
@@ -222,15 +222,15 @@ class _PinPadDialogState extends State<_PinPadDialog>
               color: isDark ? null : surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.34 : 0.08),
+                  color: Colors.black.withValues(alpha: isDark ? 0.34 : 0.08),
                   blurRadius: 26,
                   offset: const Offset(0, 14),
                 ),
               ],
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withOpacity(0.10)
-                    : theme.colorScheme.outline.withOpacity(0.16),
+                    ? Colors.white.withValues(alpha: 0.10)
+                    : theme.colorScheme.outline.withValues(alpha: 0.16),
                 width: 1,
               ),
             ),
@@ -255,8 +255,8 @@ class _PinPadDialogState extends State<_PinPadDialog>
                       icon: Icon(
                         Icons.close_rounded,
                         color: isDark
-                            ? Colors.white.withOpacity(0.86)
-                            : theme.colorScheme.onSurface.withOpacity(0.72),
+                            ? Colors.white.withValues(alpha: 0.86)
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.72),
                       ),
                     ),
                   ],
@@ -267,8 +267,8 @@ class _PinPadDialogState extends State<_PinPadDialog>
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: isDark
-                        ? Colors.white.withOpacity(0.7)
-                        : theme.colorScheme.onSurface.withOpacity(0.66),
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.66),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -330,8 +330,8 @@ class _PinPadDialogState extends State<_PinPadDialog>
                         Icons.backspace_outlined,
                         size: 20,
                         color: isDark
-                            ? Colors.white.withOpacity(0.9)
-                            : theme.colorScheme.onSurface.withOpacity(0.8),
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.8),
                       ),
                       onTap: _backspace,
                       enabled: _pin.isNotEmpty,
@@ -342,8 +342,8 @@ class _PinPadDialogState extends State<_PinPadDialog>
                         Icons.arrow_forward_rounded,
                         size: 20,
                         color: isDark
-                            ? Colors.white.withOpacity(0.9)
-                            : theme.colorScheme.onSurface.withOpacity(0.8),
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.8),
                       ),
                       onTap: _submitting ? () {} : _confirm,
                       enabled: _pin.length == widget.pinLength && !_submitting,
@@ -395,8 +395,8 @@ class _PinPadDialogState extends State<_PinPadDialog>
                       'Forgot PIN?',
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: isDark
-                            ? Colors.white.withOpacity(0.6)
-                            : theme.colorScheme.primary.withOpacity(0.8),
+                            ? Colors.white.withValues(alpha: 0.6)
+                            : theme.colorScheme.primary.withValues(alpha: 0.8),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
