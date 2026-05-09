@@ -15,6 +15,7 @@ import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
+import '../widgets/elite_phone_input.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class DataScreen extends StatefulWidget {
@@ -917,85 +918,45 @@ class _DataScreenState extends State<DataScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
+                ElitePhoneInput(
+                  controller: _phoneCtrl,
+                  network: _network,
+                  onChanged: (v) => _onPhoneChanged(),
+                ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () => showModalBottomSheet<void>(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (sheetContext) => _RecentRecipientsSheet(
+                      recentNumbers: _recentNumbers,
+                      currentNetwork: _network,
+                      onApply: _applySuggestedNumber,
+                      onClose: () => Navigator.pop(sheetContext),
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _phoneCtrl,
-                        keyboardType: TextInputType.phone,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.5,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Enter Phone Number',
-                          hintStyle: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                          ),
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(Icons.phone_iphone_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
-                            ),
-                          ),
-                          suffixIcon: hasPhone ? IconButton(
-                            onPressed: () => _phoneCtrl.clear(),
-                            icon: const Icon(Icons.cancel_rounded, size: 18),
-                          ) : null,
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 20),
-                        ),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
                       ),
-                      const Divider(height: 1),
-                      InkWell(
-                        onTap: () => showModalBottomSheet<void>(
-                          context: context,
-                          backgroundColor: Colors.transparent,
-                          builder: (sheetContext) => _RecentRecipientsSheet(
-                            recentNumbers: _recentNumbers,
-                            currentNetwork: _network,
-                            onApply: _applySuggestedNumber,
-                            onClose: () => Navigator.pop(sheetContext),
-                          ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.history_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Select from recent numbers',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                         ),
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                          child: Row(
-                            children: [
-                              Icon(Icons.history_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Select from recent numbers',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                              ),
-                              const Spacer(),
-                              Icon(Icons.chevron_right_rounded, size: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                        const Spacer(),
+                        Icon(Icons.chevron_right_rounded, size: 20, color: isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8)),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -2087,79 +2048,6 @@ class _MasterpieceActionButton extends StatelessWidget {
   }
 }
 
-class _ElitePhoneInput extends StatelessWidget {
-  final TextEditingController controller;
-  final String network;
-  final bool isDark;
-  final VoidCallback onContactTap;
-
-  const _ElitePhoneInput({
-    required this.controller,
-    required this.network,
-    required this.isDark,
-    required this.onContactTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? const Color(0xFF08101F) : const Color(0xFFE2E8F0),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-              shape: BoxShape.circle,
-            ),
-            child: _NetworkIcon(network: network, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType: TextInputType.phone,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              decoration: InputDecoration(
-                hintText: 'Enter Phone Number',
-                hintStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-                  fontWeight: FontWeight.w600,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: onContactTap,
-            icon: Icon(
-              Icons.contact_page_rounded,
-              color: Theme.of(context).colorScheme.primary,
-              size: 28,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _NetworkCard extends StatelessWidget {
   final String name;
   final bool isSelected;
@@ -2176,36 +2064,48 @@ class _NetworkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 100,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        width: 104,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: isSelected
               ? const Color(0xFF2457F5)
               : (isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF)),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: isSelected
                 ? const Color(0xFF2457F5)
                 : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-            width: 1,
+            width: 1.5,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF2457F5).withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _NetworkIcon(network: name, size: 32),
+            _NetworkIcon(network: name, size: 40),
             const SizedBox(height: 8),
             Text(
               name.toUpperCase(),
               style: TextStyle(
-                color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
-                fontSize: 12,
                 fontWeight: FontWeight.w900,
+                fontSize: 12,
                 letterSpacing: 0.5,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B)),
               ),
             ),
           ],
@@ -2225,19 +2125,29 @@ class _NetworkIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     String asset = 'assets/networks/mtn.svg';
     final n = network.toLowerCase();
-    if (n.contains('airtel')) asset = 'assets/networks/airtel.svg';
-    else if (n.contains('glo')) asset = 'assets/networks/glo.svg';
-    else if (n.contains('9mobile')) asset = 'assets/networks/9mobile.svg';
+    if (n.contains('airtel')) {
+      asset = 'assets/networks/airtel.svg';
+    } else if (n.contains('glo')) {
+      asset = 'assets/networks/glo.svg';
+    } else if (n.contains('9mobile')) {
+      asset = 'assets/networks/9mobile.svg';
+    }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-        shape: BoxShape.circle,
+    return RepaintBoundary(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: SvgPicture.asset(
+          asset,
+          fit: BoxFit.contain,
+          placeholderBuilder: (context) => Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFF1F5F9),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
       ),
-      child: Icon(Icons.signal_cellular_alt_rounded, size: size * 0.6, color: Theme.of(context).colorScheme.primary),
     );
   }
 }

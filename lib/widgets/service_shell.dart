@@ -25,8 +25,10 @@ class ServiceShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final compact = size.height < 760 || size.width < 390;
     final bottomPadding = footer == null ? 24.0 : (compact ? 136.0 : 160.0);
+    
     return Scaffold(
       body: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
@@ -39,11 +41,10 @@ class ServiceShell extends StatelessWidget {
                 children: [
                   ListView(
                     controller: scrollController,
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: EdgeInsets.fromLTRB(
                       16,
-                      compact ? 10 : 12,
+                      compact ? 12 : 16,
                       16,
                       bottomPadding,
                     ),
@@ -51,7 +52,7 @@ class ServiceShell extends StatelessWidget {
                       Row(
                         children: [
                           _ActionBtn(
-                            icon: Icons.arrow_back_rounded,
+                            icon: Icons.arrow_back_ios_new_rounded,
                             onTap: () {
                               FocusManager.instance.primaryFocus?.unfocus();
                               final nav = Navigator.of(context);
@@ -66,56 +67,57 @@ class ServiceShell extends StatelessWidget {
                           const ThemeToggleButton(size: 44),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Container(
-                            height: 40,
-                            width: 40,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                          RepaintBoundary(
+                            child: Container(
+                              height: 52,
+                              width: 52,
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Icon(
+                                icon,
+                                color: const Color(0xFF2457F5),
+                                size: 28,
                               ),
                             ),
-                            child: Icon(
-                              icon,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 22,
-                            ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   title,
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: -0.15,
-                                      ),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 22,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
-                                const SizedBox(height: 3),
+                                const SizedBox(height: 2),
                                 Text(
                                   subtitle,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.62),
-                                      ),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 28),
                       child,
                     ],
                   ),
@@ -152,44 +154,53 @@ class ServiceChoiceChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = const Color(0xFF2457F5);
+    
     return InkWell(
       onTap: () {
         HapticFeedback.selectionClick();
         onTap();
       },
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
-        duration: AxisDurations.normal,
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: selected
-              ? (Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1E293B)
-                  : const Color(0xFFF1F5F9))
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(999),
+              ? primary
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected
-                ? color
-                : (Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF334155)
-                    : const Color(0xFFE2E8F0)),
-            width: 1,
+                ? primary
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            width: 1.5,
           ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: primary.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (leading != null) ...[leading!, const SizedBox(width: 8)],
+            if (leading != null) ...[
+              leading!,
+              const SizedBox(width: 8),
+            ],
             Text(
               label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: selected
-                    ? color
-                    : Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
+              style: TextStyle(
+                color: selected ? Colors.white : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1E293B)),
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -214,41 +225,37 @@ class ServiceSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final size = MediaQuery.sizeOf(context);
-    final compact = size.height < 760 || size.width < 390;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(compact ? 14 : 16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF111827) : Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        color: isDark ? const Color(0xFF111827) : Colors.white,
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: isDark ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0),
+          width: 1.5,
         ),
-        boxShadow: AxisShadows.softGlow,
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.15,
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
+              color: const Color(0xFF2457F5).withOpacity(0.6),
             ),
           ),
-          if (subtitle != null) ...[
-            SizedBox(height: compact ? 3 : 4),
-            Text(
-              subtitle!,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withOpacity(0.64),
-              ),
-            ),
-          ],
-          SizedBox(height: compact ? 12 : 14),
+          const SizedBox(height: 16),
           child,
         ],
       ),
@@ -264,18 +271,22 @@ class _ActionBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      child: Ink(
-        width: 44,
-        height: 44,
+      child: Container(
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.95)),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+            width: 1.5,
+          ),
         ),
-        child: Icon(icon),
+        child: Icon(icon, size: 20),
       ),
     );
   }

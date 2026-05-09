@@ -13,91 +13,47 @@ class ServicesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final compact = size.width < 360 || size.height < 760;
-
-    final services = [
-      _ServiceItem(
-        label: 'Buy Data',
-        subtitle: 'MTN, Glo, Airtel & 9mobile',
-        icon: Icons.wifi_rounded,
-        accent: const Color(0xFF3B82F6),
-        onTap: () => _openScreen(context, const DataScreen()),
-      ),
-      _ServiceItem(
-        label: 'Airtime',
-        subtitle: 'Instant mobile top-up',
-        icon: Icons.phone_iphone_rounded,
-        accent: const Color(0xFF10B981),
-        onTap: () => _openScreen(context, const AirtimeScreen()),
-      ),
-      _ServiceItem(
-        label: 'Electricity',
-        subtitle: 'Prepaid meter tokens',
-        icon: Icons.bolt_rounded,
-        accent: const Color(0xFFF59E0B),
-        onTap: () => _openScreen(context, const ElectricityScreen()),
-      ),
-      _ServiceItem(
-        label: 'Cable TV',
-        subtitle: 'DSTV, GOTV & Startimes',
-        icon: Icons.live_tv_rounded,
-        accent: const Color(0xFF8B5CF6),
-        onTap: () => _openScreen(context, const CableScreen()),
-      ),
-      _ServiceItem(
-        label: 'Exam PINs',
-        subtitle: 'WAEC, NECO & JAMB',
-        icon: Icons.school_rounded,
-        accent: const Color(0xFFEF4444),
-        onTap: () => _openScreen(context, const ExamScreen()),
-      ),
-      _ServiceItem(
-        label: 'Referrals',
-        subtitle: 'Earn service rewards',
-        icon: Icons.card_giftcard_rounded,
-        accent: const Color(0xFFEC4899),
-        onTap: () => _openScreen(context, const ReferralScreen()),
-      ),
-    ];
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Services Hub',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5, fontSize: 24),
         ),
         centerTitle: false,
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
           _SectionHeader(
             title: 'Mobile Services',
             subtitle: 'Data bundles and airtime top-up',
+            isDark: isDark,
           ),
           _ServiceGrid(
             items: [
               _ServiceItem(
                 label: 'Buy Data',
-                subtitle: 'MTN, Glo, Airtel...',
+                subtitle: 'MTN, Glo, Airtel, 9mobile',
                 icon: Icons.wifi_rounded,
-                accent: const Color(0xFF2563EB),
+                accent: const Color(0xFF2457F5),
                 onTap: () => _openScreen(context, const DataScreen()),
               ),
               _ServiceItem(
                 label: 'Airtime',
-                subtitle: 'Instant recharge',
+                subtitle: 'Instant mobile recharge',
                 icon: Icons.phone_iphone_rounded,
-                accent: const Color(0xFF059669),
+                accent: const Color(0xFF10B8A6),
                 onTap: () => _openScreen(context, const AirtimeScreen()),
               ),
             ],
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 32),
           _SectionHeader(
             title: 'Utility Subscriptions',
             subtitle: 'Electricity and Cable TV services',
+            isDark: isDark,
           ),
           _ServiceGrid(
             items: [
@@ -105,22 +61,23 @@ class ServicesScreen extends StatelessWidget {
                 label: 'Electricity',
                 subtitle: 'Prepaid meter tokens',
                 icon: Icons.bolt_rounded,
-                accent: const Color(0xFFD97706),
+                accent: const Color(0xFFF59E0B),
                 onTap: () => _openScreen(context, const ElectricityScreen()),
               ),
               _ServiceItem(
                 label: 'Cable TV',
                 subtitle: 'DSTV, GOTV, Startimes',
                 icon: Icons.live_tv_rounded,
-                accent: const Color(0xFF7C3AED),
+                accent: const Color(0xFF8B5CF6),
                 onTap: () => _openScreen(context, const CableScreen()),
               ),
             ],
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 32),
           _SectionHeader(
-            title: 'Educational',
-            subtitle: 'Exam results and registration PINs',
+            title: 'Educational & Rewards',
+            subtitle: 'Exam results and rewards',
+            isDark: isDark,
           ),
           _ServiceGrid(
             items: [
@@ -128,54 +85,64 @@ class ServicesScreen extends StatelessWidget {
                 label: 'Exam PINs',
                 subtitle: 'WAEC, NECO, JAMB',
                 icon: Icons.school_rounded,
-                accent: const Color(0xFFDC2626),
+                accent: const Color(0xFFEF4444),
                 onTap: () => _openScreen(context, const ExamScreen()),
               ),
               _ServiceItem(
                 label: 'Referrals',
                 subtitle: 'Invite & earn rewards',
                 icon: Icons.card_giftcard_rounded,
-                accent: const Color(0xFFDB2777),
+                accent: const Color(0xFFEC4899),
                 onTap: () => _openScreen(context, const ReferralScreen()),
               ),
             ],
           ),
-          const SizedBox(height: 32),
-          _SupportCard(),
+          const SizedBox(height: 40),
+          _SupportCard(isDark: isDark),
         ],
       ),
     );
   }
 
   void _openScreen(BuildContext context, Widget screen) {
-    HapticFeedback.selectionClick();
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    HapticFeedback.mediumImpact();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => screen,
+      ),
+    );
   }
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.subtitle});
+  const _SectionHeader({required this.title, required this.subtitle, required this.isDark});
   final String title;
   final String subtitle;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.55);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      padding: const EdgeInsets.only(bottom: 16, left: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.2,
-                ),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
           ),
+          const SizedBox(height: 2),
           Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+            ),
           ),
         ],
       ),
@@ -195,9 +162,9 @@ class _ServiceGrid extends StatelessWidget {
       itemCount: items.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        mainAxisExtent: 130,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        mainAxisExtent: 154,
       ),
       itemBuilder: (context, index) => _ServiceCard(item: items[index]),
     );
@@ -230,47 +197,51 @@ class _ServiceCard extends StatelessWidget {
     return GestureDetector(
       onTap: item.onTap,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF141C2A) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(28),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.08 : 0.06,),
+            color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
+            width: 1.5,
           ),
-          boxShadow: AxisShadows.softGlow,
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: item.accent.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(14),
+                color: item.accent.withOpacity(isDark ? 0.15 : 0.1),
+                borderRadius: BorderRadius.circular(18),
               ),
-              child: Icon(item.icon, color: item.accent, size: 22),
+              child: Icon(item.icon, color: item.accent, size: 24),
             ),
-            const SizedBox(height: 10),
+            const Spacer(),
             Text(
               item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.2,
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 1),
+            const SizedBox(height: 2),
             Text(
               item.subtitle,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withOpacity(0.55),
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                 height: 1.2,
               ),
             ),
@@ -282,37 +253,50 @@ class _ServiceCard extends StatelessWidget {
 }
 
 class _SupportCard extends StatelessWidget {
+  const _SupportCard({required this.isDark});
+  final bool isDark;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.primary.withOpacity(0.05),
-            Theme.of(context).colorScheme.primary.withOpacity(0.02),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
+          width: 1.5,
         ),
       ),
       child: Column(
         children: [
-          const Icon(Icons.headset_mic_rounded, size: 32, color: Color(0xFF3B82F6)),
-          const SizedBox(height: 12),
-          Text(
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2457F5).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.headset_mic_rounded, size: 32, color: Color(0xFF2457F5)),
+          ),
+          const SizedBox(height: 16),
+          const Text(
             'Need assistance?',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Our support team is available 24/7 to help with your utility service needs.',
+          const SizedBox(height: 6),
+          Text(
+            'Our support team is available 24/7 to help with any issues or inquiries.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              height: 1.4,
+            ),
           ),
         ],
       ),
