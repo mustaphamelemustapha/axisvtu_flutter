@@ -1403,161 +1403,158 @@ class _FundingAccountBlock extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 360 || size.height < 760;
-    final onSurface = Theme.of(context).colorScheme.onSurface;
     final heroText = isDark ? Colors.white : const Color(0xFF0F172A);
     final softText = isDark
-        ? Colors.white.withValues(alpha: 0.76)
-        : const Color(0xFF5B6B82);
+        ? Colors.white.withValues(alpha: 0.6)
+        : const Color(0xFF64748B);
     final subtleLine = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : const Color(0xFFE2E8F0);
     final formattedNumber = accountNumber.trim().isEmpty ? '—' : accountNumber;
 
     return Container(
-      padding: EdgeInsets.all(compact ? 12 : 15),
+      padding: EdgeInsets.all(compact ? 18 : 22),
       decoration: BoxDecoration(
-        gradient: isDark
-            ? const LinearGradient(
-                colors: [Color(0xFF101A2A), Color(0xFF162338)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : const LinearGradient(
-                colors: [Color(0xFFFFFFFF), Color(0xFFF5F8FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-        borderRadius: BorderRadius.circular(22),
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.06,),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.1 : 0.08),
         ),
-        boxShadow: AxisShadows.softGlow,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Bank Name (Top)
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  gradient: AxisPalette.gradient,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.account_balance_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      bankName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: heroText,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 20,
-                            letterSpacing: -0.2,
-                          ),
-                    ),
-                    Text(
-                      accountName.toUpperCase(),
-                      style: TextStyle(
-                        color: softText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+              Icon(Icons.account_balance_rounded, size: 14, color: softText),
+              const SizedBox(width: 8),
+              Text(
+                bankName.toUpperCase(),
+                style: TextStyle(
+                  color: softText,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
                 ),
               ),
             ],
           ),
-          SizedBox(height: compact ? 10 : 16),
+          const SizedBox(height: 12),
+          
+          // Account Number (Bold Hero)
           GestureDetector(
-            behavior: HitTestBehavior.opaque,
             onTap: onCopyAccount,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            behavior: HitTestBehavior.opaque,
+            child: Column(
               children: [
-                Expanded(
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        formattedNumber,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(
-                              color: heroText,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: compact ? 2.6 : 3.2,
-                              height: 1.1,
-                              fontSize: compact ? 27 : null,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                      ),
-                    ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    formattedNumber,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: heroText,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 4.0,
+                          fontSize: compact ? 28 : 34,
+                        ),
                   ),
                 ),
-                SizedBox(width: compact ? 6 : 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.10)
-                        : Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: subtleLine),
-                  ),
-                  child: IconButton(
-                    onPressed: onCopyAccount,
-                    icon: const Icon(Icons.copy_rounded, size: 16),
-                    tooltip: 'Copy account number',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: BoxConstraints.tightFor(
-                      width: compact ? 30 : 32,
-                      height: compact ? 30 : 32,
-                    ),
-                    color: heroText,
+                const SizedBox(height: 4),
+                // Account Name (Under Account Number)
+                Text(
+                  accountName.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: heroText.withValues(alpha: 0.85),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(height: compact ? 8 : 10),
-          Text(
-            accountName,
-            textAlign: TextAlign.center,
-            maxLines: compact ? 1 : 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: heroText,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.05,
+          
+          const SizedBox(height: 20),
+          
+          // Professional CTA Area
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: subtleLine,
                 ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'AUTOMATIC FUNDING',
+                  style: TextStyle(
+                    color: softText.withValues(alpha: 0.8),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: subtleLine,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: compact ? 6 : 8),
-          Text(
-            'Transfer to this account to fund your wallet.',
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: softText.withValues(alpha: isDark ? 0.78 : 0.72),
-                  height: 1.25,
+          const SizedBox(height: 16),
+          
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onCopyAccount,
+                  icon: const Icon(Icons.copy_all_rounded, size: 18),
+                  label: const Text('Copy Number'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    side: BorderSide(color: subtleLine),
+                  ),
                 ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () {
+                    // Logic for "How to Fund" or similar if needed, 
+                    // for now just show a tip
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Transfers to this account fund your wallet instantly.'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.info_outline_rounded, size: 18),
+                  label: const Text('Help'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
