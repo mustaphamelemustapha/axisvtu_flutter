@@ -503,39 +503,73 @@ class _HomeScreenState extends State<HomeScreen> {
             // Compact Senior-Level Header
             Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _greetingText(),
+                        _greetingText().toUpperCase(),
                         style: TextStyle(
-                          fontSize: 12,
-                          color: heroSoftText.withValues(alpha: 0.6),
-                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                          color: heroSoftText.withValues(alpha: 0.4),
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
                         ),
                       ),
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: heroText,
-                        ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: heroText,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.verified_rounded,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -557,202 +591,224 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 32),
 
-            // THE MASTERPIECE: Refined Fintech Dashboard (AT THE TOP)
+            // THE MASTERPIECE: Classically Premium Balance Section
             Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                color: isDark ? const Color(0xFF111827) : Colors.white,
-                border: Border.all(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
-                ),
+                borderRadius: BorderRadius.circular(28),
+                color: isDark ? const Color(0xFF0F172A) : const Color(0xFF1E293B),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 30,
+                    offset: const Offset(0, 15),
                   ),
                 ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: Stack(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'WALLET BALANCE',
-                          style: TextStyle(
-                            color: heroSoftText.withValues(alpha: 0.5),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                          ),
+                    // Subtle premium texture/gradient
+                    Positioned(
+                      top: -50,
+                      right: -50,
+                      child: Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.blue.withValues(alpha: 0.05),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'SECURE',
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Row(
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'TOTAL BALANCE',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: _toggleBalanceVisibility,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                    size: 18,
+                                    color: Colors.white.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.baseline,
                             textBaseline: TextBaseline.alphabetic,
                             children: [
-                              Text(
+                              const Text(
                                 '₦',
                                 style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w600,
                                   color: Colors.blue,
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              _hideBalance
-                                  ? Text(
-                                      '••••••',
-                                      style: TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.w900,
-                                        color: heroText,
-                                        letterSpacing: 2,
-                                      ),
-                                    )
-                                  : Row(
-                                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                                      textBaseline: TextBaseline.alphabetic,
-                                      children: [
-                                        Text(
-                                          _formatNaira(balance).split('.').first,
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: _hideBalance
+                                    ? Padding(
+                                        padding: const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          '••••••••',
                                           style: TextStyle(
-                                            fontSize: 36,
+                                            fontSize: 32,
                                             fontWeight: FontWeight.w900,
-                                            color: heroText,
-                                            letterSpacing: -1,
+                                            color: Colors.white,
+                                            letterSpacing: 4,
                                           ),
                                         ),
+                                      )
+                                    : Row(
+                                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                                        textBaseline: TextBaseline.alphabetic,
+                                        children: [
+                                          Text(
+                                            _formatNaira(balance).split('.').first,
+                                            style: const TextStyle(
+                                              fontSize: 40,
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.white,
+                                              letterSpacing: -1,
+                                              fontFeatures: [FontFeature.tabularFigures()],
+                                            ),
+                                          ),
+                                          Text(
+                                            '.${_formatNaira(balance).split('.').last}',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white.withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          
+                          // Ultra-Polished Account Bar
+                          FutureBuilder<Map<String, dynamic>>(
+                            future: _accountsFuture,
+                            initialData: _cachedAccountsData,
+                            builder: (context, snapshot) {
+                              final data = snapshot.data;
+                              final accounts = (data?['accounts'] as List?) ?? [];
+                              if (accounts.isEmpty) return const SizedBox.shrink();
+                              
+                              final first = accounts.first as Map;
+                              final bank = (first['bank_name'] ?? 'Bank').toString().toUpperCase();
+                              final number = first['account_number'] ?? '';
+                              
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.03),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'BANK:',
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(alpha: 0.3),
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: 1,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              bank,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                         Text(
-                                          '.${_formatNaira(balance).split('.').last}',
+                                          name.toUpperCase(),
                                           style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                            color: heroSoftText.withValues(alpha: 0.4),
+                                            color: Colors.blue.withValues(alpha: 0.8),
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w900,
                                           ),
                                         ),
                                       ],
                                     ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _toggleBalanceVisibility,
-                          icon: Icon(
-                            _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                            size: 20,
-                          ),
-                          style: IconButton.styleFrom(
-                            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
-                            foregroundColor: heroSoftText,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Improved Account Bar
-                    FutureBuilder<Map<String, dynamic>>(
-                      future: _accountsFuture,
-                      initialData: _cachedAccountsData,
-                      builder: (context, snapshot) {
-                        final data = snapshot.data;
-                        final accounts = (data?['accounts'] as List?) ?? [];
-                        if (accounts.isEmpty) return const SizedBox.shrink();
-                        
-                        final first = accounts.first as Map;
-                        final bank = first['bank_name'] ?? 'Bank';
-                        final number = first['account_number'] ?? '';
-                        
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    'BANK NAME: ',
-                                    style: TextStyle(
-                                      color: heroSoftText.withValues(alpha: 0.4),
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 10,
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          number.toString(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 2,
+                                            fontFeatures: [FontFeature.tabularFigures()],
+                                          ),
+                                        ),
+                                        Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            onTap: () => _copyAccountNumber(number.toString()),
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              child: Icon(
+                                                Icons.copy_rounded,
+                                                size: 16,
+                                                color: Colors.white.withValues(alpha: 0.4),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  Text(
-                                    bank.toString().toUpperCase(),
-                                    style: TextStyle(
-                                      color: heroText,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    name.toUpperCase(),
-                                    style: TextStyle(
-                                      color: Colors.blue.withValues(alpha: 0.6),
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Text(
-                                    number.toString(),
-                                    style: TextStyle(
-                                      color: heroText,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 20,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  InkWell(
-                                    onTap: () => _copyAccountNumber(number.toString()),
-                                    child: Icon(
-                                      Icons.copy_rounded,
-                                      size: 16,
-                                      color: Colors.blue.withValues(alpha: 0.5),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                  ],
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
                   ],
                 ),

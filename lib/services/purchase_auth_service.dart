@@ -24,16 +24,21 @@ class PurchaseAuthService {
 
     final service = TransactionPinService(token: token);
 
+    // Optimization: Show UI immediately for known PIN length (usually 4) 
+    // or fetch status in parallel. For now, we fetch status but handle it gracefully.
     try {
-      final status = await service.statusOrNull();
+      final status = await service.statusOrNull().timeout(const Duration(seconds: 5), onTimeout: () => null);
       if (!context.mounted) return false;
 
+      // If service is down or slow, default to a sensible state
       if (status == null) {
-        _showSnack(
-          context,
-          'Purchase PIN service is updating. Please try again in a moment.',
+        return _verifyFlow(
+          context: context,
+          service: service,
+          reason: reason,
+          pinLength: 4, // Sensible default
+          preferredMethod: preferredMethod,
         );
-        return false;
       }
 
       if (!status.isSet) {
@@ -52,12 +57,16 @@ class PurchaseAuthService {
         pinLength: status.pinLength,
         preferredMethod: preferredMethod,
       );
-    } on ApiException catch (e) {
-      _showSnack(context, _friendlyError(e.message, e.statusCode));
-      return false;
     } catch (e) {
-      _showSnack(context, _friendlyError(e.toString()));
-      return false;
+      // Fallback for any error during status fetch
+      if (!context.mounted) return false;
+      return _verifyFlow(
+        context: context,
+        service: service,
+        reason: reason,
+        pinLength: 4,
+        preferredMethod: preferredMethod,
+      );
     }
   }
 
@@ -135,6 +144,7 @@ class PurchaseAuthService {
         final choice = await _askAuthMethod(context, reason);
         useBiometric = choice == true;
       }
+
       if (useBiometric) {
         final success = await BiometricService.authenticate(
           reason: 'Confirm your $reason via Biometrics',
@@ -145,23 +155,24 @@ class PurchaseAuthService {
               await service.verify(savedPin);
               return true;
             } catch (_) {
-              // If saved PIN fails, fallback to manual entry
+              // If saved PIN fails (maybe user changed it), delete it and fallback
+              await BiometricService.deletePin();
             }
           }
+          // If we reach here, biometric was successful but PIN is missing or invalid
           _showSnack(
             context,
-            'Biometric verified. Enter purchase PIN once to complete setup.',
+            'Biometric verified. Enter your purchase PIN to sync.',
           );
-        } else {
-          _showSnack(
-            context,
-            'Biometric verification was not completed. Use PIN to continue.',
-          );
+        } else if (preferredMethod == methodBiometric) {
+          // If biometric was explicitly requested but failed/cancelled, return false 
+          // to avoid unexpected fallback to PIN sheet if they just wanted to cancel
+          return false;
         }
       }
     }
 
-    // 2. Fallback to manual PIN entry
+    // 2. Manual PIN entry (Fallback or Primary)
     if (!context.mounted) return false;
     final pin = await _requestPinInput(
       context: context,
@@ -191,12 +202,14 @@ class PurchaseAuthService {
         }
       },
     );
+
     if (pin == null || !context.mounted) return false;
-    if (bioEnabled &&
-        availability.ready &&
-        (savedPin == null || savedPin.length != pinLength)) {
+
+    // 3. Sync PIN for future biometric use if enabled
+    if (bioEnabled && availability.ready) {
       await BiometricService.savePin(pin);
     }
+    
     return true;
   }
 
