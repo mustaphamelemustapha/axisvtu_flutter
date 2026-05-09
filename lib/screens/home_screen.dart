@@ -533,22 +533,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _greetingText().toUpperCase(),
+                        _greetingText(),
                         style: TextStyle(
-                          fontSize: 10,
-                          color: heroSoftText.withValues(alpha: 0.4),
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
+                          fontSize: 11,
+                          color: heroSoftText.withValues(alpha: 0.5),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 2),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Flexible(
                             child: Text(
@@ -556,17 +556,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w900,
                                 color: heroText,
-                                letterSpacing: -0.5,
+                                letterSpacing: -0.4,
                               ),
                             ),
                           ),
                           const SizedBox(width: 4),
                           Icon(
                             Icons.verified_rounded,
-                            size: 16,
+                            size: 14,
                             color: Theme.of(context).colorScheme.primary,
                           ),
                         ],
@@ -638,27 +638,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   letterSpacing: 1.5,
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: _toggleBalanceVisibility,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                    size: 18,
-                                    color: Colors.white.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               const Text(
                                 '₦',
@@ -668,11 +652,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color: Colors.blue,
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: _hideBalance
                                     ? Padding(
-                                        padding: const EdgeInsets.only(top: 8.0),
+                                        padding: const EdgeInsets.only(top: 4.0),
                                         child: Text(
                                           '••••••••',
                                           style: TextStyle(
@@ -690,7 +674,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           Text(
                                             _formatNaira(balance).split('.').first,
                                             style: const TextStyle(
-                                              fontSize: 40,
+                                              fontSize: 38,
                                               fontWeight: FontWeight.w900,
                                               color: Colors.white,
                                               letterSpacing: -1,
@@ -707,6 +691,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         ],
                                       ),
+                              ),
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                onTap: _toggleBalanceVisibility,
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -742,7 +742,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         Row(
                                           children: [
                                             Text(
-                                              'BANK:',
+                                              'BANK NAME:',
                                               style: TextStyle(
                                                 color: Colors.white.withValues(alpha: 0.3),
                                                 fontSize: 9,
@@ -750,12 +750,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 letterSpacing: 1,
                                               ),
                                             ),
-                                            const SizedBox(width: 6),
+                                            const SizedBox(width: 8),
                                             Text(
                                               bank,
                                               style: const TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 10,
+                                                fontSize: 12,
                                                 fontWeight: FontWeight.w900,
                                               ),
                                             ),
@@ -765,7 +765,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           name.toUpperCase(),
                                           style: TextStyle(
                                             color: Colors.blue.withValues(alpha: 0.8),
-                                            fontSize: 9,
+                                            fontSize: 10,
                                             fontWeight: FontWeight.w900,
                                           ),
                                         ),

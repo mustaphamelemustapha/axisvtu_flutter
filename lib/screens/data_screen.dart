@@ -260,11 +260,6 @@ class _DataScreenState extends State<DataScreen> {
         if (!mounted) return;
         final context = _planStepKey.currentContext;
         if (context != null) {
-          // If we reach here, biometric was successful but PIN is missing or invalid
-          _showSnack(
-            context,
-            'Biometric verified. Please enter your PIN to enable quick purchase.',
-          );
           Scrollable.ensureVisible(
             context,
             duration: AxisDurations.normal,
@@ -552,6 +547,7 @@ class _DataScreenState extends State<DataScreen> {
                                 (() {
                                   if (selectedCode == null) return '₦0.00';
                                   try {
+                                    // Robust plan lookup to prevent "Red Flash" crash
                                     final plan = currentPlans.firstWhere(
                                       (p) => p['plan_code']?.toString() == selectedCode,
                                       orElse: () => null,
@@ -784,18 +780,6 @@ class _DataScreenState extends State<DataScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _loadPlans(silent: true);
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final context = _planStepKey.currentContext;
-      if (context != null) {
-        Scrollable.ensureVisible(
-          context,
-          duration: AxisDurations.normal,
-          curve: Curves.easeOutCubic,
-          alignment: 0.08,
-        );
-      }
     });
   }
 

@@ -162,7 +162,7 @@ class PurchaseAuthService {
           // If we reach here, biometric was successful but PIN is missing or invalid
           _showSnack(
             context,
-            'Biometric verified. Enter your purchase PIN to sync.',
+            'Biometric verified. Please enter your PIN to enable quick purchase.',
           );
         } else if (preferredMethod == methodBiometric) {
           // If biometric was explicitly requested but failed/cancelled, return false 
@@ -176,8 +176,12 @@ class PurchaseAuthService {
     if (!context.mounted) return false;
     final pin = await _requestPinInput(
       context: context,
-      title: 'Enter Purchase PIN',
-      subtitle: 'Authorize this $reason with your $pinLength-digit PIN.',
+      title: (bioEnabled && availability.ready && savedPin == null) 
+          ? 'Enable Biometric PIN' 
+          : 'Enter Purchase PIN',
+      subtitle: (bioEnabled && availability.ready && savedPin == null)
+          ? 'Verify your PIN once to enable fingerprint purchases.'
+          : 'Authorize this $reason with your $pinLength-digit PIN.',
       confirmLabel: 'Verify',
       pinLength: pinLength,
       onForgotPin: () async {

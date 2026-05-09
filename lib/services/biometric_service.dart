@@ -108,10 +108,13 @@ class BiometricService {
     String reason = 'Please authenticate to access your account',
   }) async {
     try {
-      // ignore: deprecated_member_use
       return await _auth.authenticate(
         localizedReason: reason,
-        biometricOnly: true, // Prioritize FaceID/TouchID
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+          useErrorDialogs: true,
+        ),
       );
     } on PlatformException {
       return false;
