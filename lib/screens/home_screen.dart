@@ -620,207 +620,266 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Balance/Top-up (Glowing Fintech Style)
+            // THE MASTERPIECE: Super-Premium Fintech Dashboard
             Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF111927) : Colors.white,
-                borderRadius: BorderRadius.circular(AxisRadii.xxl),
+                borderRadius: BorderRadius.circular(32),
+                gradient: isDark 
+                  ? const LinearGradient(
+                      colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : LinearGradient(
+                      colors: [Colors.white, Colors.blue.withValues(alpha: 0.05)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(
-                    alpha: isDark ? 0.08 : 0.06,
-                  ),
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.blue.withValues(alpha: 0.1),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.08 : 0.04),
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 40,
+                    offset: const Offset(0, 20),
+                  ),
+                  if (isDark) BoxShadow(
+                    color: Colors.blue.withValues(alpha: 0.05),
+                    blurRadius: 100,
+                    spreadRadius: -20,
                   ),
                 ],
               ),
-              child: Column(
-                children: [
-                  // Glowing Balance Header
-                  Container(
-                    padding: EdgeInsets.all(compact ? 18 : 22),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDark 
-                          ? [Theme.of(context).colorScheme.primary.withValues(alpha: 0.05), Colors.transparent]
-                          : [Theme.of(context).colorScheme.primary.withValues(alpha: 0.03), Colors.transparent],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: Stack(
+                  children: [
+                    // Subtle Decorative Glow
+                    Positioned(
+                      top: -50,
+                      right: -50,
+                      child: Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: isDark ? 0.05 : 0.03),
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(AxisRadii.xxl)),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
                                 children: [
-                                  Text(
-                                    'TOTAL BALANCE',
-                                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: heroSoftText.withValues(alpha: 0.6),
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1.2,
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.blue,
+                                      shape: BoxShape.circle,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Icon(
-                                    Icons.verified_user_rounded,
-                                    size: 12,
-                                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'WALLET BALANCE',
+                                    style: TextStyle(
+                                      color: heroSoftText.withValues(alpha: 0.5),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.5,
+                                    ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
-                              _hideBalance
-                                  ? Text(
-                                      '₦ ••••••',
-                                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.shield_rounded, size: 12, color: Colors.blue),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'SECURE',
+                                      style: TextStyle(
+                                        color: Colors.blue,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w900,
-                                        letterSpacing: 2,
-                                        color: heroText,
-                                      ),
-                                    )
-                                  : Text(
-                                      '₦${_formatNaira(balance)}',
-                                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: -0.5,
-                                        color: heroText,
-                                        fontSize: compact ? 28 : 32,
-                                        fontFeatures: const [FontFeature.tabularFigures()],
+                                        letterSpacing: 0.5,
                                       ),
                                     ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
-                        ),
-                        IconButton(
-                          onPressed: _toggleBalanceVisibility,
-                          icon: Icon(
-                            _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                            size: 20,
-                          ),
-                          style: IconButton.styleFrom(
-                            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF1F5F9),
-                            foregroundColor: heroSoftText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Account Details Section
-                  FutureBuilder<Map<String, dynamic>>(
-                    future: _accountsFuture,
-                    initialData: _cachedAccountsData,
-                    builder: (context, snapshot) {
-                      final data = snapshot.data;
-                      final accounts = (data?['accounts'] as List?) ?? [];
-                      if (accounts.isEmpty) return const SizedBox.shrink();
-                      
-                      final first = accounts.first as Map;
-                      final bank = first['bank_name'] ?? 'Bank';
-                      final number = first['account_number'] ?? '';
-                      
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withValues(alpha: 0.02) : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.05),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
+                          const SizedBox(height: 16),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                '₦',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.blue : Colors.blue.shade700,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.account_balance_rounded,
-                                size: 16,
-                                color: Theme.of(context).colorScheme.primary,
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatNaira(balance).split('.').first,
+                                style: TextStyle(
+                                  fontSize: 46,
+                                  fontWeight: FontWeight.w900,
+                                  color: heroText,
+                                  letterSpacing: -1.5,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    bank.toString().toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1,
-                                      color: heroSoftText.withValues(alpha: 0.5),
-                                    ),
+                              Text(
+                                '.${_formatNaira(balance).split('.').last}',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: heroSoftText.withValues(alpha: 0.4),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 28),
+                          
+                          // Integrated Account Details (Glass Bar)
+                          FutureBuilder<Map<String, dynamic>>(
+                            future: _accountsFuture,
+                            initialData: _cachedAccountsData,
+                            builder: (context, snapshot) {
+                              final data = snapshot.data;
+                              final accounts = (data?['accounts'] as List?) ?? [];
+                              if (accounts.isEmpty) return const SizedBox.shrink();
+                              
+                              final first = accounts.first as Map;
+                              final bank = first['bank_name'] ?? 'Bank';
+                              final number = first['account_number'] ?? '';
+                              
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.03),
                                   ),
-                                  Text(
-                                    _formatAccountNumber(number.toString()),
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1,
-                                      color: heroText,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          bank.toString().toUpperCase(),
+                                          style: TextStyle(
+                                            color: heroSoftText.withValues(alpha: 0.4),
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 9,
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          number.toString(),
+                                          style: TextStyle(
+                                            color: heroText,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 20,
+                                            letterSpacing: 1.5,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            TextButton.icon(
-                              onPressed: () => _copyAccountNumber(number.toString()),
-                              icon: const Icon(Icons.copy_rounded, size: 14),
-                              label: const Text('COPY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-                              style: TextButton.styleFrom(
-                                foregroundColor: Theme.of(context).colorScheme.primary,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                    child: PrimaryButton(
-                      label: 'Add Credit',
-                      compact: true,
-                      icon: Icons.add_rounded,
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (context) => _TopUpSheet(
-                            accountsFuture: _accountsFuture,
-                            cachedAccounts: _cachedAccountsData,
-                            onCopy: _copyAccountNumber,
-                            formatNumber: _formatAccountNumber,
-                            name: name,
+                                    const Spacer(),
+                                    IconButton(
+                                      onPressed: () => _copyAccountNumber(number.toString()),
+                                      icon: const Icon(Icons.copy_rounded, size: 18),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                                        foregroundColor: Colors.blue,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
+                          const SizedBox(height: 24),
+                          
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) => _TopUpSheet(
+                                        accountsFuture: _accountsFuture,
+                                        cachedAccounts: _cachedAccountsData,
+                                        onCopy: _copyAccountNumber,
+                                        formatNumber: _formatAccountNumber,
+                                        name: name,
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  label: const Text('FUND WALLET', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 18),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    elevation: 8,
+                                    shadowColor: Colors.blue.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                onPressed: _toggleBalanceVisibility,
+                                icon: Icon(
+                                  _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                  size: 22,
+                                ),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+                                  foregroundColor: heroSoftText,
+                                  padding: const EdgeInsets.all(18),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 32),
 
+            // REFERRAL SECTION: Kept and Enhanced
             _ReferralBanner(referralCode: referralCode),
+            const SizedBox(height: 32),
             
             Row(
               children: [

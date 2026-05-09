@@ -40,7 +40,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
   Future<void> _shareInvite(Map<String, dynamic> data) async {
     final code = (data['referral_code'] ?? '').toString().trim();
     final rawLink = (data['referral_link'] ?? '').toString().trim();
-    final link = rawLink.replaceAll('.vercel.app', 'axisvtu.com');
+    final link = _getReferralLink(data);
     final text = StringBuffer()
       ..writeln('AxisVTU')
       ..writeln('Buy data, pay bills, and manage your wallet in one place.')
@@ -56,6 +56,23 @@ class _ReferralScreenState extends State<ReferralScreen> {
         subject: 'Join me on AxisVTU',
       ),
     );
+  }
+
+  String _getReferralLink(Map<String, dynamic> data) {
+    // Ensure we don't double up the domain
+    String link = (data['referral_link'] ?? '').toString();
+    if (link.contains('.vercel.app')) {
+      link = link.replaceAll('.vercel.app', 'axisvtu.com');
+    }
+    // Final check to ensure it's the correct production domain
+    if (!link.startsWith('https://axisvtu.com')) {
+      // If it's a relative path or another domain, force it
+      if (link.contains('/signup?')) {
+        final query = link.split('?').last;
+        link = 'https://axisvtu.com/signup?$query';
+      }
+    }
+    return link;
   }
 
   String _money(dynamic value) {
@@ -89,8 +106,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
               final data = snapshot.data;
               final items = (data?['referrals'] as List?) ?? const [];
               final referralCode = (data?['referral_code'] ?? '—').toString();
-              final rawLink = (data?['referral_link'] ?? '').toString();
-              final referralLink = rawLink.replaceAll('.vercel.app', 'axisvtu.com');
+              final referralLink = data != null ? _getReferralLink(data) : '';
               final totalReferrals = (data?['total_referrals'] ?? 0).toString();
               final rewardedReferrals = (data?['rewarded_referrals'] ?? 0).toString();
               final totalEarned = _money(data?['total_earned']);
