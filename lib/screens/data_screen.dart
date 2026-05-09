@@ -260,6 +260,11 @@ class _DataScreenState extends State<DataScreen> {
         if (!mounted) return;
         final context = _planStepKey.currentContext;
         if (context != null) {
+          // If we reach here, biometric was successful but PIN is missing or invalid
+          _showSnack(
+            context,
+            'Biometric verified. Please enter your PIN to enable quick purchase.',
+          );
           Scrollable.ensureVisible(
             context,
             duration: AxisDurations.normal,
@@ -544,16 +549,19 @@ class _DataScreenState extends State<DataScreen> {
                                 ),
                               ),
                               Text(
-                                selectedCode == null 
-                                  ? '₦0.00' 
-                                  : (() {
-                                      try {
-                                        final plan = currentPlans.firstWhere((p) => p['plan_code'].toString() == selectedCode);
-                                        return '₦${_planPrice(plan)}';
-                                      } catch (_) {
-                                        return '₦0.00';
-                                      }
-                                    })(),
+                                (() {
+                                  if (selectedCode == null) return '₦0.00';
+                                  try {
+                                    final plan = currentPlans.firstWhere(
+                                      (p) => p['plan_code']?.toString() == selectedCode,
+                                      orElse: () => null,
+                                    );
+                                    if (plan == null) return '₦0.00';
+                                    return '₦${_planPrice(plan)}';
+                                  } catch (_) {
+                                    return '₦0.00';
+                                  }
+                                })(),
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w900,
