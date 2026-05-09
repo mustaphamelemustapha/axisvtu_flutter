@@ -2198,7 +2198,8 @@ class _NetworkCard extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.outline.withOpacity(0.1),
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            width: 1,
           ),
         ),
         child: Column(
@@ -2275,7 +2276,9 @@ class _ElitePlanTile extends StatelessWidget {
               : (isDark ? const Color(0xFF1E293B).withOpacity(0.4) : Colors.white),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: selected ? primary : Colors.transparent,
+            color: selected 
+                ? primary 
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
             width: 2.5,
           ),
           boxShadow: [
