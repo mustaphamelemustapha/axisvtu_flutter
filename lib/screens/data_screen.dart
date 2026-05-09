@@ -897,7 +897,7 @@ class _DataScreenState extends State<DataScreen> {
                 ),
               ],
             ),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
+          ),
 
           const SizedBox(height: 32),
 
@@ -1000,7 +1000,7 @@ class _DataScreenState extends State<DataScreen> {
                 ),
               ],
             ),
-          ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.1),
+          ),
 
           const SizedBox(height: 32),
 
@@ -1096,10 +1096,10 @@ class _DataScreenState extends State<DataScreen> {
                       ),
                     ],
                   ),
-                ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
+                ),
               ],
             ),
-          ).animate().fadeIn(duration: 400.ms, delay: 200.ms).slideY(begin: 0.1),
+          ),
 
           const SizedBox(height: 40),
         ],
@@ -2179,25 +2179,14 @@ class _NetworkCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutBack,
+      child: Container(
         width: 100,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? const Color(0xFF2457F5) : const Color(0xFF2457F5))
+              ? const Color(0xFF2457F5)
               : (isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF)),
           borderRadius: BorderRadius.circular(20),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: isDark ? const Color(0xFF08101F) : const Color(0xFFD1D5DB),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : null,
           border: Border.all(
             color: isSelected
                 ? const Color(0xFF2457F5)
@@ -2240,11 +2229,15 @@ class _NetworkIcon extends StatelessWidget {
     else if (n.contains('glo')) asset = 'assets/networks/glo.svg';
     else if (n.contains('9mobile')) asset = 'assets/networks/9mobile.svg';
 
-    return SvgPicture.asset(
-      asset,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
       width: size,
       height: size,
-      errorBuilder: (c, e, s) => Icon(Icons.signal_cellular_alt_rounded, size: size),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(Icons.signal_cellular_alt_rounded, size: size * 0.6, color: Theme.of(context).colorScheme.primary),
     );
   }
 }
