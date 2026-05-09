@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>AxisVTU uses Face ID for secure and quick sign-in to your account.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app requires contacts access to help you select phone numbers for airtime and data purchases.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
