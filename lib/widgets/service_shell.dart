@@ -170,8 +170,10 @@ class ServiceChoiceChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? color.withOpacity(0.26)
-                : Theme.of(context).dividerColor.withOpacity(0.95),
+                ? color
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFE2E8F0)),
             width: 1,
           ),
         ),
