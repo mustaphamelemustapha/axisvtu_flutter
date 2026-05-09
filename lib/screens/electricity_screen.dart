@@ -12,6 +12,7 @@ import '../services/services_service.dart';
 import '../state/session.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
+import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
 import '../widgets/elite_phone_input.dart';
 

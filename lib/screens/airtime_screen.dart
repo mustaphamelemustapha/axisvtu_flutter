@@ -190,6 +190,25 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       setState(() => _suggestions = nextSuggestions);
     }
   }
+  Widget _networkLogo(String network) {
+    final asset = switch (network.toLowerCase()) {
+      'mtn' => 'assets/networks/mtn.svg',
+      'airtel' => 'assets/networks/airtel.svg',
+      'glo' => 'assets/networks/glo.svg',
+      '9mobile' => 'assets/networks/9mobile.svg',
+      _ => '',
+    };
+
+    if (asset.isEmpty) return const Icon(Icons.cell_tower_rounded, size: 14);
+
+    return SvgPicture.asset(
+      asset,
+      width: 14,
+      height: 14,
+      fit: BoxFit.contain,
+    );
+  }
+
 
   void _invalidateRequestId() {
     _activeRequestId = null;
@@ -1422,6 +1441,25 @@ class _ShareableReceipt extends StatelessWidget {
           painter: _ZigZagPainter(),
         ),
       ],
+    );
+  }
+
+  Widget _networkLogo(String network) {
+    final asset = switch (network.toLowerCase()) {
+      'mtn' => 'assets/networks/mtn.svg',
+      'airtel' => 'assets/networks/airtel.svg',
+      'glo' => 'assets/networks/glo.svg',
+      '9mobile' => 'assets/networks/9mobile.svg',
+      _ => '',
+    };
+
+    if (asset.isEmpty) return const Icon(Icons.cell_tower_rounded, size: 14);
+
+    return SvgPicture.asset(
+      asset,
+      width: 14,
+      height: 14,
+      fit: BoxFit.contain,
     );
   }
 }

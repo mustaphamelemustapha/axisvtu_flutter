@@ -4,14 +4,14 @@ import 'package:flutter_svg/flutter_svg.dart';
 class ElitePhoneInput extends StatelessWidget {
   final TextEditingController controller;
   final String network;
-  final VoidCallback onContactTap;
+  final VoidCallback? onContactTap;
   final Function(String)? onChanged;
 
   const ElitePhoneInput({
     super.key,
     required this.controller,
     required this.network,
-    required this.onContactTap,
+    this.onContactTap,
     this.onChanged,
   });
 
@@ -75,7 +75,7 @@ class ElitePhoneInput extends StatelessWidget {
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: controller,
             builder: (context, value, child) {
-              if (value.text.isEmpty) {
+              if (value.text.isEmpty && onContactTap != null) {
                 return IconButton(
                   onPressed: onContactTap,
                   icon: Icon(

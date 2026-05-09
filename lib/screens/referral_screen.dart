@@ -194,7 +194,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                     color: Colors.grey,
                   ),
                 ),
-                       if (loading)
+              ),
+              if (loading)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   child: _ReferralLoading(),
@@ -320,7 +321,10 @@ class _ReferralScreenState extends State<ReferralScreen> {
                     ),
                   );
                 }),
-          ],
+            ],
+          );
+        },
+      ),
     );
   }
 }
