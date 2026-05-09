@@ -43,10 +43,10 @@ class _QuickActionTileState extends State<QuickActionTile> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.95)),
+            border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.95)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.12 : 0.08),
+                color: Colors.black.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.12 : 0.08),
                 blurRadius: 18,
                 offset: const Offset(0, 10),
               ),
@@ -58,7 +58,7 @@ class _QuickActionTileState extends State<QuickActionTile> {
                 height: 38,
                 width: 38,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  color: color.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(widget.icon, color: color, size: 20),

@@ -456,7 +456,7 @@ class _DataScreenState extends State<DataScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
+                      color: Theme.of(context).dividerColor.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -474,7 +474,7 @@ class _DataScreenState extends State<DataScreen> {
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.5,
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -525,7 +525,7 @@ class _DataScreenState extends State<DataScreen> {
                   Container(
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : const Color(0xFFF8FAFC),
+                      color: isDark ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFFF8FAFC),
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                     ),
                     child: Row(
@@ -540,7 +540,7 @@ class _DataScreenState extends State<DataScreen> {
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w800,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
                                 ),
                               ),
                               Text(
@@ -852,7 +852,7 @@ class _DataScreenState extends State<DataScreen> {
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.5,
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -905,7 +905,7 @@ class _DataScreenState extends State<DataScreen> {
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.5,
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -915,7 +915,7 @@ class _DataScreenState extends State<DataScreen> {
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
                     ),
                   ),
                   child: Column(
@@ -934,7 +934,7 @@ class _DataScreenState extends State<DataScreen> {
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             letterSpacing: 0,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
                           ),
                           prefixIcon: Padding(
                             padding: const EdgeInsets.all(12),
@@ -942,7 +942,7 @@ class _DataScreenState extends State<DataScreen> {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(Icons.phone_iphone_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
@@ -982,7 +982,7 @@ class _DataScreenState extends State<DataScreen> {
                                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                               ),
                               const Spacer(),
-                              Icon(Icons.chevron_right_rounded, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3)),
+                              Icon(Icons.chevron_right_rounded, size: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3)),
                             ],
                           ),
                         ),
@@ -1012,7 +1012,7 @@ class _DataScreenState extends State<DataScreen> {
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.5,
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
                       ),
                     ),
                     if (_selectedPlanCode != null) TextButton(
@@ -1029,10 +1029,10 @@ class _DataScreenState extends State<DataScreen> {
                 ) else Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
                       width: 2,
                     ),
                   ),
@@ -1046,7 +1046,7 @@ class _DataScreenState extends State<DataScreen> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -1072,7 +1072,7 @@ class _DataScreenState extends State<DataScreen> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                               ),
                             ),
                           ],
@@ -1123,7 +1123,7 @@ class _EliteSelectionCard extends StatelessWidget {
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
             style: BorderStyle.solid,
           ),
         ),
@@ -1132,7 +1132,7 @@ class _EliteSelectionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: Theme.of(context).colorScheme.primary),
@@ -1184,11 +1184,11 @@ class _RecentRecipientsSheet extends StatelessWidget {
         color: isDark ? const Color(0xFF0E1624) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.10),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
+            color: Colors.black.withOpacity(0.16),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1223,7 +1223,7 @@ class _RecentRecipientsSheet extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurface.withValues(alpha: 0.56),
+                ).colorScheme.onSurface.withOpacity(0.56),
               ),
             ),
             const SizedBox(height: 12),
@@ -1248,12 +1248,12 @@ class _RecentRecipientsSheet extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Theme.of(
                           context,
-                        ).colorScheme.primary.withValues(alpha: 0.08),
+                        ).colorScheme.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withValues(alpha: 0.12),
+                          ).colorScheme.outline.withOpacity(0.12),
                         ),
                       ),
                       child: Text(
@@ -1319,13 +1319,13 @@ class _TransactionHeroCard extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.10),
         ),
         boxShadow: [
           BoxShadow(
             color: Theme.of(
               context,
-            ).colorScheme.primary.withValues(alpha: isDark ? 0.14 : 0.08),
+            ).colorScheme.primary.withOpacity(isDark ? 0.14 : 0.08),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1343,7 +1343,7 @@ class _TransactionHeroCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: Theme.of(
                   context,
-                ).colorScheme.primary.withValues(alpha: 0.06),
+                ).colorScheme.primary.withOpacity(0.06),
               ),
             ),
           ),
@@ -1358,7 +1358,7 @@ class _TransactionHeroCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withValues(alpha: 0.10),
+                      ).colorScheme.primary.withOpacity(0.10),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -1387,7 +1387,7 @@ class _TransactionHeroCard extends StatelessWidget {
                               ?.copyWith(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.60),
+                                ).colorScheme.onSurface.withOpacity(0.60),
                               ),
                         ),
                       ],
@@ -1406,7 +1406,7 @@ class _TransactionHeroCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.surface.withValues(alpha: 0.72),
+                      ).colorScheme.surface.withOpacity(0.72),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Row(
@@ -1469,10 +1469,10 @@ class _HeroChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.78),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.78),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14),
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.14),
         ),
       ),
       child: Row(
@@ -1550,7 +1550,7 @@ class _PremiumSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = Theme.of(
       context,
-    ).colorScheme.onSurface.withValues(alpha: 0.62);
+    ).colorScheme.onSurface.withOpacity(0.62);
     return GlassCard(
       padding: EdgeInsets.all(AxisSpacing.md),
       child: Column(
@@ -1597,7 +1597,7 @@ class _ReceiptPreviewLine extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: onSurface.withValues(alpha: 0.7),
+              color: onSurface.withOpacity(0.7),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1634,7 +1634,7 @@ class _NetworkMetaPill extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14),
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.14),
         ),
       ),
       child: Column(
@@ -1646,7 +1646,7 @@ class _NetworkMetaPill extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ).colorScheme.onSurface.withOpacity(0.6),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1692,7 +1692,7 @@ class _InfoChip extends StatelessWidget {
             border: Border.all(
               color: Theme.of(
                 context,
-              ).colorScheme.outline.withValues(alpha: 0.16),
+              ).colorScheme.outline.withOpacity(0.16),
             ),
           ),
           child: Row(
@@ -1701,7 +1701,7 @@ class _InfoChip extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 17),
@@ -1725,7 +1725,7 @@ class _InfoChip extends StatelessWidget {
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.62),
+                        ).colorScheme.onSurface.withOpacity(0.62),
                       ),
                     ),
                   ],
@@ -1759,7 +1759,7 @@ class _SuggestionPanel extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.14),
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.14),
         ),
       ),
       child: Column(
@@ -1792,7 +1792,7 @@ class _SuggestionPanel extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.primary.withValues(alpha: 0.1),
+                    ).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(
@@ -1845,12 +1845,12 @@ class _RecentRecipientsInline extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.primary.withValues(alpha: 0.08),
+              ).colorScheme.primary.withOpacity(0.08),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
                 color: Theme.of(
                   context,
-                ).colorScheme.outline.withValues(alpha: 0.12),
+                ).colorScheme.outline.withOpacity(0.12),
               ),
             ),
             child: Text(number, style: Theme.of(context).textTheme.labelMedium),
@@ -1896,7 +1896,7 @@ class _PurchaseSummaryModal extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
+              color: Theme.of(context).dividerColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1913,10 +1913,10 @@ class _PurchaseSummaryModal extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : const Color(0xFFF8FAFC),
+              color: isDark ? const Color(0xFF1E293B).withOpacity(0.5) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
               ),
             ),
             child: Column(
@@ -2039,7 +2039,7 @@ class _MasterpieceActionButton extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -2103,12 +2103,12 @@ class _ElitePhoneInput extends StatelessWidget {
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -2120,7 +2120,7 @@ class _ElitePhoneInput extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: _NetworkIcon(network: network, size: 24),
@@ -2134,7 +2134,7 @@ class _ElitePhoneInput extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: 'Enter Phone Number',
                 hintStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
                   fontWeight: FontWeight.w600,
                 ),
                 border: InputBorder.none,
@@ -2186,7 +2186,7 @@ class _NetworkCard extends StatelessWidget {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -2194,8 +2194,8 @@ class _NetworkCard extends StatelessWidget {
               : null,
           border: Border.all(
             color: isSelected
-                ? Colors.transparent
-                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outline.withOpacity(0.1),
           ),
         ),
         child: Column(
@@ -2268,8 +2268,8 @@ class _ElitePlanTile extends StatelessWidget {
         duration: const Duration(milliseconds: 250),
         decoration: BoxDecoration(
           color: selected
-              ? primary.withValues(alpha: 0.08)
-              : (isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : Colors.white),
+              ? primary.withOpacity(0.08)
+              : (isDark ? const Color(0xFF1E293B).withOpacity(0.4) : Colors.white),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: selected ? primary : Colors.transparent,
@@ -2277,7 +2277,7 @@ class _ElitePlanTile extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -2294,7 +2294,7 @@ class _ElitePlanTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: selected ? primary : Colors.grey.withValues(alpha: 0.1),
+                    color: selected ? primary : Colors.grey.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -2412,7 +2412,7 @@ class _PlanShimmerGrid extends StatelessWidget {
             border: Border.all(
               color: Theme.of(
                 context,
-              ).colorScheme.outline.withValues(alpha: 0.12),
+              ).colorScheme.outline.withOpacity(0.12),
             ),
           ),
           padding: const EdgeInsets.all(16),
@@ -2477,16 +2477,16 @@ class _PlanMetaPill extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: selected
-            ? primary.withValues(alpha: 0.16)
+            ? primary.withOpacity(0.16)
             : (isDark
-                  ? Colors.white.withValues(alpha: 0.06)
+                  ? Colors.white.withOpacity(0.06)
                   : const Color(0xFFF4F6FA)),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
           color: selected
-              ? primary.withValues(alpha: 0.5)
+              ? primary.withOpacity(0.5)
               : (isDark
-                    ? Colors.white.withValues(alpha: 0.12)
+                    ? Colors.white.withOpacity(0.12)
                     : const Color(0xFFDDE4F0)),
         ),
       ),
@@ -2498,7 +2498,7 @@ class _PlanMetaPill extends StatelessWidget {
           color: selected
               ? primary
               : (isDark
-                    ? Colors.white.withValues(alpha: 0.78)
+                    ? Colors.white.withOpacity(0.78)
                     : const Color(0xFF64748B)),
           letterSpacing: 0.2,
         ),
@@ -2631,7 +2631,7 @@ class _EmptyPlansState extends StatelessWidget {
             size: 52,
             color: Theme.of(
               context,
-            ).colorScheme.onSurface.withValues(alpha: 0.35),
+            ).colorScheme.onSurface.withOpacity(0.35),
           ),
           const SizedBox(height: 16),
           Text(
@@ -2646,7 +2646,7 @@ class _EmptyPlansState extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(
                 context,
-              ).colorScheme.onSurface.withValues(alpha: 0.64),
+              ).colorScheme.onSurface.withOpacity(0.64),
             ),
           ),
           TextButton(onPressed: onRetry, child: const Text('Retry')),
@@ -2733,10 +2733,10 @@ class _SuccessModalState extends State<_SuccessModal> {
           Container(
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
+                  ? Colors.white.withOpacity(0.05)
                   : Colors.white,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+              border: Border.all(color: Colors.grey.withOpacity(0.1)),
             ),
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -2760,7 +2760,7 @@ class _SuccessModalState extends State<_SuccessModal> {
                             (widget.ok
                                     ? const Color(0xFF22C55E)
                                     : const Color(0xFFEF4444))
-                                .withValues(alpha: 0.1),
+                                .withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -2931,7 +2931,7 @@ class _SuccessToggle extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.grey.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 18),
@@ -3164,7 +3164,7 @@ class _ReceiptTableItem extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Divider(color: Colors.grey.withValues(alpha: 0.1)),
+          Divider(color: Colors.grey.withOpacity(0.1)),
         ],
       ),
     );
@@ -3212,14 +3212,14 @@ class _EmptyStateCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(
       context,
-    ).colorScheme.onSurface.withValues(alpha: 0.70);
+    ).colorScheme.onSurface.withOpacity(0.70);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey[100],
+        color: isDark ? Colors.white.withOpacity(0.03) : Colors.grey[100],
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
       ),
       child: Column(
         children: [

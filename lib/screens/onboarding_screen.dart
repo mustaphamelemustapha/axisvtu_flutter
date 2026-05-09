@@ -65,7 +65,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       decoration: BoxDecoration(
         color: active
             ? theme.colorScheme.primary
-            : theme.colorScheme.onSurface.withValues(alpha: 0.18),
+            : theme.colorScheme.onSurface.withOpacity(0.18),
         borderRadius: BorderRadius.circular(999),
       ),
     );
@@ -80,7 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? const Color(0xFF111A2B) : Colors.white;
-    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.68);
+    final muted = theme.colorScheme.onSurface.withOpacity(0.68);
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -91,11 +91,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             color: surface,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.14 : 0.08),
+              color: theme.colorScheme.outline.withOpacity(isDark ? 0.14 : 0.08),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.08),
+                color: Colors.black.withOpacity(isDark ? 0.20 : 0.08),
                 blurRadius: 24,
                 offset: const Offset(0, 14),
               ),
@@ -118,7 +118,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   color: isDark ? const Color(0xFF17233B) : const Color(0xFFF7FAFF),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.10),
+                    color: theme.colorScheme.outline.withOpacity(0.10),
                   ),
                 ),
                 child: Column(
@@ -158,7 +158,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.10),
+        color: theme.colorScheme.primary.withOpacity(0.10),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -184,7 +184,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final background = isDark ? const Color(0xFF090E17) : const Color(0xFFF5F8FD);
-    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.68);
+    final muted = theme.colorScheme.onSurface.withOpacity(0.68);
 
     return Scaffold(
       backgroundColor: background,
@@ -205,7 +205,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           color: isDark ? const Color(0xFF101A2B) : Colors.white,
                           borderRadius: BorderRadius.circular(11),
                           border: Border.all(
-                            color: theme.colorScheme.outline.withValues(alpha: 0.14),
+                            color: theme.colorScheme.outline.withOpacity(0.14),
                           ),
                         ),
                         child: ClipRRect(

@@ -86,7 +86,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
     final compact = size.width < 360 || size.height < 760;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = Theme.of(context).colorScheme.surface;
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.66);
+    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.66);
 
     return Scaffold(
       body: SafeArea(
@@ -124,7 +124,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF4F7FF),
+                            color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF4F7FF),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(Icons.arrow_back_rounded, color: Theme.of(context).colorScheme.onSurface),
@@ -158,7 +158,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       color: surface,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.14 : 0.1),
+                        color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
                       ),
                     ),
                     child: Column(
@@ -227,7 +227,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       color: surface,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.14 : 0.1),
+                        color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
                       ),
                     ),
                     child: Column(
@@ -267,7 +267,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                         color: surface,
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.14 : 0.1),
+                          color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
                         ),
                       ),
                       child: Text(
@@ -282,7 +282,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                         color: surface,
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.14 : 0.1),
+                          color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
                         ),
                       ),
                       child: Text(
@@ -305,7 +305,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                             color: surface,
                             borderRadius: BorderRadius.circular(22),
                             border: Border.all(
-                              color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.14 : 0.1),
+                              color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.1),
                             ),
                           ),
                           child: Column(
@@ -373,7 +373,7 @@ class _StatPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1)),
+        border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.1)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -409,7 +409,7 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -440,7 +440,7 @@ class _ReferralLoading extends StatelessWidget {
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+                color: Theme.of(context).colorScheme.outline.withOpacity(0.08),
               ),
             ),
           ),

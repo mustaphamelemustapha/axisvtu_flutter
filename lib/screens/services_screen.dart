@@ -160,7 +160,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.55);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4),
       child: Column(
@@ -235,9 +235,7 @@ class _ServiceCard extends StatelessWidget {
           color: isDark ? const Color(0xFF141C2A) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(
-              alpha: isDark ? 0.08 : 0.06,
-            ),
+            color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.08 : 0.06,),
           ),
           boxShadow: AxisShadows.softGlow,
         ),
@@ -247,7 +245,7 @@ class _ServiceCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: item.accent.withValues(alpha: 0.12),
+                color: item.accent.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(item.icon, color: item.accent, size: 22),
@@ -270,7 +268,7 @@ class _ServiceCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurface.withValues(alpha: 0.55),
+                ).colorScheme.onSurface.withOpacity(0.55),
                 fontSize: 10.5,
                 fontWeight: FontWeight.w500,
                 height: 1.2,
@@ -291,13 +289,13 @@ class _SupportCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.02),
+            Theme.of(context).colorScheme.primary.withOpacity(0.05),
+            Theme.of(context).colorScheme.primary.withOpacity(0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
         ),
       ),
       child: Column(

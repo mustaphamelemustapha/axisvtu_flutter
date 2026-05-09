@@ -68,7 +68,7 @@ class _PurchaseLoadingViewState extends State<_PurchaseLoadingView>
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.26),
+              color: Colors.black.withOpacity(isDark ? 0.42 : 0.26),
             ),
           ),
         ),
@@ -79,7 +79,7 @@ class _PurchaseLoadingViewState extends State<_PurchaseLoadingView>
                 center: const Alignment(0, -0.1),
                 radius: 0.9,
                 colors: [
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.2),
                   Colors.transparent,
                 ],
               ),
@@ -100,19 +100,17 @@ class _PurchaseLoadingViewState extends State<_PurchaseLoadingView>
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.white.withValues(alpha: 0.78),
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.white.withOpacity(0.78),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Colors.white.withValues(
-                        alpha: isDark ? 0.18 : 0.52,
-                      ),
+                      color: Colors.white.withOpacity(isDark ? 0.18 : 0.52,),
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: Theme.of(
                           context,
-                        ).colorScheme.primary.withValues(alpha: 0.26),
+                        ).colorScheme.primary.withOpacity(0.26),
                         blurRadius: 28,
                         offset: const Offset(0, 14),
                       ),
@@ -212,7 +210,7 @@ class _PremiumSpinnerState extends State<_PremiumSpinner>
                 BoxShadow(
                   color: Theme.of(
                     context,
-                  ).colorScheme.primary.withValues(alpha: 0.38),
+                  ).colorScheme.primary.withOpacity(0.38),
                   blurRadius: 12,
                   spreadRadius: 2,
                 ),

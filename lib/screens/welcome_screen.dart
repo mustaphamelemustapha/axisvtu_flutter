@@ -155,7 +155,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.66);
+    final muted = onSurface.withOpacity(0.66);
     final authError = _localError ?? session.error;
 
     return Scaffold(
@@ -244,7 +244,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           foregroundColor: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withValues(alpha: 0.7),
+                              .withOpacity(0.7),
                         ),
                         child: const Text(
                           'Forgot password?',
@@ -332,14 +332,14 @@ class _AuthInfoCard extends StatelessWidget {
     final color = isWarning
         ? (isDark ? Colors.orangeAccent : Colors.orange.shade800)
         : (isDark ? Colors.blueAccent : Colors.blue.shade800);
-    final bg = color.withValues(alpha: 0.1);
+    final bg = color.withOpacity(0.1);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -371,7 +371,7 @@ class _TrustFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45);
+    final muted = Theme.of(context).colorScheme.onSurface.withOpacity(0.45);
     return Column(
       children: [
         FittedBox(
@@ -410,7 +410,7 @@ class _TrustFooter extends StatelessWidget {
           },
           style: TextButton.styleFrom(
             visualDensity: VisualDensity.compact,
-            foregroundColor: muted.withValues(alpha: 0.8),
+            foregroundColor: muted.withOpacity(0.8),
           ),
           child: const Text(
             'Need any help? Contact Support',
@@ -478,7 +478,7 @@ class _AuthInputState extends State<_AuthInput> {
         boxShadow: [
           if (_isFocused)
             BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.08 : 0.04),
+              color: theme.colorScheme.primary.withOpacity(isDark ? 0.08 : 0.04),
               blurRadius: 15,
               offset: const Offset(0, 4),
             ),
@@ -494,14 +494,14 @@ class _AuthInputState extends State<_AuthInput> {
           hintText: widget.hint,
           hintStyle: TextStyle(
             fontWeight: FontWeight.w500,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            color: theme.colorScheme.onSurface.withOpacity(0.4),
           ),
           prefixIcon: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Icon(
               widget.icon,
               size: 20,
-              color: _isFocused ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              color: _isFocused ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.3),
             ),
           ),
           prefixIconConstraints: const BoxConstraints(minWidth: 40),
@@ -511,19 +511,19 @@ class _AuthInputState extends State<_AuthInput> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide(
-              color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.15 : 0.08),
+              color: theme.colorScheme.outline.withOpacity(isDark ? 0.15 : 0.08),
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide(
-              color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.06),
+              color: theme.colorScheme.outline.withOpacity(isDark ? 0.12 : 0.06),
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide(
-              color: theme.colorScheme.primary.withValues(alpha: 0.8),
+              color: theme.colorScheme.primary.withOpacity(0.8),
               width: 1.5,
             ),
           ),
@@ -550,9 +550,9 @@ class _BiometricSignInButton extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: isDark ? Colors.white.withValues(alpha: 0.02) : const Color(0xFFF1F5F9),
+        color: isDark ? Colors.white.withOpacity(0.02) : const Color(0xFFF1F5F9),
         border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.05),
+          color: theme.colorScheme.outline.withOpacity(isDark ? 0.08 : 0.05),
         ),
       ),
       child: Material(
@@ -567,7 +567,7 @@ class _BiometricSignInButton extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: primary.withValues(alpha: 0.1),
+                    color: primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: loading
@@ -600,7 +600,7 @@ class _BiometricSignInButton extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
                         ),
                       ),
                     ],
@@ -608,7 +608,7 @@ class _BiometricSignInButton extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                  color: theme.colorScheme.onSurface.withOpacity(0.3),
                 ),
               ],
             ),

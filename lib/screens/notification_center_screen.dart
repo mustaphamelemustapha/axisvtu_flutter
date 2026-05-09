@@ -155,9 +155,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final surface = Theme.of(context).colorScheme.surface;
         final titleColor = Theme.of(context).colorScheme.onSurface;
-        final muted = Theme.of(context).colorScheme.onSurface.withValues(
-              alpha: isDark ? 0.68 : 0.64,
-            );
+        final muted = Theme.of(context).colorScheme.onSurface.withOpacity(isDark ? 0.68 : 0.64,);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
@@ -166,13 +164,11 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 color: surface,
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(
-                        alpha: isDark ? 0.16 : 0.18,
-                      ),
+                  color: Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.16 : 0.18,),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.06),
+                    color: Colors.black.withOpacity(isDark ? 0.18 : 0.06),
                     blurRadius: 28,
                     offset: const Offset(0, 16),
                   ),
@@ -189,9 +185,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                         width: 46,
                         height: 5,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.outline.withValues(
-                                alpha: 0.28,
-                              ),
+                          color: Theme.of(context).colorScheme.outline.withOpacity(0.28,),
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -203,9 +197,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: item.accent.withValues(
-                              alpha: isDark ? 0.18 : 0.12,
-                            ),
+                            color: item.accent.withOpacity(isDark ? 0.18 : 0.12,),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(item.icon, color: item.accent, size: 20),
@@ -444,7 +436,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withValues(alpha: 0.62),
+                              .withOpacity(0.62),
                           fontWeight: FontWeight.w600,
                         ),
                   ),
@@ -475,8 +467,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                             ),
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.outline.withValues(
-                              alpha: Theme.of(context).brightness == Brightness.dark
+                        color: Theme.of(context).colorScheme.outline.withOpacity(Theme.of(context).brightness == Brightness.dark
                                   ? 0.18
                                   : 0.20,
                             ),
@@ -484,8 +475,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                       boxShadow: [
                         BoxShadow(
                           color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.black.withValues(alpha: 0.26)
-                              : const Color(0xFF2457F5).withValues(alpha: 0.10),
+                              ? Colors.black.withOpacity(0.26)
+                              : const Color(0xFF2457F5).withOpacity(0.10),
                           blurRadius: 24,
                           offset: const Offset(0, 12),
                         ),
@@ -512,7 +503,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                                   : 'You have $unreadCount unread update${unreadCount == 1 ? '' : 's'}.',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white.withValues(alpha: 0.82)
+                                    ? Colors.white.withOpacity(0.82)
                                     : const Color(0xFF5B6B82),
                               ),
                         ),
@@ -648,13 +639,13 @@ class _FilterPill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
             color: selected
-                ? Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.22 : 0.12)
+                ? Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.22 : 0.12)
                 : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: selected
-                  ? Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.42 : 0.22)
-                  : Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.16 : 0.18),
+                  ? Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.42 : 0.22)
+                  : Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.16 : 0.18),
             ),
           ),
           child: Text(
@@ -663,7 +654,7 @@ class _FilterPill extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   color: selected
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72),
+                      : Theme.of(context).colorScheme.onSurface.withOpacity(0.72),
                 ),
           ),
         ),
@@ -683,7 +674,7 @@ class _NotificationSkeleton extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.16),
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.16),
         ),
       ),
       padding: const EdgeInsets.all(14),
@@ -693,7 +684,7 @@ class _NotificationSkeleton extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
               borderRadius: BorderRadius.circular(14),
             ),
           ),
@@ -707,7 +698,7 @@ class _NotificationSkeleton extends StatelessWidget {
                   height: 12,
                   width: 180,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -716,7 +707,7 @@ class _NotificationSkeleton extends StatelessWidget {
                   height: 10,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -725,7 +716,7 @@ class _NotificationSkeleton extends StatelessWidget {
                   height: 10,
                   width: 120,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -763,7 +754,7 @@ class _EmptyState extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Icon(
@@ -785,7 +776,7 @@ class _EmptyState extends StatelessWidget {
             subtitle,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.62),
                   height: 1.4,
                 ),
           ),

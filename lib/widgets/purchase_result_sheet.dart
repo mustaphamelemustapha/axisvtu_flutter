@@ -309,7 +309,7 @@ class _ReceiptTableItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Divider(color: Colors.grey.withValues(alpha: 0.1)),
+          Divider(color: Colors.grey.withOpacity(0.1)),
         ],
       ),
     );

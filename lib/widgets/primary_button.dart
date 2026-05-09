@@ -60,18 +60,18 @@ class _PrimaryButtonState extends State<PrimaryButton> {
                   ? LinearGradient(
                       colors: [
                         primary,
-                        primary.withValues(alpha: 0.82),
+                        primary.withOpacity(0.82),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : null,
-              color: _enabled ? null : theme.disabledColor.withValues(alpha: 0.12),
+              color: _enabled ? null : theme.disabledColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(AxisRadii.lg),
               boxShadow: [
                 if (_enabled)
                   BoxShadow(
-                    color: primary.withValues(alpha: isDark ? 0.28 : 0.2),
+                    color: primary.withOpacity(isDark ? 0.28 : 0.2),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   ),

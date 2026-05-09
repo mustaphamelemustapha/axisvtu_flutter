@@ -112,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF070B12) : const Color(0xFFF2F6FF);
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.66);
+    final muted = onSurface.withOpacity(0.66);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -286,7 +286,7 @@ class _AuthInput extends StatelessWidget {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
           ),
         ),
       ),

@@ -426,8 +426,8 @@ class _ExamScreenState extends State<ExamScreen> {
                   colors: [
                     Theme.of(
                       context,
-                    ).colorScheme.primary.withValues(alpha: 0.12),
-                    const Color(0xFF0FB5AE).withValues(alpha: 0.1),
+                    ).colorScheme.primary.withOpacity(0.12),
+                    const Color(0xFF0FB5AE).withOpacity(0.1),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -435,7 +435,7 @@ class _ExamScreenState extends State<ExamScreen> {
                 border: Border.all(
                   color: Theme.of(
                     context,
-                  ).colorScheme.primary.withValues(alpha: 0.3),
+                  ).colorScheme.primary.withOpacity(0.3),
                 ),
               ),
               child: Column(

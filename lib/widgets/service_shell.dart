@@ -74,10 +74,10 @@ class ServiceShell extends StatelessWidget {
                             height: 40,
                             width: 40,
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
                               ),
                             ),
                             child: Icon(
@@ -107,7 +107,7 @@ class ServiceShell extends StatelessWidget {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withValues(alpha: 0.62),
+                                            .withOpacity(0.62),
                                       ),
                                 ),
                               ],
@@ -165,13 +165,13 @@ class ServiceChoiceChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
           color: selected
-              ? color.withValues(alpha: 0.10)
+              ? color.withOpacity(0.10)
               : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? color.withValues(alpha: 0.26)
-                : Theme.of(context).dividerColor.withValues(alpha: 0.95),
+                ? color.withOpacity(0.26)
+                : Theme.of(context).dividerColor.withOpacity(0.95),
             width: 1,
           ),
         ),
@@ -219,7 +219,7 @@ class ServiceSectionCard extends StatelessWidget {
         color: isDark ? const Color(0xFF111827) : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.40 : 0.72),
+          color: Theme.of(context).dividerColor.withOpacity(isDark ? 0.40 : 0.72),
         ),
         boxShadow: AxisShadows.softGlow,
       ),
@@ -240,7 +240,7 @@ class ServiceSectionCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurface.withValues(alpha: 0.64),
+                ).colorScheme.onSurface.withOpacity(0.64),
               ),
             ),
           ],
@@ -269,7 +269,7 @@ class _ActionBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.95)),
+          border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.95)),
         ),
         child: Icon(icon),
       ),

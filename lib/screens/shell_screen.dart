@@ -36,7 +36,7 @@ class _ShellScreenState extends State<ShellScreen> {
         decoration: BoxDecoration(
           border: Border(
             top: BorderSide(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.15),
               width: 1,
             ),
           ),

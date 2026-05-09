@@ -139,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.outline.withValues(alpha: 0.3),
+                      ).colorScheme.outline.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
@@ -273,7 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withValues(alpha: 0.3),
+                          ).colorScheme.outline.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -460,7 +460,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withValues(alpha: 0.3),
+                          ).colorScheme.outline.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -475,7 +475,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: Theme.of(context)
                                 .colorScheme
                                 .primaryContainer
-                                .withValues(alpha: 0.65),
+                                .withOpacity(0.65),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
@@ -541,7 +541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       decoration: BoxDecoration(
                         color: Theme.of(
                           context,
-                        ).colorScheme.outline.withValues(alpha: 0.3),
+                        ).colorScheme.outline.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -554,7 +554,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         height: 42,
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer
-                              .withValues(alpha: 0.65),
+                              .withOpacity(0.65),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
@@ -592,7 +592,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.72),
+                      ).colorScheme.onSurface.withOpacity(0.72),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -784,7 +784,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 border: Border.all(
                   color: Theme.of(
                     context,
-                  ).colorScheme.outline.withValues(alpha: isDark ? 0.16 : 0.18),
+                  ).colorScheme.outline.withOpacity(isDark ? 0.16 : 0.18),
                 ),
                 boxShadow: AxisShadows.softGlow,
               ),
@@ -802,7 +802,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.outline.withValues(alpha: 0.28),
+                          ).colorScheme.outline.withOpacity(0.28),
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -816,7 +816,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             color: Theme.of(
                               context,
-                            ).colorScheme.primary.withValues(alpha: 0.1),
+                            ).colorScheme.primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
@@ -842,7 +842,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface
-                                          .withValues(alpha: 0.64),
+                                          .withOpacity(0.64),
                                     ),
                               ),
                             ],
@@ -857,7 +857,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.72),
+                          ).colorScheme.onSurface.withOpacity(0.72),
                           height: 1.45,
                         ),
                       ),
@@ -1054,7 +1054,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               border: Border.all(
                 color: Theme.of(
                   context,
-                ).colorScheme.outline.withValues(alpha: 0.14),
+                ).colorScheme.outline.withOpacity(0.14),
               ),
             ),
             child: Column(
@@ -1068,7 +1068,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.outline.withValues(alpha: 0.3),
+                      ).colorScheme.outline.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
@@ -1086,7 +1086,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.66),
+                    ).colorScheme.onSurface.withOpacity(0.66),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1194,7 +1194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final themeController = context.watch<ThemeController>();
     final heroText = isDark ? Colors.white : const Color(0xFF0F172A);
     final heroSoftText = isDark
-        ? Colors.white.withValues(alpha: 0.85)
+        ? Colors.white.withOpacity(0.85)
         : const Color(0xFF5B6B82);
 
     return SafeArea(
@@ -1224,7 +1224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               border: Border.all(
                 color: Theme.of(
                   context,
-                ).colorScheme.outline.withValues(alpha: isDark ? 0.18 : 0.9),
+                ).colorScheme.outline.withOpacity(isDark ? 0.18 : 0.9),
               ),
               boxShadow: AxisShadows.softGlow,
             ),
@@ -1577,7 +1577,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           PrimaryButton(
             label: 'Sign Out',
             icon: Icons.logout_rounded,
-            backgroundColor: Colors.red.withValues(alpha: 0.1),
+            backgroundColor: Colors.red.withOpacity(0.1),
             foregroundColor: Colors.red,
             onPressed: () async {
               try {
@@ -1628,7 +1628,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
     final compact = size.width < 360 || size.height < 760;
     final muted = Theme.of(
       context,
-    ).colorScheme.onSurface.withValues(alpha: 0.62);
+    ).colorScheme.onSurface.withOpacity(0.62);
     return GlassCard(
       padding: const EdgeInsets.all(0),
       child: AnimatedContainer(
@@ -1657,7 +1657,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).colorScheme.primary.withValues(alpha: 0.1),
+                          ).colorScheme.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(13),
                         ),
                         child: Icon(
@@ -1698,7 +1698,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                           size: compact ? 20 : 24,
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.55),
+                          ).colorScheme.onSurface.withOpacity(0.55),
                         ),
                       ),
                     ],
@@ -1744,7 +1744,7 @@ class _InfoTile extends StatelessWidget {
         MediaQuery.sizeOf(context).height < 760;
     final muted = Theme.of(
       context,
-    ).colorScheme.onSurface.withValues(alpha: 0.64);
+    ).colorScheme.onSurface.withOpacity(0.64);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 12 : 14,
@@ -1754,7 +1754,7 @@ class _InfoTile extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
         ),
       ),
       child: Row(
@@ -1766,7 +1766,7 @@ class _InfoTile extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.primary.withValues(alpha: 0.1),
+              ).colorScheme.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -1844,7 +1844,7 @@ class _ActionTile extends StatelessWidget {
             border: Border.all(
               color: Theme.of(
                 context,
-              ).colorScheme.outline.withValues(alpha: 0.1),
+              ).colorScheme.outline.withOpacity(0.1),
             ),
           ),
           child: Row(
@@ -1853,7 +1853,7 @@ class _ActionTile extends StatelessWidget {
                 width: compact ? 34 : 36,
                 height: compact ? 34 : 36,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
+                  color: color.withOpacity(0.14),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, size: compact ? 16 : 18, color: color),
@@ -1879,7 +1879,7 @@ class _ActionTile extends StatelessWidget {
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.64),
+                        ).colorScheme.onSurface.withOpacity(0.64),
                       ),
                     ),
                   ],
@@ -1891,7 +1891,7 @@ class _ActionTile extends StatelessWidget {
                     size: compact ? 20 : 24,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.48),
+                    ).colorScheme.onSurface.withOpacity(0.48),
                   ),
             ],
           ),
@@ -1911,7 +1911,7 @@ class _HelpCard extends StatelessWidget {
         color: isDark ? const Color(0xFF141C2A) : const Color(0xFFF3F7FF),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
         ),
       ),
       child: Column(
@@ -1921,7 +1921,7 @@ class _HelpCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -1942,7 +1942,7 @@ class _HelpCard extends StatelessWidget {
                     Text(
                       'We are here for you 24/7.',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         fontSize: 13,
                       ),
                     ),
@@ -1994,7 +1994,7 @@ class _SupportAction extends StatelessWidget {
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
           ),
         ),
         child: Row(
@@ -2024,11 +2024,11 @@ class _StatusChip extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final chipText = isDark ? Colors.white : const Color(0xFF0F172A);
     final chipBg = isDark
-        ? Colors.white.withValues(alpha: 0.12)
+        ? Colors.white.withOpacity(0.12)
         : Theme.of(context).colorScheme.surface;
     final chipBorder = isDark
-        ? Colors.white.withValues(alpha: 0.16)
-        : Theme.of(context).colorScheme.outline.withValues(alpha: 0.18);
+        ? Colors.white.withOpacity(0.16)
+        : Theme.of(context).colorScheme.outline.withOpacity(0.18);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

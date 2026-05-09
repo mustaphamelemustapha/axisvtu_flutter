@@ -17,14 +17,12 @@ class NotificationRow extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = Theme.of(context).colorScheme.surface;
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: isDark ? 0.68 : 0.64);
+    final muted = onSurface.withOpacity(isDark ? 0.68 : 0.64);
     final borderColor = item.unread
-        ? item.accent.withValues(alpha: isDark ? 0.28 : 0.18)
-        : Theme.of(context).colorScheme.outline.withValues(
-              alpha: isDark ? 0.14 : 0.18,
-            );
+        ? item.accent.withOpacity(isDark ? 0.28 : 0.18)
+        : Theme.of(context).colorScheme.outline.withOpacity(isDark ? 0.14 : 0.18,);
     final bg = item.unread
-        ? item.accent.withValues(alpha: isDark ? 0.10 : 0.06)
+        ? item.accent.withOpacity(isDark ? 0.10 : 0.06)
         : surface;
 
     return Material(
@@ -43,8 +41,8 @@ class NotificationRow extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: isDark
-                    ? Colors.black.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.02),
+                    ? Colors.black.withOpacity(0.08)
+                    : Colors.black.withOpacity(0.02),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -57,7 +55,7 @@ class NotificationRow extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: item.accent.withValues(alpha: isDark ? 0.20 : 0.12),
+                  color: item.accent.withOpacity(isDark ? 0.20 : 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(item.icon, color: item.accent, size: 20),
@@ -131,7 +129,7 @@ class NotificationRow extends StatelessWidget {
               const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right_rounded,
-                color: onSurface.withValues(alpha: isDark ? 0.52 : 0.42),
+                color: onSurface.withOpacity(isDark ? 0.52 : 0.42),
               ),
             ],
           ),

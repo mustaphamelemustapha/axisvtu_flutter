@@ -141,7 +141,7 @@ class AppTheme {
       visualDensity: VisualDensity.standard,
       scaffoldBackgroundColor: isDark ? _darkBg : _lightBg,
       textTheme: textTheme,
-      shadowColor: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
+      shadowColor: Colors.black.withOpacity(isDark ? 0.15 : 0.05),
       splashFactory: InkSparkle.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
@@ -179,26 +179,26 @@ class AppTheme {
           vertical: 16,
         ),
         hintStyle: textTheme.bodyMedium?.copyWith(
-          color: scheme.onSurface.withValues(alpha: isDark ? 0.58 : 0.48),
+          color: scheme.onSurface.withOpacity(isDark ? 0.58 : 0.48),
         ),
         labelStyle: textTheme.labelMedium?.copyWith(
-          color: scheme.onSurface.withValues(alpha: isDark ? 0.76 : 0.64),
+          color: scheme.onSurface.withOpacity(isDark ? 0.76 : 0.64),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AxisRadii.lg),
-          borderSide: BorderSide(color: scheme.outline.withValues(alpha: isDark ? 0.9 : 0.95)),
+          borderSide: BorderSide(color: scheme.outline.withOpacity(isDark ? 0.9 : 0.95)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AxisRadii.lg),
-          borderSide: BorderSide(color: scheme.outline.withValues(alpha: isDark ? 0.9 : 0.95)),
+          borderSide: BorderSide(color: scheme.outline.withOpacity(isDark ? 0.9 : 0.95)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AxisRadii.lg),
-          borderSide: BorderSide(color: scheme.primary.withValues(alpha: 0.92), width: 1.4),
+          borderSide: BorderSide(color: scheme.primary.withOpacity(0.92), width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AxisRadii.lg),
-          borderSide: BorderSide(color: scheme.error.withValues(alpha: 0.9)),
+          borderSide: BorderSide(color: scheme.error.withOpacity(0.9)),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AxisRadii.lg),
@@ -231,7 +231,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AxisRadii.lg),
           ),
-          side: BorderSide(color: scheme.outline.withValues(alpha: 0.9)),
+          side: BorderSide(color: scheme.outline.withOpacity(0.9)),
           textStyle: textTheme.labelLarge?.copyWith(
             fontSize: 16,
             letterSpacing: 0.35,
@@ -243,13 +243,13 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: isDark
-            ? scheme.primary.withValues(alpha: 0.12)
+            ? scheme.primary.withOpacity(0.12)
             : const Color(0xFFF0F5FF),
         labelStyle: textTheme.labelLarge,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(999),
-          side: BorderSide(color: scheme.outline.withValues(alpha: isDark ? 0.35 : 0.9)),
+          side: BorderSide(color: scheme.outline.withOpacity(isDark ? 0.35 : 0.9)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -288,25 +288,25 @@ class AppTheme {
             fontWeight: FontWeight.w600,
           ),
         ),
-        indicatorColor: scheme.primary.withValues(alpha: isDark ? 0.18 : 0.14),
+        indicatorColor: scheme.primary.withOpacity(isDark ? 0.18 : 0.14),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
             size: 24,
             color: selected
                 ? scheme.primary
-                : scheme.onSurface.withValues(alpha: 0.58),
+                : scheme.onSurface.withOpacity(0.58),
           );
         }),
       ),
-      dividerColor: scheme.outline.withValues(alpha: isDark ? 0.65 : 0.9),
+      dividerColor: scheme.outline.withOpacity(isDark ? 0.65 : 0.9),
       iconTheme: IconThemeData(
-        color: scheme.onSurface.withValues(alpha: isDark ? 0.82 : 0.88),
+        color: scheme.onSurface.withOpacity(isDark ? 0.82 : 0.88),
         size: 22,
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: scheme.primary,
-        selectionColor: scheme.primary.withValues(alpha: 0.2),
+        selectionColor: scheme.primary.withOpacity(0.2),
         selectionHandleColor: scheme.primary,
       ),
       extensions: const [AxisPalette()],
