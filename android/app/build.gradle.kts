@@ -18,7 +18,7 @@ val hasReleaseSigning =
         .all { !keystoreProperties.getProperty(it).isNullOrBlank() }
 
 android {
-    namespace = "com.mmtechglobe.axisvtu_flutter"
+    namespace = "com.mmtech.axisvtu"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
