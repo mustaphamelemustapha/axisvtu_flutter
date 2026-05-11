@@ -117,7 +117,7 @@ class _AboutScreenState extends State<AboutScreen> {
                   ),
                 ),
                 Text(
-                  'under MMTechGlobe',
+                  'Founder MMTechGlobe',
                   style: TextStyle(
                     color: textDim,
                     fontSize: 13,
@@ -143,39 +143,11 @@ class _AboutScreenState extends State<AboutScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // CAC Logo
-                    Image.asset(
-                      'assets/brand/cac_logo.png',
-                      height: 50,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(width: 16),
-                    Container(
-                      width: 1,
-                      height: 40,
-                      color: textDim.withValues(alpha: 0.2),
-                    ),
-                    const SizedBox(width: 16),
-                    // NDPC Logo (Placeholder/Stylized Icon if not found)
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.verified_user_rounded, color: Colors.greenAccent.withValues(alpha: 0.8), size: 32),
-                        const SizedBox(height: 4),
-                        Text(
-                          'NDPC',
-                          style: TextStyle(
-                            color: Colors.greenAccent.withValues(alpha: 0.8),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                // CAC Logo Only
+                Image.asset(
+                  'assets/brand/cac_logo.png',
+                  height: 60,
+                  fit: BoxFit.contain,
                 ),
               ],
             ),

@@ -18,6 +18,7 @@ import '../widgets/theme_toggle_button.dart';
 import '../services/transaction_pin_service.dart';
 import '../services/biometric_service.dart';
 import 'welcome_screen.dart';
+import 'about_screen.dart';
 import 'referral_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -1291,7 +1292,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _ProfileTile(
               label: 'About',
               icon: Icons.info_outline_rounded,
-              onTap: () => _showComingSoon('About AxisVTU', 'AxisVTU is your premier digital utility companion.'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AboutScreen()),
+              ),
               backgroundColor: tileBg,
             ),
             _ProfileTile(
