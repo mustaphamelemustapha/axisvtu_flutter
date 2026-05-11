@@ -1,0 +1,240 @@
+import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class AboutScreen extends StatefulWidget {
+  const AboutScreen({super.key});
+
+  static const String route = '/about';
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  String _version = '1.0.0';
+  String _buildNumber = '1';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPackageInfo();
+  }
+
+  Future<void> _loadPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _version = info.version;
+        _buildNumber = info.buildNumber;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+    final surface = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final cardBg = isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : const Color(0xFFF1F5F9);
+    final textMain = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textDim = isDark ? Colors.white70 : const Color(0xFF64748B);
+
+    return Scaffold(
+      backgroundColor: surface,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textMain, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'About AxisVTU',
+          style: TextStyle(
+            color: textMain,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
+        centerTitle: false,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        children: [
+          const SizedBox(height: 10),
+          
+          // Version Info Cards
+          _InfoCard(
+            label: 'App Version',
+            value: 'V$_version',
+            cardBg: cardBg,
+            textMain: textMain,
+            textDim: textDim,
+          ),
+          const SizedBox(height: 12),
+          _InfoCard(
+            label: 'App Update',
+            value: 'Latest Version',
+            valueColor: Colors.greenAccent,
+            cardBg: cardBg,
+            textMain: textMain,
+            textDim: textDim,
+          ),
+          
+          const SizedBox(height: 24),
+          Text(
+            'This will notify you if an update is available. Keeping your AxisVTU app updated ensures you get the most out of our services.',
+            style: TextStyle(
+              color: textDim,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          
+          const SizedBox(height: 60),
+          
+          // Credits Section
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  'Designed by',
+                  style: TextStyle(
+                    color: textDim,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Mustapha Mele',
+                  style: TextStyle(
+                    color: textMain,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  'under MMTechGlobe',
+                  style: TextStyle(
+                    color: textDim,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 48),
+          
+          // Certification Section
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  'Certified by',
+                  style: TextStyle(
+                    color: textDim,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // CAC Logo
+                    Image.asset(
+                      'assets/brand/cac_logo.png',
+                      height: 50,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 16),
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: textDim.withValues(alpha: 0.2),
+                    ),
+                    const SizedBox(width: 16),
+                    // NDPC Logo (Placeholder/Stylized Icon if not found)
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.verified_user_rounded, color: Colors.greenAccent.withValues(alpha: 0.8), size: 32),
+                        const SizedBox(height: 4),
+                        Text(
+                          'NDPC',
+                          style: TextStyle(
+                            color: Colors.greenAccent.withValues(alpha: 0.8),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    required this.cardBg,
+    required this.textMain,
+    required this.textDim,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final Color cardBg;
+  final Color textMain;
+  final Color textDim;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: textMain.withValues(alpha: 0.03)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: textMain,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor ?? textDim,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

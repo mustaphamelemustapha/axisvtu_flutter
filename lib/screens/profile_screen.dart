@@ -1476,3 +1476,84 @@ class _SocialTile extends StatelessWidget {
     );
   }
 }
+
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final compact =
+        MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.sizeOf(context).height < 760;
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.64);
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 12 : 14,
+        vertical: compact ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: compact ? 34 : 36,
+            height: compact ? 34 : 36,
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: compact ? 16 : 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          SizedBox(width: compact ? 8 : 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: muted),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  softWrap: true,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

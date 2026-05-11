@@ -47,6 +47,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   local_auth: ^3.0.1
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +78,7 @@ flutter:
   assets:
     - assets/brand/axisvtu-icon.png
     - assets/brand/axisvtu-logo.png
+    - assets/brand/cac_logo.png
     - assets/networks/mtn.svg
     - assets/networks/airtel.svg
     - assets/networks/glo.svg
