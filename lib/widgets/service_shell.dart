@@ -27,9 +27,11 @@ class ServiceShell extends StatelessWidget {
     final size = MediaQuery.sizeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final compact = size.height < 760 || size.width < 390;
-    final bottomPadding = footer == null ? 24.0 : (compact ? 136.0 : 160.0);
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final bottomPadding = (footer == null || keyboardOpen) ? 24.0 : (compact ? 136.0 : 160.0);
     
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         behavior: HitTestBehavior.translucent,
@@ -121,7 +123,7 @@ class ServiceShell extends StatelessWidget {
                       child,
                     ],
                   ),
-                  if (footer != null)
+                  if (footer != null && !keyboardOpen)
                     Positioned(
                       left: 0,
                       right: 0,

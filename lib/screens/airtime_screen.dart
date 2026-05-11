@@ -192,6 +192,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     if (nextSuggestions.join('|') != _suggestions.join('|')) {
       setState(() => _suggestions = nextSuggestions);
     }
+
+    if (mounted) {
+      setState(() {});
+    }
   }
   Widget _networkLogo(String network) {
     final asset = switch (network.toLowerCase()) {

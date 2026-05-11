@@ -277,6 +277,11 @@ class _DataScreenState extends State<DataScreen> {
     if (normalized.length < 10) {
       _autoAdvancedToPlans = false;
     }
+    
+    // Ensure UI updates (e.g. StickyCheckoutBar activation) when input changes
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   final FlutterNativeContactPicker _contactPicker = FlutterNativeContactPicker();
