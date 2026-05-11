@@ -858,20 +858,6 @@ class _DataScreenState extends State<DataScreen> {
       subtitle: 'Experience the fastest data top-up in the industry.',
       icon: Icons.wifi_rounded,
       scrollController: _scrollController,
-      footer: StickyCheckoutBar(
-        title: _network.toUpperCase(),
-        subtitle: hasPhone ? _normalizePhone(_phoneCtrl.text) : 'Enter number',
-        amount: selected != null ? '₦${_planPrice(selected)}' : '₦0.00',
-        active: hasPhone,
-        loading: _submitting,
-        onBuy: _selectedPlanCode == null
-            ? () => _openPlansSheet()
-            : _showSummaryModal,
-        actionLabel: _selectedPlanCode == null ? 'Select Plan' : 'Buy Data Now',
-        icon: _selectedPlanCode == null
-            ? Icons.layers_outlined
-            : Icons.bolt_rounded,
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -954,6 +940,17 @@ class _DataScreenState extends State<DataScreen> {
                   onContactTap: _pickContact,
                   onChanged: (v) => _onPhoneChanged(),
                 ),
+                if (hasPhone && _selectedPlanCode == null) ...[
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _PremiumSmallButton(
+                      label: 'Next: Select Plan',
+                      icon: Icons.arrow_forward_rounded,
+                      onTap: _openPlansSheet,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 InkWell(
                   onTap: () => showModalBottomSheet<void>(
@@ -996,8 +993,8 @@ class _DataScreenState extends State<DataScreen> {
 
           const SizedBox(height: 32),
 
-          // Step 3: Select Plan (Elite Reveal)
-          if (hasPhone) Padding(
+          // Step 3: Select Plan (Elite Reveal) - Only show when a plan is selected
+          if (hasPhone && selected != null) Padding(
             key: _planStepKey,
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Column(
@@ -1007,7 +1004,7 @@ class _DataScreenState extends State<DataScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '3. SELECT DATA PLAN',
+                      '3. SELECTED DATA PLAN',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
@@ -1015,18 +1012,14 @@ class _DataScreenState extends State<DataScreen> {
                         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
                       ),
                     ),
-                    if (_selectedPlanCode != null) TextButton(
+                    TextButton(
                       onPressed: _openPlansSheet,
                       child: const Text('Change Plan', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                if (selected == null) _EliteSelectionCard(
-                  onTap: _openPlansSheet,
-                  label: 'Tap to view available plans',
-                  icon: Icons.grid_view_rounded,
-                ) else Container(
+                Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
@@ -1089,6 +1082,18 @@ class _DataScreenState extends State<DataScreen> {
                     ],
                   ),
                 ),
+                
+                if (selected != null) ...[
+                  const SizedBox(height: 40),
+                  _PremiumCheckoutCard(
+                    network: _network,
+                    phone: _normalizePhone(_phoneCtrl.text),
+                    plan: _planCapacity(selected),
+                    amount: '₦${_planPrice(selected)}',
+                    loading: _submitting,
+                    onBuy: _showSummaryModal,
+                  ),
+                ],
               ],
             ),
           ),
@@ -1099,6 +1104,187 @@ class _DataScreenState extends State<DataScreen> {
     );
   }
 }
+
+
+class _PremiumSmallButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _PremiumSmallButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: primary,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: primary.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(icon, color: Colors.white, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PremiumCheckoutCard extends StatelessWidget {
+  final String network;
+  final String phone;
+  final String plan;
+  final String amount;
+  final bool loading;
+  final VoidCallback onBuy;
+
+  const _PremiumCheckoutCard({
+    required this.network,
+    required this.phone,
+    required this.plan,
+    required this.amount,
+    required this.loading,
+    required this.onBuy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark 
+            ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+            : [const Color(0xFFF8FAFC), Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: primary.withValues(alpha: 0.2),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'PAYABLE AMOUNT',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    amount,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: primary,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  network.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: FilledButton(
+              onPressed: loading ? null : onBuy,
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                backgroundColor: primary,
+              ),
+              child: loading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Proceed to Checkout',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                      ),
+                      SizedBox(width: 12),
+                      Icon(Icons.arrow_forward_rounded, size: 20),
+                    ],
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 
 class _EliteSelectionCard extends StatelessWidget {
