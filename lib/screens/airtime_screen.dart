@@ -75,6 +75,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   List<String> _networks = const ['mtn', 'glo', 'airtel', '9mobile'];
   List<String> _recentNumbers = [];
   List<String> _suggestions = [];
+  bool _showAmountStep = false;
 
   bool _isUncertainPurchaseError(String message) {
     final text = message.toLowerCase();
@@ -531,7 +532,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     );
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final amountText = _amountCtrl.text.trim();
@@ -542,16 +543,6 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       title: 'Airtime',
       subtitle: 'Smart network detect, quick suggestions, and instant top-up.',
       icon: Icons.phone_iphone_rounded,
-      footer: StickyCheckoutBar(
-        title: _network.toUpperCase(),
-        subtitle: hasPhone ? _normalizePhone(_phoneCtrl.text) : 'Enter number',
-        amount: amount > 0 ? '₦${amount.toStringAsFixed(2)}' : '₦0.00',
-        active: hasPhone && amount >= 50,
-        loading: _loading,
-        onBuy: _showSummaryModal,
-        actionLabel: 'Confirm',
-        icon: Icons.check_circle_outline_rounded,
-      ),
       child: Column(
         children: [
           ServiceSectionCard(
@@ -587,6 +578,20 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                   onContactTap: _pickContact,
                   onChanged: (v) => _onPhoneChanged(),
                 ),
+                if (hasPhone && !_showAmountStep) ...[
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _PremiumSmallButton(
+                      label: 'Next: Choose Amount',
+                      icon: Icons.arrow_forward_rounded,
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        setState(() => _showAmountStep = true);
+                      },
+                    ),
+                  ),
+                ],
                 if (_suggestions.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -663,117 +668,323 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                               ),
                             );
                           }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                  decoration: InputDecoration(
-                    labelText: 'Amount (₦)',
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                    hintText: 'Enter amount',
-                    prefixIcon: const Icon(Icons.payments_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: const BorderSide(width: 1.5),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-                        width: 1.5,
+                        ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [100, 200, 500, 1000, 2000, 5000].map((v) {
-                      final isSelected = _amountCtrl.text == v.toString();
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text('₦$v'),
-                          selected: isSelected,
-                          onSelected: (s) {
-                            HapticFeedback.selectionClick();
-                            setState(() => _amountCtrl.text = v.toString());
-                          },
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
+                ],
               ],
             ),
           ),
-          ServiceSectionCard(
-            title: 'Settings',
-            subtitle: 'Personalize your airtime experience.',
-            child: Column(
-              children: [
-                _ToggleTile(
-                  icon: Icons.person_add_alt_1_rounded,
-                  label: 'Auto-save Beneficiaries',
-                  subtitle: 'Keep frequently used numbers ready.',
-                  value: _beneficiariesEnabled,
-                  onChanged: (v) {
-                    setState(() => _beneficiariesEnabled = v);
-                    _saveTogglePreference(_beneficiariesEnabledKey, v);
-                  },
-                ),
-                const SizedBox(height: 10),
-                _ToggleTile(
-                  icon: Icons.auto_awesome_rounded,
-                  label: 'Smart Suggestions',
-                  subtitle: 'Use recent numbers while typing.',
-                  value: _smartSuggestionEnabled,
-                  onChanged: (v) {
-                    setState(() => _smartSuggestionEnabled = v);
-                    _saveTogglePreference(_smartSuggestionEnabledKey, v);
-                    _onPhoneChanged();
-                  },
-                ),
-              ],
+          if (_showAmountStep) ...[
+            const SizedBox(height: 32),
+            _AirtimeAmountPicker(
+              amountCtrl: _amountCtrl,
+              onProceed: _showSummaryModal,
+              loading: _loading,
+              network: _network,
             ),
-          ),
+          ],
           if (_error != null)
-            _PremiumSectionCard(
-              title: 'Validation Error',
-              subtitle: 'Please check your inputs.',
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.error.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: _PremiumSectionCard(
+                title: 'Validation Error',
+                subtitle: 'Please check your inputs.',
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.error.withValues(alpha: 0.2),
+                    ).colorScheme.error.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.error.withValues(alpha: 0.2),
+                    ),
                   ),
-                ),
-                child: Text(
-                  _error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontWeight: FontWeight.w600,
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _PremiumSmallButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _PremiumSmallButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: primary,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: primary.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(icon, color: Colors.white, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AirtimeAmountPicker extends StatefulWidget {
+  final TextEditingController amountCtrl;
+  final VoidCallback onProceed;
+  final bool loading;
+  final String network;
+
+  const _AirtimeAmountPicker({
+    required this.amountCtrl,
+    required this.onProceed,
+    required this.loading,
+    required this.network,
+  });
+
+  @override
+  State<_AirtimeAmountPicker> createState() => _AirtimeAmountPickerState();
+}
+
+class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
+  void _addAmount(int value) {
+    HapticFeedback.mediumImpact();
+    final current = double.tryParse(widget.amountCtrl.text) ?? 0;
+    widget.amountCtrl.text = (current + value).toStringAsFixed(0);
+  }
+
+  void _setAmount(int value) {
+    HapticFeedback.selectionClick();
+    widget.amountCtrl.text = value.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Hero Amount Display
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: primary.withValues(alpha: 0.1)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.payments_rounded, size: 14, color: primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Airtime',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '₦',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w400,
+                      color: isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    widget.amountCtrl.text.isEmpty ? '0' : widget.amountCtrl.text,
+                    style: const TextStyle(
+                      fontSize: 64,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -2,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Enter amount or tap a preset below',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+
+        // Quick Add Grid
+        Row(
+          children: [200, 500, 1000, 2000].map((v) {
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: _PresetButton(
+                  label: '+$v',
+                  onTap: () => _addAmount(v),
+                  isAdd: true,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 12),
+
+        // Main Presets Grid
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 4,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.4,
+          children: [
+            50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 15000, 20000
+          ].map((v) {
+            final label = v >= 1000 ? '₦${(v/1000).toStringAsFixed(0)}K' : '₦$v';
+            return _PresetButton(
+              label: label,
+              onTap: () => _setAmount(v),
+              isAdd: false,
+            );
+          }).toList(),
+        ),
+
+        const SizedBox(height: 48),
+
+        // Final Proceed Button
+        SizedBox(
+          width: double.infinity,
+          height: 64,
+          child: FilledButton(
+            onPressed: widget.loading ? null : widget.onProceed,
+            style: FilledButton.styleFrom(
+              backgroundColor: primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+              elevation: 8,
+              shadowColor: primary.withValues(alpha: 0.4),
+            ),
+            child: widget.loading
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text(
+                    'Proceed',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+}
+
+class _PresetButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final bool isAdd;
+
+  const _PresetButton({
+    required this.label,
+    required this.onTap,
+    required this.isAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isAdd 
+            ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))
+            : (isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : Colors.white),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isAdd ? primary.withValues(alpha: 0.2) : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            color: isAdd ? primary : (isDark ? Colors.white : const Color(0xFF0F172A)),
+          ),
+        ),
       ),
     );
   }
