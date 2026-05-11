@@ -75,7 +75,6 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   List<String> _networks = const ['mtn', 'glo', 'airtel', '9mobile'];
   List<String> _recentNumbers = [];
   List<String> _suggestions = [];
-  bool _showAmountStep = false;
 
   bool _isUncertainPurchaseError(String message) {
     final text = message.toLowerCase();
@@ -198,6 +197,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       setState(() {});
     }
   }
+
   Widget _networkLogo(String network) {
     final asset = switch (network.toLowerCase()) {
       'mtn' => 'assets/networks/mtn.svg',
@@ -238,7 +238,6 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       );
     }
   }
-
 
   void _invalidateRequestId() {
     _activeRequestId = null;
@@ -393,28 +392,21 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     }
   }
 
-  void _showSummaryModal() {
-    final amountText = _amountCtrl.text.trim();
-    final amount = double.tryParse(amountText) ?? 0.0;
+  void _navigateToAmount() {
     final phone = _normalizePhone(_phoneCtrl.text);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _PurchaseSummaryModal(
-        phone: phone,
-        network: _network,
-        title: 'Airtime Recharge',
-        amount: '₦${amount.toStringAsFixed(2)}',
-        onProceedPin: () {
-          Navigator.pop(context);
-          _submit(authMethod: PurchaseAuthService.methodPin);
-        },
-        onProceedBiometric: () {
-          Navigator.pop(context);
-          _submit(authMethod: PurchaseAuthService.methodBiometric);
-        },
+    if (phone.length < 10) {
+      setState(() => _error = 'Enter a valid phone number.');
+      return;
+    }
+    
+    HapticFeedback.mediumImpact();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AirtimeAmountScreen(
+          network: _network,
+          phone: phone,
+        ),
       ),
     );
   }
@@ -508,18 +500,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
 
   String _monthName(int month) {
     const names = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return names[month - 1];
   }
@@ -532,11 +513,8 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     );
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final amountText = _amountCtrl.text.trim();
-    final amount = double.tryParse(amountText) ?? 0.0;
     final hasPhone = _normalizePhone(_phoneCtrl.text).isNotEmpty;
 
     return ServiceShell(
@@ -578,17 +556,14 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                   onContactTap: _pickContact,
                   onChanged: (v) => _onPhoneChanged(),
                 ),
-                if (hasPhone && !_showAmountStep) ...[
+                if (hasPhone) ...[
                   const SizedBox(height: 16),
                   Align(
                     alignment: Alignment.centerRight,
                     child: _PremiumSmallButton(
                       label: 'Next: Choose Amount',
                       icon: Icons.arrow_forward_rounded,
-                      onTap: () {
-                        HapticFeedback.mediumImpact();
-                        setState(() => _showAmountStep = true);
-                      },
+                      onTap: _navigateToAmount,
                     ),
                   ),
                 ],
@@ -598,14 +573,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.05),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.1),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Column(
@@ -621,12 +592,9 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                             const SizedBox(width: 6),
                             Text(
                               'Smart Suggestions',
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                                     fontWeight: FontWeight.w800,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
                             ),
                           ],
@@ -648,8 +616,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                                   color: Theme.of(context).colorScheme.surface,
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: Theme.of(context).colorScheme.outline
-                                        .withValues(alpha: 0.12),
+                                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
                                   ),
                                 ),
                                 child: Row(
@@ -659,32 +626,23 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                                     const SizedBox(width: 6),
                                     Text(
                                       number,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.labelMedium,
+                                      style: Theme.of(context).textTheme.labelMedium,
                                     ),
                                   ],
                                 ),
                               ),
                             );
                           }).toList(),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ],
             ),
           ),
-          if (_showAmountStep) ...[
-            const SizedBox(height: 32),
-            _AirtimeAmountPicker(
-              amountCtrl: _amountCtrl,
-              onProceed: _showSummaryModal,
-              loading: _loading,
-              network: _network,
-            ),
-          ],
+          
+          
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(top: 24),
@@ -695,14 +653,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.error.withValues(alpha: 0.08),
+                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.2),
+                      color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Text(
@@ -716,6 +670,352 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class AirtimeAmountScreen extends StatefulWidget {
+  final String network;
+  final String phone;
+
+  const AirtimeAmountScreen({
+    super.key,
+    required this.network,
+    required this.phone,
+  });
+
+  @override
+  State<AirtimeAmountScreen> createState() => _AirtimeAmountScreenState();
+}
+
+class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
+  final _amountCtrl = TextEditingController(text: '200');
+  bool _loading = false;
+  String? _activeRequestId;
+  String? _error;
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    super.dispose();
+  }
+
+  void _invalidateRequestId() {
+    _activeRequestId = null;
+  }
+
+  bool _isUncertainPurchaseError(String message) {
+    final text = message.toLowerCase();
+    return text.contains('timed out') ||
+        text.contains('timeout') ||
+        text.contains('unable to reach server') ||
+        text.contains('failed to fetch') ||
+        text.contains('network error') ||
+        text.contains('connection');
+  }
+
+  Future<void> _saveRecentNumber(String number) async {
+    final digits = number.replaceAll(RegExp(r'\D'), '');
+    String normalized = digits;
+    if (digits.startsWith('234') && digits.length >= 13) {
+      normalized = '0${digits.substring(3)}';
+    } else if (!digits.startsWith('0') && digits.length == 10) {
+      normalized = '0$digits';
+    }
+    
+    final prefs = await SharedPreferences.getInstance();
+    final recent = prefs.getStringList('axis_airtime_recent_numbers_v1') ?? [];
+    final next = [normalized, ...recent.where((n) => n != normalized)];
+    await prefs.setStringList('axis_airtime_recent_numbers_v1', next.take(8).toList());
+  }
+
+  Future<void> _submit({
+    String authMethod = PurchaseAuthService.methodAuto,
+  }) async {
+    if (_loading) return;
+    final token = (context.read<SessionController>().token ?? '').trim();
+    if (token.isEmpty) return;
+
+    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+    if (amount < 50) {
+      setState(() => _error = 'Minimum airtime amount is ₦50.');
+      return;
+    }
+
+    final authorized = await PurchaseAuthService.authorizePin(
+      context: context,
+      reason: 'airtime purchase',
+      preferredMethod: authMethod,
+    );
+    if (!mounted || !authorized) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    PurchaseLoadingOverlay.show(context, title: 'Processing order');
+
+    try {
+      _activeRequestId ??= buildRequestId("airtime");
+      final res = await ServicesService(token: token).purchaseAirtime(
+        network: widget.network,
+        phoneNumber: widget.phone,
+        amount: amount,
+        clientRequestId: _activeRequestId,
+      );
+      final status = _resolveResultStatus(res);
+      if (!mounted) return;
+      await _saveRecentNumber(widget.phone);
+      PurchaseLoadingOverlay.hide();
+      _showResult(
+        status: status,
+        subtitle: _resultSubtitle(status, res),
+        fields: [
+          ReceiptField(label: 'Network', value: widget.network.toUpperCase()),
+          ReceiptField(label: 'Phone', value: widget.phone),
+          ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
+        ],
+      );
+      if (status != 'pending') {
+        _activeRequestId = null;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final message = e is ApiException ? e.message : e.toString();
+      PurchaseLoadingOverlay.hide();
+      if (_isUncertainPurchaseError(message)) {
+        _showResult(
+          status: 'pending',
+          subtitle: 'Order submitted. Provider confirmation is delayed.',
+          fields: [
+            ReceiptField(label: 'Network', value: widget.network.toUpperCase()),
+            ReceiptField(label: 'Phone', value: widget.phone),
+            ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
+          ],
+        );
+      } else {
+        setState(() => _error = message);
+        _activeRequestId = null;
+      }
+    } finally {
+      PurchaseLoadingOverlay.hide();
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  void _showSummaryModal() {
+    final amountText = _amountCtrl.text.trim();
+    final amount = double.tryParse(amountText) ?? 0.0;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _PurchaseSummaryModal(
+        phone: widget.phone,
+        network: widget.network,
+        title: 'Airtime Recharge',
+        amount: '₦${amount.toStringAsFixed(2)}',
+        onProceedPin: () {
+          Navigator.pop(context);
+          _submit(authMethod: PurchaseAuthService.methodPin);
+        },
+        onProceedBiometric: () {
+          Navigator.pop(context);
+          _submit(authMethod: PurchaseAuthService.methodBiometric);
+        },
+      ),
+    );
+  }
+
+  void _showResult({
+    required String status,
+    required String subtitle,
+    required List<ReceiptField> fields,
+  }) {
+    final ok = status == 'success';
+    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
+    final amount = _amountCtrl.text.trim();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _SuccessModal(
+        ok: ok,
+        time: _formatDate(DateTime.now()),
+        sender: userName,
+        provider: 'AxisVTU',
+        type: 'Airtime',
+        network: widget.network.toUpperCase(),
+        phone: widget.phone,
+        amount: '₦$amount',
+        onSave: () => _shareReceipt(ok, userName, widget.phone, amount),
+      ),
+    );
+  }
+
+  void _shareReceipt(bool ok, String sender, String phone, String amount) {
+    HapticFeedback.mediumImpact();
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        child: _ShareableReceipt(
+          ok: ok,
+          sender: sender,
+          phone: phone,
+          type: 'Airtime',
+          network: widget.network.toUpperCase(),
+          amount: '₦$amount',
+          time: _formatDate(DateTime.now()),
+        ),
+      ),
+    );
+  }
+
+  String _resolveResultStatus(Map<String, dynamic> payload) {
+    final statusRaw = (payload['status'] ?? '').toString().trim().toLowerCase();
+    final ok = payload['success'] == true || statusRaw == 'success' || statusRaw == 'successful' || statusRaw == 'delivered';
+    if (ok) return 'success';
+    if (statusRaw == 'pending' || statusRaw == 'processing') return 'pending';
+    return 'failed';
+  }
+
+  String _resultSubtitle(String status, Map<String, dynamic> payload) {
+    final message = (payload['message'] ?? payload['detail'] ?? '').toString().trim();
+    if (message.isNotEmpty) return message;
+    if (status == 'success') return 'Airtime order completed successfully.';
+    return 'Airtime order failed.';
+  }
+
+  String _formatDate(DateTime value) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(value.day)} ${_monthName(value.month)} ${value.year} at ${two(value.hour)}:${two(value.minute)}';
+  }
+
+  String _monthName(int month) {
+    const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return names[month - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Select Amount',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: primary.withValues(alpha: 0.1)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: _NetworkIcon(network: widget.network, size: 32),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.phone,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Text(
+                          widget.network.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            _AirtimeAmountPicker(
+              amountCtrl: _amountCtrl,
+              onProceed: _showSummaryModal,
+              loading: _loading,
+              network: widget.network,
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 24),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -792,6 +1092,22 @@ class _AirtimeAmountPicker extends StatefulWidget {
 }
 
 class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
+  @override
+  void initState() {
+    super.initState();
+    widget.amountCtrl.addListener(_onAmountChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.amountCtrl.removeListener(_onAmountChanged);
+    super.dispose();
+  }
+
+  void _onAmountChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _addAmount(int value) {
     HapticFeedback.mediumImpact();
     final current = double.tryParse(widget.amountCtrl.text) ?? 0;
@@ -811,7 +1127,6 @@ class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Hero Amount Display
         Container(
           padding: const EdgeInsets.symmetric(vertical: 40),
           decoration: BoxDecoration(
@@ -880,8 +1195,6 @@ class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
           ),
         ),
         const SizedBox(height: 32),
-
-        // Quick Add Grid
         Row(
           children: [200, 500, 1000, 2000].map((v) {
             return Expanded(
@@ -897,8 +1210,6 @@ class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
           }).toList(),
         ),
         const SizedBox(height: 12),
-
-        // Main Presets Grid
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -917,10 +1228,7 @@ class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
             );
           }).toList(),
         ),
-
         const SizedBox(height: 48),
-
-        // Final Proceed Button
         SizedBox(
           width: double.infinity,
           height: 64,
@@ -1023,68 +1331,6 @@ class _NetworkIcon extends StatelessWidget {
   }
 }
 
-class _ToggleTile extends StatelessWidget {
-  const _ToggleTile({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
-        ),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.14),
-            child: Icon(
-              icon,
-              size: 18,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 2),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
-          ),
-          Switch.adaptive(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-}
-
 class _PremiumSectionCard extends StatelessWidget {
   const _PremiumSectionCard({
     required this.title,
@@ -1098,9 +1344,7 @@ class _PremiumSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.62);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.62);
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -1108,16 +1352,12 @@ class _PremiumSectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: muted),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
           ),
           const SizedBox(height: 12),
           child,
@@ -1174,8 +1414,6 @@ class _PurchaseSummaryModal extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          
-          // Header Icon & Title
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1202,10 +1440,7 @@ class _PurchaseSummaryModal extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          
           const SizedBox(height: 32),
-          
-          // Hero Amount Card
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
@@ -1247,10 +1482,7 @@ class _PurchaseSummaryModal extends StatelessWidget {
               ],
             ),
           ),
-          
           const SizedBox(height: 24),
-          
-          // Details List
           _PremiumSummaryItem(
             label: 'Network',
             value: network.toUpperCase(),
@@ -1269,10 +1501,7 @@ class _PurchaseSummaryModal extends StatelessWidget {
             icon: Icons.local_activity_rounded,
             isDark: isDark,
           ),
-          
           const SizedBox(height: 40),
-          
-          // Action Buttons
           _PremiumPaymentButton(
             label: 'Pay with Biometrics',
             sublabel: 'Fast & Secure Authentication',
@@ -1440,28 +1669,6 @@ class _PremiumPaymentButton extends StatelessWidget {
     );
   }
 }
-class _SummaryRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _SummaryRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 16)),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _SuccessModal extends StatefulWidget {
   final bool ok;
@@ -1519,9 +1726,7 @@ class _SuccessModalState extends State<_SuccessModal> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: widget.ok
-                  ? const Color(0xFF22C55E)
-                  : const Color(0xFFEF4444),
+              color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
             ),
             child: Icon(
               widget.ok ? Icons.check_rounded : Icons.close_rounded,
@@ -1554,24 +1759,15 @@ class _SuccessModalState extends State<_SuccessModal> {
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color:
-                            (widget.ok
-                                    ? const Color(0xFF22C55E)
-                                    : const Color(0xFFEF4444))
-                                .withValues(alpha: 0.1),
+                        color: (widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         widget.ok ? 'Successful' : 'Failed',
                         style: TextStyle(
-                          color: widget.ok
-                              ? const Color(0xFF22C55E)
-                              : const Color(0xFFEF4444),
+                          color: widget.ok ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
@@ -1620,13 +1816,9 @@ class _SuccessModalState extends State<_SuccessModal> {
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                   style: FilledButton.styleFrom(
-                    backgroundColor: widget.ok
-                        ? const Color(0xFF22C55E)
-                        : const Color(0xFF64748B),
+                    backgroundColor: widget.ok ? const Color(0xFF22C55E) : const Color(0xFF64748B),
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
                 ),
               ),
@@ -1636,9 +1828,7 @@ class _SuccessModalState extends State<_SuccessModal> {
                   onPressed: () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
                   child: const Text(
                     'Dismiss',
@@ -1736,9 +1926,7 @@ class _ShareableReceipt extends StatelessWidget {
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: ok
-                  ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)]
-                  : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
+              colors: ok ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)] : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
             ),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
@@ -1748,10 +1936,7 @@ class _ShareableReceipt extends StatelessWidget {
               Container(
                 width: 48,
                 height: 48,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                 child: ClipOval(
                   child: Padding(
                     padding: const EdgeInsets.all(6),
@@ -1760,9 +1945,7 @@ class _ShareableReceipt extends StatelessWidget {
                       fit: BoxFit.contain,
                       errorBuilder: (c, e, s) => Icon(
                         ok ? Icons.local_florist : Icons.error_outline_rounded,
-                        color: ok
-                            ? const Color(0xFF2463EB)
-                            : const Color(0xFF64748B),
+                        color: ok ? const Color(0xFF2463EB) : const Color(0xFF64748B),
                         size: 24,
                       ),
                     ),
@@ -1772,11 +1955,7 @@ class _ShareableReceipt extends StatelessWidget {
               const SizedBox(height: 12),
               const Text(
                 'AxisVTU',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
               ),
               const Text(
                 'Transaction Receipt',
@@ -1792,14 +1971,9 @@ class _ShareableReceipt extends StatelessWidget {
             children: [
               Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: ok
-                        ? const Color(0xFFDCFCE7)
-                        : const Color(0xFFFEE2E2),
+                    color: ok ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -1807,18 +1981,14 @@ class _ShareableReceipt extends StatelessWidget {
                     children: [
                       Icon(
                         ok ? Icons.check_circle : Icons.cancel,
-                        color: ok
-                            ? const Color(0xFF166534)
-                            : const Color(0xFF991B1B),
+                        color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B),
                         size: 12,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         ok ? 'Successful' : 'Failed',
                         style: TextStyle(
-                          color: ok
-                              ? const Color(0xFF166534)
-                              : const Color(0xFF991B1B),
+                          color: ok ? const Color(0xFF166534) : const Color(0xFF991B1B),
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
@@ -1829,23 +1999,11 @@ class _ShareableReceipt extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _ReceiptTableItem(label: 'Time', value: time),
-              _ReceiptTableItem(
-                label: 'Sender Name',
-                value: sender,
-                bold: true,
-              ),
-              _ReceiptTableItem(
-                label: 'Provider',
-                value: 'AxisVTU',
-                bold: true,
-              ),
+              _ReceiptTableItem(label: 'Sender Name', value: sender, bold: true),
+              _ReceiptTableItem(label: 'Provider', value: 'AxisVTU', bold: true),
               _ReceiptTableItem(label: 'Type', value: type, bold: true),
               _ReceiptTableItem(label: 'Network', value: network, bold: true),
-              _ReceiptTableItem(
-                label: 'Receiver Phone',
-                value: phone,
-                bold: true,
-              ),
+              _ReceiptTableItem(label: 'Receiver Phone', value: phone, bold: true),
               _ReceiptTableItem(label: 'Amount', value: amount, bold: true),
               const SizedBox(height: 24),
               const Divider(height: 1),
@@ -1862,25 +2020,6 @@ class _ShareableReceipt extends StatelessWidget {
           painter: _ZigZagPainter(),
         ),
       ],
-    );
-  }
-
-  Widget _networkLogo(String network) {
-    final asset = switch (network.toLowerCase()) {
-      'mtn' => 'assets/networks/mtn.svg',
-      'airtel' => 'assets/networks/airtel.svg',
-      'glo' => 'assets/networks/glo.svg',
-      '9mobile' => 'assets/networks/9mobile.svg',
-      _ => '',
-    };
-
-    if (asset.isEmpty) return const Icon(Icons.cell_tower_rounded, size: 14);
-
-    return SvgPicture.asset(
-      asset,
-      width: 14,
-      height: 14,
-      fit: BoxFit.contain,
     );
   }
 }

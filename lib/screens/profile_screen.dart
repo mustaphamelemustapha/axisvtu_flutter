@@ -1185,540 +1185,161 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final session = context.watch<SessionController>();
     final user = session.user ?? {};
     final name = _displayName(user);
-    final email = (user['email'] ?? '').toString().trim();
-    final phone = (user['phone_number'] ?? '').toString().trim();
-    final accountType = (user['role'] ?? 'User').toString();
     final joined = _joinedLabel(user['created_at']);
     final initials = _initialsFromName(name);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final themeController = context.watch<ThemeController>();
+    
+    // Header Colors
+    final cardBg = isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : const Color(0xFFF1F5F9);
+    final tileBg = isDark ? const Color(0xFF1E293B).withValues(alpha: 0.3) : const Color(0xFFF8FAFC);
     final heroText = isDark ? Colors.white : const Color(0xFF0F172A);
-    final heroSoftText = isDark
-        ? Colors.white.withValues(alpha: 0.85)
-        : const Color(0xFF5B6B82);
+    final heroSoftText = isDark ? Colors.white70 : const Color(0xFF64748B);
 
-    return SafeArea(
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(
-          compact ? 14 : 16,
-          14,
-          compact ? 14 : 16,
-          28,
-        ),
-        children: [
-          Container(
-            padding: EdgeInsets.all(compact ? 14 : 18),
-            decoration: BoxDecoration(
-              gradient: isDark
-                  ? const LinearGradient(
-                      colors: [Color(0xFF0C1624), Color(0xFF13253B)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : const LinearGradient(
-                      colors: [Color(0xFFF7FAFF), Color(0xFFEAF2FF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: isDark ? 0.18 : 0.9),
+    return Scaffold(
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          children: [
+            // Header Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: heroText.withValues(alpha: 0.05)),
               ),
-              boxShadow: AxisShadows.softGlow,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 58,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        gradient: AxisPalette.warmGradient,
-                        borderRadius: BorderRadius.circular(18),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
                       ),
-                      child: Center(
-                        child: Text(
-                          initials.isEmpty ? 'AX' : initials,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
                           style: TextStyle(
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF0F172A),
-                            fontWeight: FontWeight.w800,
+                            color: heroText,
                             fontSize: 18,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: heroText,
-                                ),
+                        const SizedBox(height: 4),
+                        Text(
+                          joined,
+                          style: TextStyle(
+                            color: heroSoftText,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            '$accountType • $joined',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: heroSoftText,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ThemeToggleButton(size: compact ? 40 : 44),
-                  ],
-                ),
-                SizedBox(height: compact ? 12 : 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _StatusChip(icon: Icons.person_outline_rounded, label: accountType),
-                    _StatusChip(
-                      icon: Icons.security_rounded,
-                      label: 'Trusted account',
-                    ),
-                    _StatusChip(
-                      icon: Icons.lock_outline_rounded,
-                      label: 'Secure sessions',
-                    ),
-                  ],
-                ),
-                SizedBox(height: compact ? 8 : 10),
-                Text(
-                  'Manage your profile, security, and notification preferences from one place.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: heroSoftText),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: compact ? 12 : 14),
-          _ProfileSection(
-            title: 'Account details',
-            subtitle: 'Identity and contact information',
-            icon: Icons.badge_outlined,
-            child: Column(
-              children: [
-                _InfoTile(
-                  label: 'Full name',
-                  value: name,
-                  icon: Icons.badge_outlined,
-                ),
-                const SizedBox(height: 8),
-                _InfoTile(
-                  label: 'Email',
-                  value: email.isEmpty ? 'No email' : email,
-                  icon: Icons.email_outlined,
-                ),
-                const SizedBox(height: 8),
-                _InfoTile(
-                  label: 'Phone number',
-                  value: phone.isEmpty ? 'No phone number' : phone,
-                  icon: Icons.phone_outlined,
-                ),
-                const SizedBox(height: 8),
-                _InfoTile(
-                  label: 'Account type',
-                  value: accountType.toUpperCase(),
-                  icon: Icons.verified_user_outlined,
-                ),
-                const SizedBox(height: 12),
-                PrimaryButton(
-                  label: _updatingProfile ? 'Saving...' : 'Edit Profile',
-                  loading: _updatingProfile,
-                  icon: Icons.edit_outlined,
-                  onPressed: _updatingProfile ? null : _openEditProfileSheet,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: compact ? 10 : 12),
-          _HelpCard(),
-          SizedBox(height: compact ? 10 : 12),
-          _ProfileSection(
-            title: 'Referrals',
-            subtitle: 'Invite friends and earn rewards',
-            icon: Icons.group_add_rounded,
-            child: _ActionTile(
-              label: 'Open referrals',
-              subtitle: 'Copy, share, and track progress',
-              icon: Icons.redeem_rounded,
-              onTap: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const ReferralScreen())),
-            ),
-          ),
-          SizedBox(height: compact ? 10 : 12),
-          _ProfileSection(
-            title: 'Security center',
-            subtitle: 'Protect your account and purchases',
-            icon: Icons.security_rounded,
-            child: Column(
-              children: [
-                _ActionTile(
-                  label: 'Change password',
-                  subtitle: 'Update your password regularly',
-                  icon: Icons.lock_outline_rounded,
-                  onTap: _changingPassword ? () {} : _openChangePasswordSheet,
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Purchase PIN',
-                  subtitle: 'Secure your service orders',
-                  icon: Icons.pin_outlined,
-                  onTap: _openTransactionPinSheet,
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Biometric unlock',
-                  subtitle: _biometricEnabled
-                      ? 'Fingerprint / Face ID active'
-                      : 'Enable to use fingerprint for sign-in & purchases',
-                  icon: Icons.fingerprint_rounded,
-                  trailing: Switch(
-                    value: _biometricEnabled,
-                    onChanged: _biometricBusy
-                        ? null
-                        : (_) => _toggleBiometric(),
-                    thumbColor: MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.selected)) {
-                        return Colors.white;
-                      }
-                      return Theme.of(context).colorScheme.surface;
-                    }),
-                    trackColor: MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.selected)) {
-                        return Theme.of(context).colorScheme.primary;
-                      }
-                      return Theme.of(context).colorScheme.outline;
-                    }),
-                  ),
-                  onTap: _biometricBusy ? () {} : _toggleBiometric,
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Session management',
-                  subtitle: 'Review active sessions and device access',
-                  icon: Icons.shield_outlined,
-                  onTap: () => _showComingSoon(
-                    'Session management',
-                    'We will show active sessions and device controls here for additional account protection.',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: compact ? 10 : 12),
-          if (session.isAdmin) ...[
-            _ProfileSection(
-              title: 'Admin portal',
-              subtitle: 'System management and settings',
-              icon: Icons.admin_panel_settings_outlined,
-              child: Column(
-                children: [
-                  _ActionTile(
-                    label: 'Pricing & Margins',
-                    subtitle: 'Manage data plan prices and margins',
-                    icon: Icons.price_change_outlined,
-                    onTap: () => _showComingSoon(
-                      'Pricing & Margins',
-                      'This interface will allow you to adjust plan pricing and platform margins in real-time.',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _ActionTile(
-                    label: 'User management',
-                    subtitle: 'Review and manage platform users',
-                    icon: Icons.people_outline_rounded,
-                    onTap: () => _showComingSoon(
-                      'User management',
-                      'This interface will allow you to manage the platform user base.',
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: compact ? 10 : 12),
-          ],
-          _ProfileSection(
-            title: 'Preferences',
-            subtitle: 'Control notifications and convenience',
-            icon: Icons.tune_rounded,
-            child: Column(
-              children: [
-                _ActionTile(
-                  label: 'Notification alerts',
-                  subtitle: 'In-app alerts and receipts for now',
-                  icon: Icons.notifications_active_outlined,
-                  trailing: Switch.adaptive(
-                    value: _pushNotifications,
-                    onChanged: _togglePushPreference,
-                  ),
-                  onTap: () => _togglePushPreference(!_pushNotifications),
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Email alerts',
-                  subtitle: 'Receipts and security notices',
-                  icon: Icons.mark_email_unread_outlined,
-                  trailing: Switch.adaptive(
-                    value: _emailAlerts,
-                    onChanged: _toggleEmailAlerts,
-                  ),
-                  onTap: () => _toggleEmailAlerts(!_emailAlerts),
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Auto-save beneficiaries',
-                  subtitle: 'Store frequent numbers for faster checkout',
-                  icon: Icons.bookmark_border_rounded,
-                  trailing: Switch.adaptive(
-                    value: _saveBeneficiaries,
-                    onChanged: _toggleBeneficiaries,
-                  ),
-                  onTap: () => _toggleBeneficiaries(!_saveBeneficiaries),
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Theme preference',
-                  subtitle: themeController.isDark ? 'Dark mode' : 'Light mode',
-                  icon: Icons.dark_mode_outlined,
-                  trailing: Switch.adaptive(
-                    value: themeController.isDark,
-                    onChanged: (_) => _toggleThemePreference(),
-                  ),
-                  onTap: _toggleThemePreference,
-                ),
-              ],
+            const SizedBox(height: 24),
+
+            // Settings List
+            _ProfileTile(
+              label: 'Account',
+              icon: Icons.person_outline_rounded,
+              onTap: _openEditProfileSheet,
+              backgroundColor: tileBg,
             ),
-          ),
-          SizedBox(height: compact ? 10 : 12),
-          SizedBox(height: compact ? 10 : 12),
-          _ProfileSection(
-            title: 'Help & Support',
-            subtitle: 'Contact us for utility assistance',
-            icon: Icons.support_agent_rounded,
-            child: Column(
-              children: [
-                _ActionTile(
-                  label: '24/7 Support',
-                  subtitle: '+234 8141114647',
-                  icon: Icons.phone_rounded,
-                  onTap: () => launchUrl(Uri.parse('tel:+2348141114647')),
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Website',
-                  subtitle: 'axisvtu.com',
-                  icon: Icons.language_rounded,
-                  onTap: () => launchUrl(Uri.parse('https://axisvtu.com')),
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Email Support',
-                  subtitle: 'mmtechglobe@gmail.com',
-                  icon: Icons.email_outlined,
-                  onTap: _contactSupport,
-                ),
-              ],
+            _ProfileTile(
+              label: 'Notifications',
+              icon: Icons.notifications_none_rounded,
+              onTap: () => _showComingSoon('Notifications', 'Advanced notification settings coming soon.'),
+              backgroundColor: tileBg,
             ),
-          ),
-          SizedBox(height: compact ? 10 : 12),
-          _ProfileSection(
-            title: 'About AxisVTU',
-            subtitle: 'Service information and legal',
-            icon: Icons.info_outline_rounded,
-            child: Column(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text(
-                    'AxisVTU is a digital utility services platform that helps users purchase mobile data, airtime, electricity tokens, cable TV subscriptions and exam PINs.',
-                    style: TextStyle(fontSize: 13, height: 1.4),
-                  ),
-                ),
-                const Divider(height: 1),
-                _ActionTile(
-                  label: 'Terms of Service',
-                  subtitle: 'Our commitment to you',
-                  icon: Icons.description_outlined,
-                  onTap: () => launchUrl(Uri.parse('https://axisvtu.com/terms')),
-                ),
-                const SizedBox(height: 8),
-                _ActionTile(
-                  label: 'Privacy Policy',
-                  subtitle: 'How we protect your data',
-                  icon: Icons.privacy_tip_outlined,
-                  onTap: () => launchUrl(Uri.parse('https://axisvtu.com/privacy')),
-                ),
-              ],
+            _ProfileTile(
+              label: 'Security',
+              icon: Icons.security_rounded,
+              onTap: _openChangePasswordSheet,
+              backgroundColor: tileBg,
             ),
-          ),
-          SizedBox(height: compact ? 16 : 20),
-          PrimaryButton(
-            label: 'Sign Out',
-            icon: Icons.logout_rounded,
-            backgroundColor: Colors.red.withValues(alpha: 0.1),
-            foregroundColor: Colors.red,
-            onPressed: () async {
-              try {
-                debugPrint('[Profile] Sign out initiated...');
+            _ProfileTile(
+              label: 'Change PIN',
+              icon: Icons.vpn_key_outlined,
+              onTap: _openTransactionPinSheet,
+              backgroundColor: tileBg,
+            ),
+            _ProfileTile(
+              label: 'Biometrics',
+              icon: Icons.fingerprint_rounded,
+              trailing: Switch.adaptive(
+                value: _biometricEnabled,
+                onChanged: _biometricBusy ? null : (_) => _toggleBiometric(),
+                activeColor: Theme.of(context).colorScheme.primary,
+              ),
+              onTap: _toggleBiometric,
+              backgroundColor: tileBg,
+            ),
+            _ProfileTile(
+              label: 'About',
+              icon: Icons.info_outline_rounded,
+              onTap: () => _showComingSoon('About AxisVTU', 'AxisVTU is your premier digital utility companion.'),
+              backgroundColor: tileBg,
+            ),
+            _ProfileTile(
+              label: 'Help',
+              icon: Icons.help_outline_rounded,
+              onTap: _contactSupport,
+              backgroundColor: tileBg,
+            ),
+            _ProfileTile(
+              label: 'Sign Out',
+              icon: Icons.logout_rounded,
+              iconColor: Colors.redAccent,
+              textColor: Colors.redAccent,
+              onTap: () async {
                 await session.logout();
-                debugPrint('[Profile] Session cleared. Navigating to welcome...');
                 if (!context.mounted) return;
-                
-                // Use rootNavigator to ensure we clear the shell and tabs
                 Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
                   WelcomeScreen.route,
                   (_) => false,
                 );
-              } catch (e) {
-                debugPrint('[Profile] Sign out failed: $e');
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
+              },
+              backgroundColor: tileBg,
+            ),
 
-class _ProfileSection extends StatefulWidget {
-  const _ProfileSection({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.child,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Widget child;
-
-  @override
-  State<_ProfileSection> createState() => _ProfileSectionState();
-}
-
-class _ProfileSectionState extends State<_ProfileSection> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final compact = size.width < 360 || size.height < 760;
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.62);
-    return GlassCard(
-      padding: const EdgeInsets.all(0),
-      child: AnimatedContainer(
-        duration: AxisDurations.normal,
-        curve: Curves.easeOut,
-        padding: EdgeInsets.all(compact ? 12 : 14),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => setState(() => _expanded = !_expanded),
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: compact ? 36 : 40,
-                        height: compact ? 36 : 40,
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        child: Icon(
-                          widget.icon,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: compact ? 18 : 20,
-                        ),
-                      ),
-                      SizedBox(width: compact ? 8 : 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w800),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              widget.subtitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodySmall?.copyWith(color: muted),
-                            ),
-                          ],
-                        ),
-                      ),
-                      AnimatedRotation(
-                        turns: _expanded ? 0.5 : 0,
-                        duration: AxisDurations.normal,
-                        child: Icon(
-                          Icons.expand_more_rounded,
-                          size: compact ? 20 : 24,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.55),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            const SizedBox(height: 32),
+            // Social Media Section
+            const Text(
+              'Social Media',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
               ),
             ),
-            AnimatedCrossFade(
-              firstChild: const SizedBox.shrink(),
-              secondChild: Column(
-                children: [
-                  SizedBox(height: compact ? 12 : 14),
-                  widget.child,
-                ],
-              ),
-              crossFadeState: _expanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: AxisDurations.normal,
+            const SizedBox(height: 16),
+            _SocialTile(
+              label: 'WhatsApp',
+              icon: Icons.chat_bubble_outline_rounded,
+              onTap: () => launchUrl(Uri.parse('https://wa.me/2348141114647')),
+              backgroundColor: tileBg,
             ),
+            _SocialTile(
+              label: 'Instagram',
+              icon: Icons.camera_alt_outlined,
+              onTap: () => launchUrl(Uri.parse('https://instagram.com/axisvtu.app')),
+              backgroundColor: tileBg,
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -1726,172 +1347,66 @@ class _ProfileSectionState extends State<_ProfileSection> {
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
+class _ProfileTile extends StatelessWidget {
+  const _ProfileTile({
     required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final compact =
-        MediaQuery.sizeOf(context).width < 360 ||
-        MediaQuery.sizeOf(context).height < 760;
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.64);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 12 : 14,
-        vertical: compact ? 10 : 12,
-      ),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: compact ? 34 : 36,
-            height: compact ? 34 : 36,
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              size: compact ? 16 : 18,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          SizedBox(width: compact ? 8 : 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: muted),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  softWrap: true,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    required this.label,
-    required this.subtitle,
     required this.icon,
     required this.onTap,
     this.trailing,
+    this.backgroundColor,
+    this.iconColor,
+    this.textColor,
   });
 
   final String label;
-  final String subtitle;
   final IconData icon;
   final VoidCallback onTap;
   final Widget? trailing;
+  final Color? backgroundColor;
+  final Color? iconColor;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) {
-    final compact =
-        MediaQuery.sizeOf(context).width < 360 ||
-        MediaQuery.sizeOf(context).height < 760;
-    final color = Theme.of(context).colorScheme.primary;
-    return Material(
-      color: Colors.transparent,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+    final contentColor = isDark ? Colors.white : const Color(0xFF0F172A);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Ink(
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 12 : 14,
-            vertical: compact ? 10 : 12,
-          ),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withValues(alpha: 0.1),
-            ),
+            color: backgroundColor ?? (isDark ? const Color(0xFF1E293B).withValues(alpha: 0.3) : const Color(0xFFF8FAFC)),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: contentColor.withValues(alpha: 0.03)),
           ),
           child: Row(
             children: [
-              Container(
-                width: compact ? 34 : 36,
-                height: compact ? 34 : 36,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: compact ? 16 : 18, color: color),
+              Icon(
+                icon,
+                size: 22,
+                color: iconColor ?? (isDark ? Colors.white70 : const Color(0xFF64748B)),
               ),
-              SizedBox(width: compact ? 8 : 10),
+              const SizedBox(width: 16),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.64),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: textColor ?? contentColor,
+                  ),
                 ),
               ),
               trailing ??
                   Icon(
                     Icons.chevron_right_rounded,
-                    size: compact ? 20 : 24,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.48),
+                    size: 20,
+                    color: contentColor.withValues(alpha: 0.3),
                   ),
             ],
           ),
@@ -1901,159 +1416,62 @@ class _ActionTile extends StatelessWidget {
   }
 }
 
-class _HelpCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF141C2A) : const Color(0xFFF3F7FF),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.headset_mic_rounded,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Need help?',
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5),
-                    ),
-                    Text(
-                      'We are here for you 24/7.',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _SupportAction(
-                  label: 'Call Us',
-                  icon: Icons.phone_rounded,
-                  onTap: () => launchUrl(Uri.parse('tel:+2348141114647')),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _SupportAction(
-                  label: 'Website',
-                  icon: Icons.language_rounded,
-                  onTap: () => launchUrl(Uri.parse('https://axisvtu.com')),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
+class _SocialTile extends StatelessWidget {
+  const _SocialTile({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.backgroundColor,
+  });
 
-class _SupportAction extends StatelessWidget {
-  const _SupportAction({required this.label, required this.icon, required this.onTap});
   final String label;
   final IconData icon;
   final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final chipText = isDark ? Colors.white : const Color(0xFF0F172A);
-    final chipBg = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : Theme.of(context).colorScheme.surface;
-    final chipBorder = isDark
-        ? Colors.white.withValues(alpha: 0.16)
-        : Theme.of(context).colorScheme.outline.withValues(alpha: 0.18);
+    final contentColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: chipBg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: chipBorder),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 14,
-            color: isDark ? Colors.white : const Color(0xFF2457F5),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: backgroundColor ?? (isDark ? const Color(0xFF1E293B).withValues(alpha: 0.3) : const Color(0xFFF8FAFC)),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: contentColor.withValues(alpha: 0.03)),
           ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: chipText,
-            ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 22,
+                color: isDark ? Colors.white70 : const Color(0xFF64748B),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: contentColor,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.open_in_new_rounded,
+                size: 18,
+                color: contentColor.withValues(alpha: 0.3),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
