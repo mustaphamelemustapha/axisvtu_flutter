@@ -936,116 +936,299 @@ class _PurchaseSummaryModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF111827) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      padding: const EdgeInsets.fromLTRB(28, 16, 28, 48),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
+          Container(
+            width: 44,
+            height: 5,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(2.5),
             ),
           ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              const Icon(Icons.assignment_outlined, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Order Summary',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const Spacer(),
-              IconButton.filledTonal(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded, size: 18),
-              ),
-            ],
-          ),
           const SizedBox(height: 32),
-          _SummaryRow(label: 'Phone', value: phone),
-          _SummaryRow(label: 'Network', value: network.toUpperCase()),
-          _SummaryRow(label: 'Service', value: title),
-          _SummaryRow(label: 'Amount', value: amount),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Divider(),
+          
+          // Header Icon & Title
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.bolt_rounded, color: primary, size: 28),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total to Pay',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          const SizedBox(height: 16),
+          const Text(
+            'Confirm Recharge',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Review your airtime top-up details',
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Hero Amount Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark 
+                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                  : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              Text(
-                amount,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'TOTAL RECHARGE',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  amount,
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: primary,
+                    letterSpacing: -1,
+                  ),
+                ),
+              ],
+            ),
           ),
+          
+          const SizedBox(height: 24),
+          
+          // Details List
+          _PremiumSummaryItem(
+            label: 'Network',
+            value: network.toUpperCase(),
+            icon: Icons.cell_tower_rounded,
+            isDark: isDark,
+          ),
+          _PremiumSummaryItem(
+            label: 'Recipient',
+            value: phone,
+            icon: Icons.phone_android_rounded,
+            isDark: isDark,
+          ),
+          _PremiumSummaryItem(
+            label: 'Transaction',
+            value: title,
+            icon: Icons.local_activity_rounded,
+            isDark: isDark,
+          ),
+          
           const SizedBox(height: 40),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onProceedPin,
-                  icon: const Icon(Icons.lock_outline_rounded),
-                  label: const Text(
-                    'Use PIN',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onProceedBiometric,
-                  icon: const Icon(Icons.fingerprint_rounded),
-                  label: const Text(
-                    'Use Biometric',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                  ),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          
+          // Action Buttons
+          _PremiumPaymentButton(
+            label: 'Pay with Biometrics',
+            sublabel: 'Fast & Secure Authentication',
+            icon: Icons.fingerprint_rounded,
+            isPrimary: true,
+            onTap: onProceedBiometric,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          _PremiumPaymentButton(
+            label: 'Authorize with Secret PIN',
+            sublabel: 'Standard Transaction Security',
+            icon: Icons.dialpad_rounded,
+            isPrimary: false,
+            onTap: onProceedPin,
+          ),
         ],
       ),
     );
   }
 }
 
+class _PremiumSummaryItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final bool isDark;
+
+  const _PremiumSummaryItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: 16,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumPaymentButton extends StatelessWidget {
+  final String label;
+  final String sublabel;
+  final IconData icon;
+  final bool isPrimary;
+  final VoidCallback onTap;
+
+  const _PremiumPaymentButton({
+    required this.label,
+    required this.sublabel,
+    required this.icon,
+    required this.isPrimary,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          color: isPrimary ? primary : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(24),
+          border: isPrimary 
+            ? null 
+            : Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 2),
+          boxShadow: isPrimary ? [
+            BoxShadow(
+              color: primary.withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            )
+          ] : [],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isPrimary ? Colors.white.withValues(alpha: 0.2) : primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                color: isPrimary ? Colors.white : primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: isPrimary ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  Text(
+                    sublabel,
+                    style: TextStyle(
+                      color: isPrimary ? Colors.white.withValues(alpha: 0.7) : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isPrimary ? Colors.white.withValues(alpha: 0.5) : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 class _SummaryRow extends StatelessWidget {
   final String label;
   final String value;

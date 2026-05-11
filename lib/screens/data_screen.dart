@@ -1879,100 +1879,301 @@ class _PurchaseSummaryModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
+      padding: const EdgeInsets.fromLTRB(28, 16, 28, 48),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40,
-            height: 4,
+            width: 44,
+            height: 5,
             decoration: BoxDecoration(
-              color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Confirm Order',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: Theme.of(context).colorScheme.primary,
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(2.5),
             ),
           ),
           const SizedBox(height: 32),
+          
+          // Header Icon & Title
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(28),
+              color: primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.receipt_long_rounded, color: primary, size: 28),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Confirm Transaction',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Please review your order details below',
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Hero Amount Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark 
+                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                  : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                width: 1.5,
               ),
             ),
             child: Column(
               children: [
-                _EliteSummaryRow(label: 'Recipient', value: phone, isDark: isDark),
-                const Divider(height: 24),
-                _EliteSummaryRow(label: 'Network', value: network.toUpperCase(), isDark: isDark),
-                const Divider(height: 24),
-                _EliteSummaryRow(label: 'Data Plan', value: planName, isDark: isDark),
-                const Divider(height: 24),
-                _EliteSummaryRow(label: 'Validity', value: planValidity, isDark: isDark),
-                const Divider(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Amount to Pay',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey),
-                    ),
-                    Text(
-                      '₦$price',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
+                const Text(
+                  'TOTAL AMOUNT',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '₦$price',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: primary,
+                    letterSpacing: -1,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 32),
-          Row(
-            children: [
-              Expanded(
-                child: _GradientActionButton(
-                  label: 'Pay with Biometric',
-                  icon: Icons.fingerprint_rounded,
-                  onTap: onProceedBiometric,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onProceedPin,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                    side: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                  ),
-                  child: const Text(
-                    'Pay with PIN',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-                  ),
-                ),
-              ),
-            ],
+          
+          const SizedBox(height: 24),
+          
+          // Details List
+          _PremiumSummaryItem(
+            label: 'Network Provider',
+            value: network.toUpperCase(),
+            icon: Icons.cell_tower_rounded,
+            isDark: isDark,
+          ),
+          _PremiumSummaryItem(
+            label: 'Phone Number',
+            value: phone,
+            icon: Icons.phone_android_rounded,
+            isDark: isDark,
+          ),
+          _PremiumSummaryItem(
+            label: 'Data Package',
+            value: planName,
+            icon: Icons.wifi_tethering_rounded,
+            isDark: isDark,
+          ),
+          _PremiumSummaryItem(
+            label: 'Validity Period',
+            value: planValidity,
+            icon: Icons.event_available_rounded,
+            isDark: isDark,
+          ),
+          
+          const SizedBox(height: 40),
+          
+          // Action Buttons (Vertical Stack for Premium Feel & No Overlap)
+          _PremiumPaymentButton(
+            label: 'Pay with Biometrics',
+            sublabel: 'Fast & Secure Authentication',
+            icon: Icons.fingerprint_rounded,
+            isPrimary: true,
+            onTap: onProceedBiometric,
+          ),
+          const SizedBox(height: 16),
+          _PremiumPaymentButton(
+            label: 'Authorize with Secret PIN',
+            sublabel: 'Standard Transaction Security',
+            icon: Icons.dialpad_rounded,
+            isPrimary: false,
+            onTap: onProceedPin,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PremiumSummaryItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final bool isDark;
+
+  const _PremiumSummaryItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: 16,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumPaymentButton extends StatelessWidget {
+  final String label;
+  final String sublabel;
+  final IconData icon;
+  final bool isPrimary;
+  final VoidCallback onTap;
+
+  const _PremiumPaymentButton({
+    required this.label,
+    required this.sublabel,
+    required this.icon,
+    required this.isPrimary,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          color: isPrimary ? primary : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(24),
+          border: isPrimary 
+            ? null 
+            : Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 2),
+          boxShadow: isPrimary ? [
+            BoxShadow(
+              color: primary.withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            )
+          ] : [],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isPrimary ? Colors.white.withValues(alpha: 0.2) : primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                color: isPrimary ? Colors.white : primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: isPrimary ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  Text(
+                    sublabel,
+                    style: TextStyle(
+                      color: isPrimary ? Colors.white.withValues(alpha: 0.7) : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isPrimary ? Colors.white.withValues(alpha: 0.5) : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+            ),
+          ],
+        ),
       ),
     );
   }
