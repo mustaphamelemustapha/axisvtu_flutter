@@ -39,6 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _saveBeneficiaries = true;
   bool _pushNotifications = true;
   bool _biometricEnabled = false;
+  final _deleteConfirmCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -63,6 +64,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _saveBoolPref(String key, bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);
+  }
+
+  @override
+  void dispose() {
+    _deleteConfirmCtrl.dispose();
+    super.dispose();
   }
 
   bool _emailAlerts = true;
@@ -892,6 +899,209 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _showDeleteAccountSheet() async {
+    final session = context.read<SessionController>();
+    final auth = AuthService(token: session.token);
+    bool busy = false;
+    _deleteConfirmCtrl.clear();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Colors.redAccent.withValues(alpha: 0.2),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.redAccent.withValues(alpha: 0.08),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 46,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.delete_forever_rounded,
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Delete Account',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.redAccent,
+                                      ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'This action is irreversible',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Are you sure you want to delete your AxisVTU account? This will immediately:',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      _bulletPoint('Disable your access to all services.'),
+                      _bulletPoint('Forfeit any remaining wallet balance.'),
+                      _bulletPoint('Archive your transaction history.'),
+                      const SizedBox(height: 20),
+                      Text(
+                        'To confirm, please type "DELETE" below:',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        onChanged: (v) => setModalState(() {}),
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.characters,
+                        controller: _deleteConfirmCtrl,
+                        decoration: InputDecoration(
+                          hintText: 'DELETE',
+                          hintStyle: TextStyle(color: Colors.redAccent.withValues(alpha: 0.3)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.redAccent.withValues(alpha: 0.2)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      PrimaryButton(
+                        label: busy ? 'Deleting...' : 'Permanently Delete My Account',
+                        color: Colors.redAccent,
+                        icon: Icons.warning_amber_rounded,
+                        onPressed: (_deleteConfirmCtrl.text.trim().toUpperCase() != 'DELETE' || busy)
+                            ? null
+                            : () async {
+                                setModalState(() => busy = true);
+                                try {
+                                  await auth.deleteMe();
+                                  if (!context.mounted) return;
+                                  Navigator.pop(context); // Close sheet
+                                  await session.logout();
+                                  if (!context.mounted) return;
+                                  Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+                                    WelcomeScreen.route,
+                                    (_) => false,
+                                  );
+                                } catch (e) {
+                                  setModalState(() => busy = false);
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Deletion failed: $e')),
+                                  );
+                                }
+                              },
+                      ),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: TextButton(
+                          onPressed: busy ? null : () => Navigator.pop(context),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _bulletPoint(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6, left: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Icon(Icons.circle, size: 6, color: Colors.redAccent),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _toggleBiometric() async {
     if (_biometricBusy) return;
     setState(() => _biometricBusy = true);
@@ -1228,12 +1438,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          name,
-                          style: TextStyle(
-                            color: heroText,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            name,
+                            style: TextStyle(
+                              color: heroText,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -1305,6 +1518,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: tileBg,
             ),
             _ProfileTile(
+              label: 'Delete Account',
+              icon: Icons.delete_outline_rounded,
+              iconColor: Colors.redAccent.withValues(alpha: 0.7),
+              textColor: Colors.redAccent.withValues(alpha: 0.7),
+              onTap: _showDeleteAccountSheet,
+              backgroundColor: tileBg,
+            ),
+            _ProfileTile(
               label: 'Sign Out',
               icon: Icons.logout_rounded,
               iconColor: Colors.redAccent,
@@ -1319,6 +1540,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
               backgroundColor: tileBg,
             ),
+
 
             const SizedBox(height: 32),
             // Social Media Section
@@ -1397,12 +1619,16 @@ class _ProfileTile extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: textColor ?? contentColor,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: textColor ?? contentColor,
+                    ),
                   ),
                 ),
               ),

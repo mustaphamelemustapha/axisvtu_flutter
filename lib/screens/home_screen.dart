@@ -743,23 +743,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          bank,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: -0.2,
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            bank,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: -0.2,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(height: 2),
-                                        Text(
-                                          name.toUpperCase(),
-                                          style: TextStyle(
-                                            color: Colors.blue.withAlpha(230),
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 0.1,
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            name.toUpperCase(),
+                                            style: TextStyle(
+                                              color: Colors.blue.withAlpha(230),
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.1,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -768,14 +774,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          number.toString(),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 2,
-                                            fontFeatures: [FontFeature.tabularFigures()],
+                                        Expanded(
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              number.toString(),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 2,
+                                                fontFeatures: [FontFeature.tabularFigures()],
+                                              ),
+                                            ),
                                           ),
                                         ),
                                         Material(
@@ -1617,16 +1629,19 @@ class _ServiceCardState extends State<_ServiceCard> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  widget.item.label,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
-                        color: isDark ? Colors.white : const Color(0xFF1E293B),
-                        fontSize: compact ? 12 : 13,
-                      ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    widget.item.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.2,
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          fontSize: compact ? 12 : 13,
+                        ),
+                  ),
                 ),
               ],
             ),
@@ -2377,22 +2392,28 @@ class _RecentActivityTile extends StatelessWidget {
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                amount,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: isCredit ? const Color(0xFF10B981) : (isDark ? Colors.white : const Color(0xFF1E293B)),
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-              ),
-              Text(
-                date,
-                style: TextStyle(fontSize: 10, color: muted, fontWeight: FontWeight.w600),
-              ),
-            ],
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    amount,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: isCredit ? const Color(0xFF10B981) : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                  ),
+                ),
+                Text(
+                  date,
+                  style: TextStyle(fontSize: 10, color: muted, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ),
         ],
       ),

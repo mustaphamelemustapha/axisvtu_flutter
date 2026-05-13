@@ -234,175 +234,176 @@ class _PinPadDialogState extends State<_PinPadDialog>
                 width: 1,
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        widget.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: isDark
+                                ? Colors.white
+                                : theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(
+                          Icons.close_rounded,
                           color: isDark
-                              ? Colors.white
-                              : theme.colorScheme.onSurface,
-                          fontWeight: FontWeight.w700,
+                              ? Colors.white.withValues(alpha: 0.86)
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.72),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.86)
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.72),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  widget.subtitle,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.7)
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.66),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                AnimatedBuilder(
-                  animation: _shakeController,
-                  builder: (context, child) {
-                    final t = _shakeController.value;
-                    final offset = math.sin(t * math.pi * 8) * 6;
-                    return Transform.translate(
-                      offset: Offset(_error != null ? offset : 0, 0),
-                      child: child,
-                    );
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      widget.pinLength,
-                      (i) => Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: _pinDot(i),
-                      ),
+                  const SizedBox(height: 2),
+                  Text(
+                    widget.subtitle,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.66),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                AnimatedSwitcher(
-                  duration: AxisDurations.fast,
-                  child: _error == null
-                      ? const SizedBox(height: 18)
-                      : Padding(
-                          key: ValueKey(_error),
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Text(
-                            _error!,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFFFF6B6B),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                ),
-                Wrap(
-                  spacing: 14,
-                  runSpacing: 14,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _keyButton(child: const Text('1'), onTap: () => _append('1')),
-                    _keyButton(child: const Text('2'), onTap: () => _append('2')),
-                    _keyButton(child: const Text('3'), onTap: () => _append('3')),
-                    _keyButton(child: const Text('4'), onTap: () => _append('4')),
-                    _keyButton(child: const Text('5'), onTap: () => _append('5')),
-                    _keyButton(child: const Text('6'), onTap: () => _append('6')),
-                    _keyButton(child: const Text('7'), onTap: () => _append('7')),
-                    _keyButton(child: const Text('8'), onTap: () => _append('8')),
-                    _keyButton(child: const Text('9'), onTap: () => _append('9')),
-                    _keyButton(
-                      child: Icon(
-                        Icons.backspace_outlined,
-                        size: 20,
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.9)
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                      ),
-                      onTap: _backspace,
-                      enabled: _pin.isNotEmpty,
-                    ),
-                    _keyButton(child: const Text('0'), onTap: () => _append('0')),
-                    _keyButton(
-                    child: Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 20,
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.9)
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                      ),
-                      onTap: _submitting ? () {} : _confirm,
-                      enabled: _pin.length == widget.pinLength && !_submitting,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                TextButton(
-                  onPressed: _pin.length == widget.pinLength && !_submitting ? _confirm : null,
-                  child: AnimatedSwitcher(
-                    duration: AxisDurations.fast,
-                    child: _submitting
-                        ? SizedBox(
-                            key: const ValueKey('submitting'),
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: isDark
-                                  ? Colors.white
-                                  : theme.colorScheme.primary,
-                            ),
-                          )
-                        : Text(
-                            widget.confirmLabel,
-                            key: const ValueKey('confirm'),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? Colors.white
-                                  : theme.colorScheme.primary,
-                            ),
-                          ),
-                  ),
-                ),
-                if (widget.onForgotPin != null) ...[
-                  const SizedBox(height: 4),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      widget.onForgotPin!();
+                  const SizedBox(height: 16),
+                  AnimatedBuilder(
+                    animation: _shakeController,
+                    builder: (context, child) {
+                      final t = _shakeController.value;
+                      final offset = math.sin(t * math.pi * 8) * 6;
+                      return Transform.translate(
+                        offset: Offset(_error != null ? offset : 0, 0),
+                        child: child,
+                      );
                     },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      minimumSize: const Size(0, 32),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      'Forgot PIN?',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.6)
-                            : theme.colorScheme.primary.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w600,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        widget.pinLength,
+                        (i) => Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: _pinDot(i),
+                        ),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  AnimatedSwitcher(
+                    duration: AxisDurations.fast,
+                    child: _error == null
+                        ? const SizedBox(height: 18)
+                        : Padding(
+                            key: ValueKey(_error),
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFFFF6B6B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                  ),
+                  Wrap(
+                    spacing: 14,
+                    runSpacing: 14,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _keyButton(child: const Text('1'), onTap: () => _append('1')),
+                      _keyButton(child: const Text('2'), onTap: () => _append('2')),
+                      _keyButton(child: const Text('3'), onTap: () => _append('3')),
+                      _keyButton(child: const Text('4'), onTap: () => _append('4')),
+                      _keyButton(child: const Text('5'), onTap: () => _append('5')),
+                      _keyButton(child: const Text('6'), onTap: () => _append('6')),
+                      _keyButton(child: const Text('7'), onTap: () => _append('7')),
+                      _keyButton(child: const Text('8'), onTap: () => _append('8')),
+                      _keyButton(child: const Text('9'), onTap: () => _append('9')),
+                      _keyButton(
+                        child: Icon(
+                          Icons.backspace_outlined,
+                          size: 20,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.9)
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                        ),
+                        onTap: _backspace,
+                        enabled: _pin.isNotEmpty,
+                      ),
+                      _keyButton(child: const Text('0'), onTap: () => _append('0')),
+                      _keyButton(
+                      child: Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 20,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.9)
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                        ),
+                        onTap: _submitting ? () {} : _confirm,
+                        enabled: _pin.length == widget.pinLength && !_submitting,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  TextButton(
+                    onPressed: _pin.length == widget.pinLength && !_submitting ? _confirm : null,
+                    child: AnimatedSwitcher(
+                      duration: AxisDurations.fast,
+                      child: _submitting
+                          ? SizedBox(
+                              key: const ValueKey('submitting'),
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: isDark
+                                    ? Colors.white
+                                    : theme.colorScheme.primary,
+                              ),
+                            )
+                          : Text(
+                              widget.confirmLabel,
+                              key: const ValueKey('confirm'),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? Colors.white
+                                    : theme.colorScheme.primary,
+                              ),
+                            ),
+                    ),
+                  ),
+                  if (widget.onForgotPin != null) ...[
+                    const SizedBox(height: 4),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onForgotPin!();
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Forgot PIN?',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.6)
+                              : theme.colorScheme.primary.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

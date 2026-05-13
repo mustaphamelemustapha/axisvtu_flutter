@@ -1401,123 +1401,125 @@ class _PurchaseSummaryModal extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(28, 16, 28, 48),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 44,
-            height: 5,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(2.5),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.bolt_rounded, color: primary, size: 28),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Confirm Recharge',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Review your airtime top-up details',
-            style: TextStyle(
-              fontSize: 14,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark 
-                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                  : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(28, 16, 28, 48),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                width: 1.5,
+                borderRadius: BorderRadius.circular(2.5),
               ),
             ),
-            child: Column(
-              children: [
-                const Text(
-                  'TOTAL RECHARGE',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  amount,
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w900,
-                    color: primary,
-                    letterSpacing: -1,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.bolt_rounded, color: primary, size: 28),
             ),
-          ),
-          const SizedBox(height: 24),
-          _PremiumSummaryItem(
-            label: 'Network',
-            value: network.toUpperCase(),
-            icon: Icons.cell_tower_rounded,
-            isDark: isDark,
-          ),
-          _PremiumSummaryItem(
-            label: 'Recipient',
-            value: phone,
-            icon: Icons.phone_android_rounded,
-            isDark: isDark,
-          ),
-          _PremiumSummaryItem(
-            label: 'Transaction',
-            value: title,
-            icon: Icons.local_activity_rounded,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 40),
-          _PremiumPaymentButton(
-            label: 'Pay with Biometrics',
-            sublabel: 'Fast & Secure Authentication',
-            icon: Icons.fingerprint_rounded,
-            isPrimary: true,
-            onTap: onProceedBiometric,
-          ),
-          const SizedBox(height: 16),
-          _PremiumPaymentButton(
-            label: 'Authorize with Secret PIN',
-            sublabel: 'Standard Transaction Security',
-            icon: Icons.dialpad_rounded,
-            isPrimary: false,
-            onTap: onProceedPin,
-          ),
-        ],
+            const SizedBox(height: 16),
+            const Text(
+              'Confirm Recharge',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Review your airtime top-up details',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark 
+                    ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                    : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    'TOTAL RECHARGE',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    amount,
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      color: primary,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            _PremiumSummaryItem(
+              label: 'Network',
+              value: network.toUpperCase(),
+              icon: Icons.cell_tower_rounded,
+              isDark: isDark,
+            ),
+            _PremiumSummaryItem(
+              label: 'Recipient',
+              value: phone,
+              icon: Icons.phone_android_rounded,
+              isDark: isDark,
+            ),
+            _PremiumSummaryItem(
+              label: 'Transaction',
+              value: title,
+              icon: Icons.local_activity_rounded,
+              isDark: isDark,
+            ),
+            const SizedBox(height: 40),
+            _PremiumPaymentButton(
+              label: 'Pay with Biometrics',
+              sublabel: 'Fast & Secure Authentication',
+              icon: Icons.fingerprint_rounded,
+              isPrimary: true,
+              onTap: onProceedBiometric,
+            ),
+            const SizedBox(height: 16),
+            _PremiumPaymentButton(
+              label: 'Authorize with Secret PIN',
+              sublabel: 'Standard Transaction Security',
+              icon: Icons.dialpad_rounded,
+              isPrimary: false,
+              onTap: onProceedPin,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -145,7 +145,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 const SizedBox(height: 20),
                 // CAC Logo Only
                 Image.asset(
-                  'assets/brand/cac_logo.png',
+                  'assets/brand/cac_logo.jpg',
                   height: 60,
                   fit: BoxFit.contain,
                 ),

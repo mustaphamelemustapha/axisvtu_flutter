@@ -1071,12 +1071,18 @@ class _DataScreenState extends State<DataScreen> {
                           ],
                         ),
                       ),
-                      Text(
-                        '₦${_planPrice(selected)}',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Theme.of(context).colorScheme.primary,
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '₦${_planPrice(selected)}',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1209,30 +1215,37 @@ class _PremiumCheckoutCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'PAYABLE AMOUNT',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PAYABLE AMOUNT',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    amount,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      color: primary,
-                      letterSpacing: -1,
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        amount,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: primary,
+                          letterSpacing: -1,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -2079,140 +2092,142 @@ class _PurchaseSummaryModal extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(28, 16, 28, 48),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 44,
-            height: 5,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(2.5),
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          // Header Icon & Title
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.receipt_long_rounded, color: primary, size: 28),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Confirm Transaction',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Please review your order details below',
-            style: TextStyle(
-              fontSize: 14,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          
-          const SizedBox(height: 32),
-          
-          // Hero Amount Card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark 
-                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                  : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(28, 16, 28, 48),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                width: 1.5,
+                borderRadius: BorderRadius.circular(2.5),
               ),
             ),
-            child: Column(
-              children: [
-                const Text(
-                  'TOTAL AMOUNT',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '₦$price',
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w900,
-                    color: primary,
-                    letterSpacing: -1,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 32),
+            
+            // Header Icon & Title
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.receipt_long_rounded, color: primary, size: 28),
             ),
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Details List
-          _PremiumSummaryItem(
-            label: 'Network Provider',
-            value: network.toUpperCase(),
-            icon: Icons.cell_tower_rounded,
-            isDark: isDark,
-          ),
-          _PremiumSummaryItem(
-            label: 'Phone Number',
-            value: phone,
-            icon: Icons.phone_android_rounded,
-            isDark: isDark,
-          ),
-          _PremiumSummaryItem(
-            label: 'Data Package',
-            value: planName,
-            icon: Icons.wifi_tethering_rounded,
-            isDark: isDark,
-          ),
-          _PremiumSummaryItem(
-            label: 'Validity Period',
-            value: planValidity,
-            icon: Icons.event_available_rounded,
-            isDark: isDark,
-          ),
-          
-          const SizedBox(height: 40),
-          
-          // Action Buttons (Vertical Stack for Premium Feel & No Overlap)
-          _PremiumPaymentButton(
-            label: 'Pay with Biometrics',
-            sublabel: 'Fast & Secure Authentication',
-            icon: Icons.fingerprint_rounded,
-            isPrimary: true,
-            onTap: onProceedBiometric,
-          ),
-          const SizedBox(height: 16),
-          _PremiumPaymentButton(
-            label: 'Authorize with Secret PIN',
-            sublabel: 'Standard Transaction Security',
-            icon: Icons.dialpad_rounded,
-            isPrimary: false,
-            onTap: onProceedPin,
-          ),
-        ],
+            const SizedBox(height: 16),
+            const Text(
+              'Confirm Transaction',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please review your order details below',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // Hero Amount Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark 
+                    ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                    : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    'TOTAL AMOUNT',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '₦$price',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      color: primary,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Details List
+            _PremiumSummaryItem(
+              label: 'Network Provider',
+              value: network.toUpperCase(),
+              icon: Icons.cell_tower_rounded,
+              isDark: isDark,
+            ),
+            _PremiumSummaryItem(
+              label: 'Phone Number',
+              value: phone,
+              icon: Icons.phone_android_rounded,
+              isDark: isDark,
+            ),
+            _PremiumSummaryItem(
+              label: 'Data Package',
+              value: planName,
+              icon: Icons.wifi_tethering_rounded,
+              isDark: isDark,
+            ),
+            _PremiumSummaryItem(
+              label: 'Validity Period',
+              value: planValidity,
+              icon: Icons.event_available_rounded,
+              isDark: isDark,
+            ),
+            
+            const SizedBox(height: 40),
+            
+            // Action Buttons (Vertical Stack for Premium Feel & No Overlap)
+            _PremiumPaymentButton(
+              label: 'Pay with Biometrics',
+              sublabel: 'Fast & Secure Authentication',
+              icon: Icons.fingerprint_rounded,
+              isPrimary: true,
+              onTap: onProceedBiometric,
+            ),
+            const SizedBox(height: 16),
+            _PremiumPaymentButton(
+              label: 'Authorize with Secret PIN',
+              sublabel: 'Standard Transaction Security',
+              icon: Icons.dialpad_rounded,
+              isPrimary: false,
+              onTap: onProceedPin,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2250,21 +2265,30 @@ class _PremiumSummaryItem extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              ),
             ),
           ),
-          const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.2,
+          const SizedBox(width: 8),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                ),
+              ),
             ),
           ),
         ],
@@ -2640,21 +2664,27 @@ class _ElitePlanTile extends StatelessWidget {
               ],
             ),
             const Spacer(),
-            Text(
-              capacity,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: Theme.of(context).colorScheme.onSurface,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                capacity,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              '₦$price',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: primary,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '₦$price',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: primary,
+                ),
               ),
             ),
           ],

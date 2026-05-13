@@ -200,6 +200,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return parts.join(' • ');
   }
 
+  Map<String, List<Map<String, dynamic>>> _groupTransactions(
+    List<Map<String, dynamic>> items,
+  ) {
+    final Map<String, List<Map<String, dynamic>>> groups = {};
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final lastWeek = today.subtract(const Duration(days: 7));
+
+    for (final tx in items) {
+      final created = _createdAt(tx)?.toLocal();
+      if (created == null) {
+        (groups['Older'] ??= []).add(tx);
+        continue;
+      }
+
+      final date = DateTime(created.year, created.month, created.day);
+      String key;
+      if (date == today) {
+        key = 'Today';
+      } else if (date == yesterday) {
+        key = 'Yesterday';
+      } else if (date.isAfter(lastWeek)) {
+        key = 'Last 7 Days';
+      } else {
+        key = 'Older';
+      }
+
+      (groups[key] ??= []).add(tx);
+    }
+    return groups;
+  }
+
   Future<void> _openFilterSheet() async {
     String selectedStatus = _statusFilter;
     String selectedType = _typeFilter;
@@ -263,8 +296,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     'failed',
                                     'refunded',
                                   ]
-                                  .map(
-                                    (status) => _FilterChipBtn(
+                                  .map<Widget>(
+                                    (status) => _MiniFilterChip(
                                       label: status.toUpperCase(),
                                       selected: selectedStatus == status,
                                       onTap: () => setSheetState(
@@ -294,11 +327,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     'exam',
                                     'wallet_fund',
                                   ]
-                                  .map(
-                                    (type) => _FilterChipBtn(
-                                      label: type == 'wallet_fund'
-                                          ? 'WALLET'
-                                          : type.toUpperCase(),
+                                  .map<Widget>(
+                                    (type) => _MiniFilterChip(
+                                      label: type.replaceAll('_', ' ').toUpperCase(),
                                       selected: selectedType == type,
                                       onTap: () => setSheetState(
                                         () => selectedType = type,
@@ -318,8 +349,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           spacing: 8,
                           runSpacing: 8,
                           children: ['all', 'today', '7d', '30d']
-                              .map(
-                                (value) => _FilterChipBtn(
+                              .map<Widget>(
+                                (value) => _MiniFilterChip(
                                   label: _dateFilterLabel(value).toUpperCase(),
                                   selected: selectedDate == value,
                                   onTap: () =>
@@ -837,6 +868,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 360 || size.height < 760;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = Theme.of(
       context,
     ).colorScheme.onSurface.withValues(alpha: 0.64);
@@ -983,54 +1015,105 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ],
               ),
             const SizedBox(height: 14),
-            if (compact)
-              Column(
-                children: [
-                  GlassCard(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      decoration: const InputDecoration(
-                        hintText: 'Search transactions',
-                        prefixIcon: Icon(Icons.search_rounded),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: _HeaderActionBtn(
-                      icon: Icons.tune_rounded,
-                      badgeCount: _activeFilterCount,
-                      onTap: _openFilterSheet,
-                    ),
-                  ),
-                ],
-              )
-            else
-              Row(
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Row(
                 children: [
                   Expanded(
-                    child: GlassCard(
+                    child: Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       child: TextField(
                         controller: _searchCtrl,
-                        decoration: const InputDecoration(
-                          hintText: 'Search transactions',
-                          prefixIcon: Icon(Icons.search_rounded),
+                        onChanged: (v) => setState(() {}),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        decoration: InputDecoration(
+                          hintText: 'Search transactions...',
+                          hintStyle: TextStyle(
+                            color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          ),
+                          suffixIcon: _searchCtrl.text.isNotEmpty
+                              ? IconButton(
+                                  onPressed: () {
+                                    _searchCtrl.clear();
+                                    setState(() {});
+                                  },
+                                  icon: const Icon(Icons.close_rounded, size: 18),
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  _HeaderActionBtn(
-                    icon: Icons.tune_rounded,
-                    badgeCount: _activeFilterCount,
+                  const SizedBox(width: 12),
+                  InkWell(
                     onTap: _openFilterSheet,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const Icon(Icons.tune_rounded, color: Colors.white, size: 24),
+                          if (_activeFilterCount > 0)
+                            Positioned(
+                              top: 14,
+                              right: 14,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-            const SizedBox(height: 12),
+            ),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(bottom: 20),
               child: Row(
                 children: [
                   _MiniFilterChip(
@@ -1041,42 +1124,41 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       _typeFilter = 'all';
                     }),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   _MiniFilterChip(
                     label: 'Successful',
                     selected: _statusFilter == 'success',
                     onTap: () => setState(() => _statusFilter = 'success'),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   _MiniFilterChip(
                     label: 'Pending',
                     selected: _statusFilter == 'pending',
                     onTap: () => setState(() => _statusFilter = 'pending'),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   _MiniFilterChip(
                     label: 'Failed',
                     selected: _statusFilter == 'failed',
                     onTap: () => setState(() => _statusFilter = 'failed'),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   _MiniFilterChip(
                     label: 'Data',
                     selected: _typeFilter == 'data',
                     onTap: () => setState(() => _typeFilter = 'data'),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   _MiniFilterChip(
                     label: 'Airtime',
                     selected: _typeFilter == 'airtime',
                     onTap: () => setState(() => _typeFilter = 'airtime'),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   _MiniFilterChip(
-                    label: 'Bills',
-                    selected:
-                        _typeFilter == 'cable' || _typeFilter == 'electricity',
-                    onTap: () => setState(() => _typeFilter = 'cable'),
+                    label: 'Funding',
+                    selected: _typeFilter == 'wallet_fund',
+                    onTap: () => setState(() => _typeFilter = 'wallet_fund'),
                   ),
                 ],
               ),
@@ -1114,44 +1196,129 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                 return Column(
                   children: [
-                    GlassCard(
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark 
+                            ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                            : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(32),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : const Color(0xFFE2E8F0),
+                          width: 1.5,
+                        ),
+                      ),
                       child: Column(
                         children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
-                                child: _MetricCard(
-                                  label: 'Transactions',
-                                  value: '${filtered.length}',
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'ACTIVITY INSIGHTS',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.5,
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${filtered.length} Transactions',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _MetricCard(
-                                  label: 'Success',
-                                  value: '$successCount',
-                                  color: const Color(0xFF16A34A),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF16A34A)),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '$successCount Success',
+                                      style: const TextStyle(
+                                        color: Color(0xFF16A34A),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Divider(height: 1, thickness: 1, color: Color(0x10000000)),
+                          ),
                           Row(
                             children: [
                               Expanded(
-                                child: _MetricCard(
-                                  label: 'Credit',
-                                  value: '+₦${creditTotal.toStringAsFixed(2)}',
-                                  color: const Color(0xFF16A34A),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'TOTAL INFLOW',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '+₦${creditTotal.toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        color: Color(0xFF16A34A),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              Container(width: 1, height: 30, color: const Color(0x10000000)),
+                              const SizedBox(width: 20),
                               Expanded(
-                                child: _MetricCard(
-                                  label: 'Debit',
-                                  value: '-₦${debitTotal.toStringAsFixed(2)}',
-                                  color: Theme.of(context).colorScheme.error,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'TOTAL OUTFLOW',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '-₦${debitTotal.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.error,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -1193,25 +1360,42 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           context,
                         ).pushNamedAndRemoveUntil('/app', (route) => false),
                       )
-                    else
-                      ...filtered.map(
-                        (tx) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _HistoryTxCard(
-                            icon: _iconFor(tx),
-                            title: _titleFor(tx),
-                            subtitle: _subtitleFor(tx),
-                            date: _formatDate(tx),
-                            amount: _amountLabel(tx),
-                            status: _statusOf(tx),
-                            amountColor: _isCredit(tx)
-                                ? const Color(0xFF16A34A)
-                                : Theme.of(context).colorScheme.error,
-                            statusColor: _statusColor(context, _statusOf(tx)),
-                            onTap: () => _openTxDetails(tx),
-                          ),
-                        ),
-                      ),
+                    else ...[
+                      ..._groupTransactions(filtered).entries.map<Widget>((group) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(4, 12, 0, 12),
+                              child: Text(
+                                group.key.toUpperCase(),
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: muted.withValues(alpha: 0.8),
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ),
+                            ...group.value.map<Widget>((tx) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _HistoryTxCard(
+                                icon: _iconFor(tx),
+                                title: _titleFor(tx),
+                                subtitle: _subtitleFor(tx),
+                                date: DateFormat('HH:mm').format(_createdAt(tx)?.toLocal() ?? DateTime.now()),
+                                amount: _amountLabel(tx),
+                                status: _statusOf(tx),
+                                amountColor: _isCredit(tx)
+                                    ? const Color(0xFF16A34A)
+                                    : Theme.of(context).colorScheme.error,
+                                statusColor: _statusColor(context, _statusOf(tx)),
+                                onTap: () => _openTxDetails(tx),
+                              ),
+                            )),
+                          ],
+                        );
+                      }),
+                    ],
                   ],
                 );
               },
@@ -1243,37 +1427,38 @@ class _HeaderActionBtn extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
           child: Ink(
-            width: 44,
-            height: 44,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.22),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
               ),
             ),
-            child: Icon(icon),
+            child: Icon(icon, size: 22),
           ),
         ),
         if (badgeCount > 0)
           Positioned(
-            right: -4,
-            top: -4,
+            right: -2,
+            top: -2,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(999),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
               ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
               child: Text(
                 '$badgeCount',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w900,
                 ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
@@ -1296,84 +1481,38 @@ class _MiniFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: selected
-              ? (Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1E293B)
-                  : const Color(0xFFF1F5F9))
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(999),
+          color: selected 
+            ? color 
+            : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected
-                ? color
-                : (Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF334155)
-                    : const Color(0xFFE2E8F0)),
+            color: selected ? color : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           ),
+          boxShadow: selected ? [
+            BoxShadow(
+              color: color.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ] : null,
         ),
         child: Text(
           label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: selected
-                ? color
-                : Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.72),
-            fontWeight: FontWeight.w700,
+          style: TextStyle(
+            color: selected ? Colors.white : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.16)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.62),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1386,53 +1525,70 @@ class _HistoryEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.62);
-    return GlassCard(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 4),
-        child: Column(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                Icons.receipt_long_rounded,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'No transactions yet',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Your successful purchases will appear here once you start using services.',
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: muted),
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: 180,
-              child: FilledButton(
-                onPressed: onBrowseServices,
-                child: const Text('Browse services'),
-              ),
-            ),
-          ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 30),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155).withValues(alpha: 0.3) : const Color(0xFFE2E8F0),
         ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+              size: 40,
+            ),
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            'No transactions yet',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Explore our services to see your transactions and activity logs right here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: muted,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 40),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: FilledButton(
+              onPressed: onBrowseServices,
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              ),
+              child: const Text(
+                'Explore Services',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1444,98 +1600,17 @@ class _HistoryLoadingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: List.generate(
-        4,
-        (index) => const Padding(
-          padding: EdgeInsets.only(bottom: 10),
-          child: GlassCard(
-            child: Padding(
-              padding: EdgeInsets.all(14),
-              child: _HistorySkeletonRow(),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HistorySkeletonRow extends StatelessWidget {
-  const _HistorySkeletonRow();
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final base = isDark ? const Color(0xFF1A2433) : const Color(0xFFEAF0F7);
-    final shimmer = isDark ? const Color(0xFF243244) : const Color(0xFFF4F7FB);
-    return Row(
-      children: [
-        Container(
-          width: 42,
-          height: 42,
+      children: List.generate(5, (index) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Container(
+          height: 84,
+          width: double.infinity,
           decoration: BoxDecoration(
-            color: base,
-            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(22),
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                height: 12,
-                width: 128,
-                decoration: BoxDecoration(
-                  color: base,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                height: 10,
-                width: 160,
-                decoration: BoxDecoration(
-                  color: shimmer,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                height: 10,
-                width: 92,
-                decoration: BoxDecoration(
-                  color: shimmer,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              height: 12,
-              width: 70,
-              decoration: BoxDecoration(
-                color: base,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              height: 20,
-              width: 54,
-              decoration: BoxDecoration(
-                color: base.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-          ],
-        ),
-      ],
+      )),
     );
   }
 }
@@ -1557,91 +1632,52 @@ class _HistoryNoticeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.62);
-    return GlassCard(
+    return Container(
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(14),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+            child: Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: muted),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
           ),
           const SizedBox(height: 12),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 24),
           SizedBox(
-            width: 132,
-            child: FilledButton(onPressed: onAction, child: Text(actionLabel)),
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onAction,
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: Text(actionLabel, style: const TextStyle(fontWeight: FontWeight.w800)),
+            ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterChipBtn extends StatelessWidget {
-  const _FilterChipBtn({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected
-              ? color.withValues(alpha: 0.12)
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected
-                ? color.withValues(alpha: 0.18)
-                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.10),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected
-                ? color
-                : Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.70),
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-          ),
-        ),
       ),
     );
   }
@@ -1672,209 +1708,110 @@ class _HistoryTxCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 380;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: GlassCard(
-        padding: const EdgeInsets.all(14),
-        child: compact
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Container(
+                width: 6,
+                color: statusColor,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                  child: Row(
                     children: [
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
+                          color: statusColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(icon, color: statusColor, size: 20),
+                        child: Icon(icon, color: statusColor, size: 24),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.1,
-                                  ),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 15,
+                                letterSpacing: -0.2,
+                              ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 4),
                             Text(
                               subtitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.62),
-                                  ),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Text(
-                        date,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.54),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        amount,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            amount,
+                            style: TextStyle(
                               color: amountColor,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                              letterSpacing: -0.1,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.08),
-                        border: Border.all(
-                          color: statusColor.withValues(alpha: 0.14),
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        status.toUpperCase(),
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: statusColor, size: 20),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.1,
-                              ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.62),
-                              ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          date,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.54),
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        amount,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: amountColor,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w900,
                               fontSize: 17,
-                              letterSpacing: -0.1,
+                              letterSpacing: -0.3,
                             ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.08),
-                          border: Border.all(
-                            color: statusColor.withValues(alpha: 0.14),
                           ),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          status.toUpperCase(),
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
+                          const SizedBox(height: 4),
+                          Text(
+                            date,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.35),
-                  ),
-                ],
+                ),
               ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1897,10 +1834,10 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
         ),
@@ -1913,24 +1850,26 @@ class _DetailRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.60),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 SelectableText(
                   value,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: valueColor,
-                    fontWeight: FontWeight.w700,
+                  style: TextStyle(
+                    color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
-          if (trailing case final Widget item) item,
+          if (trailing != null) trailing!,
         ],
       ),
     );
@@ -1952,20 +1891,16 @@ class _ReceiptDetailLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.60);
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: muted),
+              style: TextStyle(color: muted, fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ),
           const SizedBox(width: 12),
@@ -1973,10 +1908,10 @@ class _ReceiptDetailLine extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
                 color: valueColor ?? Theme.of(context).colorScheme.onSurface,
-                fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
-                letterSpacing: strong ? -0.05 : 0,
+                fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+                fontSize: 13,
               ),
             ),
           ),
@@ -1984,4 +1919,47 @@ class _ReceiptDetailLine extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _activeFilterChip(BuildContext context, String label, VoidCallback onRemove) {
+  return Container(
+    margin: const EdgeInsets.only(right: 8),
+    padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+      ),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(width: 6),
+        InkWell(
+          onTap: onRemove,
+          child: Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.close_rounded,
+              size: 14,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
