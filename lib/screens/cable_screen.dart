@@ -18,6 +18,7 @@ import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart
 import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
 import 'package:permission_handler/permission_handler.dart';
 import '../widgets/elite_phone_input.dart';
+import '../services/permission_service.dart';
 
 class CableScreen extends StatefulWidget {
   const CableScreen({super.key});
@@ -135,6 +136,9 @@ class _CableScreenState extends State<CableScreen> {
 
   Future<void> _pickContact() async {
     try {
+      final granted = await PermissionService.requestContactPermission(context);
+      if (!granted) return;
+
       final native_contact.Contact? contact = await _contactPicker.selectContact();
       if (contact != null && contact.phoneNumbers != null && contact.phoneNumbers!.isNotEmpty) {
         String phone = contact.phoneNumbers!.first.replaceAll(RegExp(r'\D'), '');
