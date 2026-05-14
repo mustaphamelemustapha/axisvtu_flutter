@@ -68,9 +68,9 @@ class SessionController extends ChangeNotifier {
       if (e.statusCode == 401 || e.statusCode == 403) {
         throw e; // Definitive auth failure
       }
-      return null; // Probable network issue or server error
-    } catch (_) {
-      return null;
+      rethrow; // Propagate network/server errors
+    } catch (e) {
+      rethrow;
     }
   }
 
@@ -94,10 +94,11 @@ class SessionController extends ChangeNotifier {
         }
       }
     } catch (e) {
-      // Storage error or definitive 401
+      // Definitive 401/403
       if (e is ApiException && (e.statusCode == 401 || e.statusCode == 403)) {
         await logout();
       }
+      // We ignore network errors during bootstrap to allow the app to open offline
     } finally {
       _bootstrapped = true;
       notifyListeners();
@@ -241,38 +242,57 @@ class SessionController extends ChangeNotifier {
         return false;
       }
 
-      // 1. Immediately promote token to active state to avoid "Sign in with password" false-positive
-      _token = bioToken;
-      
-      // 2. Attempt to fetch profile to verify token & hydrate UI
-      final user = await _fetchMe(bioToken);
-      if (user != null) {
-        _user = user;
-        await _secureStorage.write(key: _tokenKey, value: _token!);
-        notifyListeners();
-        return true;
+      try {
+        // 1. Attempt to fetch profile to verify token & hydrate UI
+        final user = await _fetchMe(bioToken);
+        if (user != null) {
+          _token = bioToken;
+          _user = user;
+          await _secureStorage.write(key: _tokenKey, value: _token!);
+          _setError(null);
+          notifyListeners();
+          return true;
+        }
+      } on ApiException catch (e) {
+        if (e.statusCode == 401 || e.statusCode == 403) {
+          // Genuine session expiration
+          debugPrint('[Session] Biometric token is expired.');
+          _token = null;
+          await disableBiometrics();
+          return false;
+        }
+        // Network error (408, 503, etc.) - return true IF we can fallback to cached state
+        if (_user != null) {
+          debugPrint('[Session] Network error, using cached user.');
+          _token = bioToken;
+          _setError(null);
+          notifyListeners();
+          return true;
+        }
+        
+        // No cached user and network failed - we can't sign in right now, but DON'T disable biometrics
+        _token = null;
+        _setError(_friendlyError(e));
+        return false;
       }
 
-      // 3. If user is null, it might be a network error. 
-      // In a "world-class" app, we check if we HAVE a cached user profile.
+      // 2. Fallback for successful but null-user response
       if (_user != null) {
-        // We already have a profile in memory (or it might have been loaded during bootstrap)
-        // We trust the bioToken for now.
+        _token = bioToken;
         notifyListeners();
         return true;
       }
 
-      // If we get here, it means we have no profile AND the token check failed.
-      // This is a genuine session expiration.
-      debugPrint('[Session] Biometric token is likely expired.');
       _token = null;
-      await disableBiometrics();
       return false;
     } catch (e) {
-      debugPrint('[Session] loginWithBiometrics error: $e');
+      debugPrint('[Session] loginWithBiometrics unexpected error: $e');
+      _token = null;
+      _setError(_friendlyError(e));
       return false;
     }
   }
+
 
   void updateUser(Map<String, dynamic> user) {
     _user = user;

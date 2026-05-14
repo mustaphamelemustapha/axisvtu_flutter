@@ -104,11 +104,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     } else {
       setState(() {
         _biometricLoading = false;
-        _localError =
+        _localError = session.error ??
             'Please sign in once with your password to enable biometric quick sign-in.';
       });
     }
   }
+
 
   String? _initialEmail(String identifier) {
     final trimmed = identifier.trim();
