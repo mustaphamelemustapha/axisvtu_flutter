@@ -1176,19 +1176,37 @@ class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    widget.amountCtrl.text.isEmpty ? '0' : widget.amountCtrl.text,
-                    style: const TextStyle(
-                      fontSize: 64,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -2,
+                  IntrinsicWidth(
+                    child: TextField(
+                      controller: widget.amountCtrl,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      autofocus: false,
+                      style: const TextStyle(
+                        fontSize: 64,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -2,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white24 : Colors.black12,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(6),
+                      ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               Text(
-                'Enter amount or tap a preset below',
+                'Enter amount manually or tap presets below',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
