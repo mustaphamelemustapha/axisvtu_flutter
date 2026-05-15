@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
 import '../services/config_service.dart';
+import '../services/push_notification_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class SessionController extends ChangeNotifier {
@@ -144,6 +145,9 @@ class SessionController extends ChangeNotifier {
     } finally {
       _bootstrapped = true;
       notifyListeners();
+      
+      // Attempt to initialize Push Notifications (will do nothing until uncommented)
+      PushNotificationService.initialize(this);
     }
   }
 
@@ -176,6 +180,10 @@ class SessionController extends ChangeNotifier {
       }
       _setError(null);
       notifyListeners();
+      
+      // Sync token upon fresh login
+      PushNotificationService.initialize(this);
+      
       return true;
     } catch (e) {
       _setError(_friendlyError(e));

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "999107689415",
+    "project_id": "axisvtu",
+    "storage_bucket": "axisvtu.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:999107689415:android:8ef1dfdd15c8ceda4a37e2",
+        "android_client_info": {
+          "package_name": "com.axisvtu.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCujfi6sGR5xFxQcYvExa8A0cVMHNTVxcs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
