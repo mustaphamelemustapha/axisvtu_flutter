@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../widgets/glass_card.dart';
 
 class PermissionService {
   /// Requests contact permission with a premium "Explain Why" dialog if needed.

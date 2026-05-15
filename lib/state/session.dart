@@ -66,7 +66,7 @@ class SessionController extends ChangeNotifier {
       return _asMap(data['user']) ?? data;
     } on ApiException catch (e) {
       if (e.statusCode == 401 || e.statusCode == 403) {
-        throw e; // Definitive auth failure
+        rethrow; // Definitive auth failure
       }
       rethrow; // Propagate network/server errors
     } catch (e) {
