@@ -14,6 +14,7 @@ import 'screens/shell_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/force_update_screen.dart';
 
 class AxisVTUApp extends StatelessWidget {
   const AxisVTUApp({super.key});
@@ -128,6 +129,13 @@ class _AppEntryGateState extends State<AppEntryGate> {
     final session = context.watch<SessionController>();
     if (!session.isBootstrapped || !_splashDone || !_onboardingLoaded) {
       return const SplashScreen();
+    }
+
+    if (session.updateRequired) {
+      return ForceUpdateScreen(
+        playStoreUrl: session.playStoreUrl,
+        appStoreUrl: session.appStoreUrl,
+      );
     }
 
     if (session.isAuthenticated) {

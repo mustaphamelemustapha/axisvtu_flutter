@@ -5,6 +5,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
+import '../services/config_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SessionController extends ChangeNotifier {
   SessionController();
@@ -23,12 +25,19 @@ class SessionController extends ChangeNotifier {
   bool _loading = false;
   String? _error;
   bool _bootstrapped = false;
+  
+  bool _updateRequired = false;
+  String _playStoreUrl = '';
+  String _appStoreUrl = '';
 
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
   bool get isLoading => _loading;
   String? get error => _error;
   bool get isBootstrapped => _bootstrapped;
+  bool get updateRequired => _updateRequired;
+  String get playStoreUrl => _playStoreUrl;
+  String get appStoreUrl => _appStoreUrl;
   bool get isAuthenticated => _token != null && _token!.isNotEmpty;
   bool get isAdmin {
     final role = (_user?['role'] ?? '').toString().toLowerCase();
@@ -74,10 +83,43 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  bool _isVersionOutdated(String current, String minimum) {
+    try {
+      final v1 = current.split('.').map(int.parse).toList();
+      final v2 = minimum.split('.').map(int.parse).toList();
+      for (var i = 0; i < v1.length && i < v2.length; i++) {
+        if (v1[i] < v2[i]) return true;
+        if (v1[i] > v2[i]) return false;
+      }
+      return v1.length < v2.length;
+    } catch (e) {
+      return false; // If parsing fails, don't force update to be safe
+    }
+  }
+
   Future<void> bootstrap() async {
-    if (_bootstrapped && isAuthenticated) return;
+    if (_bootstrapped && isAuthenticated && !_updateRequired) return;
     
     try {
+      // 1. Fetch config and check app version FIRST
+      try {
+        final config = await ConfigService.fetchAppConfig();
+        _playStoreUrl = config['play_store_url'] ?? '';
+        _appStoreUrl = config['app_store_url'] ?? '';
+        
+        final minVersionStr = config['min_app_version'] as String?;
+        if (minVersionStr != null && minVersionStr.isNotEmpty) {
+          final packageInfo = await PackageInfo.fromPlatform();
+          final currentVersion = packageInfo.version;
+          _updateRequired = _isVersionOutdated(currentVersion, minVersionStr);
+        }
+      } catch (e) {
+        debugPrint('[Session] Failed to fetch app config: $e');
+      }
+
+      // If update is required, we don't necessarily stop bootstrap, but we do set the flag.
+      // We can continue bootstrapping auth so they stay logged in underneath.
+      
       try {
         _token = await _secureStorage.read(key: _tokenKey);
       } catch (e) {

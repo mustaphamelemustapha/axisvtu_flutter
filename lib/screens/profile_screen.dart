@@ -1031,7 +1031,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 20),
                       PrimaryButton(
                         label: busy ? 'Deleting...' : 'Permanently Delete My Account',
-                        color: Colors.redAccent,
+                        backgroundColor: Colors.redAccent,
                         icon: Icons.warning_amber_rounded,
                         onPressed: (_deleteConfirmCtrl.text.trim().toUpperCase() != 'DELETE' || busy)
                             ? null
