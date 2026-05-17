@@ -839,7 +839,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 if (cleanName.isEmpty) {
                   cleanName = rawName;
                 }
-                final accountName = 'AxisVTU / $cleanName';
+                final accountName = 'MMTECHGLOBE / $cleanName';
 
                 if (accountNumber.isEmpty) {
                   return _WalletAccountUnavailable(
