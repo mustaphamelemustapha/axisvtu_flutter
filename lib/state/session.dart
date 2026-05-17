@@ -275,8 +275,10 @@ class SessionController extends ChangeNotifier {
   Future<void> logout() async {
     try {
       await _secureStorage.delete(key: _tokenKey);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_securityPrefKey);
     } catch (e) {
-      debugPrint('[Session] Secure storage delete failed: $e');
+      debugPrint('[Session] Secure storage/SharedPreferences delete failed: $e');
     }
     _token = null;
     _user = null;
