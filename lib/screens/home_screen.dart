@@ -742,20 +742,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               final bank = (first['bank_name'] ?? 'Bank').toString().toUpperCase();
                               final number = first['account_number'] ?? '';
                               
-                              // Format account holder name nicely as AxisVTU / [Name]
+                              // Format account holder name nicely
                               String rawName = (first['account_name'] ?? name).toString().trim();
-                              String cleanName = rawName.toUpperCase();
-                              if (cleanName.startsWith('MMTECHGLOBE/')) {
-                                cleanName = cleanName.substring('MMTECHGLOBE/'.length);
-                              } else if (cleanName.startsWith('MMTECHGLOBE')) {
-                                cleanName = cleanName.substring('MMTECHGLOBE'.length);
+                              final prefixPattern = RegExp(
+                                r'^(?:MMTECHGLOBE|AXISVTU)(?:\s*[-\/:]\s*|\s+)?',
+                                caseSensitive: false,
+                              );
+                              String cleanName = rawName.replaceFirst(prefixPattern, '').trim();
+                              if (cleanName.isEmpty) {
+                                cleanName = rawName;
                               }
-                              if (cleanName.startsWith('AXISVTU/')) {
-                                cleanName = cleanName.substring('AXISVTU/'.length);
-                              } else if (cleanName.startsWith('AXISVTU')) {
-                                cleanName = cleanName.substring('AXISVTU'.length);
-                              }
-                              final accountName = 'AxisVTU / ${cleanName.trim()}';
+                              final accountName = 'MMTECHGLOBE / $cleanName';
 
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
