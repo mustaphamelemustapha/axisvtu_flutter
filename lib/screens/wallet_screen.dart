@@ -796,7 +796,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     'isPlaceholder': true,
                     'bank_name': 'Sterling Bank',
                     'account_number': 'PENDING',
-                    'account_name': 'AxisVTU / ${name.toUpperCase()}',
+                    'account_name': 'MMTECHGLOBE / ${name.toUpperCase()}',
                   });
                 }
 
