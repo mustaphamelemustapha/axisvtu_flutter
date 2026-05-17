@@ -58,6 +58,7 @@ class _WalletScreenState extends State<WalletScreen> {
   String _activeToken = '';
   String _activeDashboardKey = '';
   Timer? _pollTimer;
+  int _activeAccountIndex = 0;
 
   @override
   void initState() {
@@ -795,8 +796,9 @@ class _WalletScreenState extends State<WalletScreen> {
                   );
                 }
 
-                final account = accounts.first is Map
-                    ? Map<String, dynamic>.from(accounts.first as Map)
+                final activeIndex = _activeAccountIndex.clamp(0, accounts.length - 1);
+                final account = accounts[activeIndex] is Map
+                    ? Map<String, dynamic>.from(accounts[activeIndex] as Map)
                     : <String, dynamic>{};
                 final bankName = (account['bank_name'] ?? 'Paystack-Titan')
                     .toString()
@@ -885,6 +887,35 @@ class _WalletScreenState extends State<WalletScreen> {
                         accountName: accountName.isEmpty ? name : accountName,
                       ),
                     ),
+                    if (accounts.length > 1) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left_rounded),
+                            iconSize: 22,
+                            onPressed: activeIndex > 0
+                                ? () => setState(() => _activeAccountIndex--)
+                                : null,
+                          ),
+                          Text(
+                            '${activeIndex + 1} of ${accounts.length}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.2,
+                                ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right_rounded),
+                            iconSize: 22,
+                            onPressed: activeIndex < accounts.length - 1
+                                ? () => setState(() => _activeAccountIndex++)
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 );
               },
