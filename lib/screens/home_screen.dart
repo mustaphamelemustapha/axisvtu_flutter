@@ -722,13 +722,41 @@ class _HomeScreenState extends State<HomeScreen> {
                             initialData: _cachedAccountsData,
                             builder: (context, snapshot) {
                               final data = snapshot.data;
-                              final accounts = (data?['accounts'] as List?) ?? [];
-                              if (accounts.isEmpty) return const SizedBox.shrink();
+                              final rawAccounts = (data?['accounts'] as List?) ?? [];
+                              if (rawAccounts.isEmpty) return const SizedBox.shrink();
                               
-                              final first = accounts.first as Map;
+                              final accounts = List<Map<String, dynamic>>.from(
+                                rawAccounts.map((item) => Map<String, dynamic>.from(item as Map))
+                              );
+
+                              // Sort: prioritize Moniepoint first
+                              accounts.sort((a, b) {
+                                final aName = (a['bank_name'] ?? '').toString().toLowerCase();
+                                final bName = (b['bank_name'] ?? '').toString().toLowerCase();
+                                if (aName.contains('moniepoint') && !bName.contains('moniepoint')) return -1;
+                                if (!aName.contains('moniepoint') && bName.contains('moniepoint')) return 1;
+                                return 0;
+                              });
+
+                              final first = accounts.first;
                               final bank = (first['bank_name'] ?? 'Bank').toString().toUpperCase();
                               final number = first['account_number'] ?? '';
                               
+                              // Format account holder name nicely as AxisVTU / [Name]
+                              String rawName = (first['account_name'] ?? name).toString().trim();
+                              String cleanName = rawName.toUpperCase();
+                              if (cleanName.startsWith('MMTECHGLOBE/')) {
+                                cleanName = cleanName.substring('MMTECHGLOBE/'.length);
+                              } else if (cleanName.startsWith('MMTECHGLOBE')) {
+                                cleanName = cleanName.substring('MMTECHGLOBE'.length);
+                              }
+                              if (cleanName.startsWith('AXISVTU/')) {
+                                cleanName = cleanName.substring('AXISVTU/'.length);
+                              } else if (cleanName.startsWith('AXISVTU')) {
+                                cleanName = cleanName.substring('AXISVTU'.length);
+                              }
+                              final accountName = 'AxisVTU / ${cleanName.trim()}';
+
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                 decoration: BoxDecoration(
@@ -759,7 +787,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         FittedBox(
                                           fit: BoxFit.scaleDown,
                                           child: Text(
-                                            name.toUpperCase(),
+                                            accountName,
                                             style: TextStyle(
                                               color: Colors.blue.withAlpha(230),
                                               fontSize: 13,

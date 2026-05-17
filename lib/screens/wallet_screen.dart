@@ -562,7 +562,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       ),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  ).colorScheme.outline.withValues(alpha: 0.18),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.18),
                 ),
                 boxShadow: AxisShadows.premiumGlow,
               ),
@@ -776,7 +776,30 @@ class _WalletScreenState extends State<WalletScreen> {
                   return const _WalletAccountSkeleton();
                 }
 
-                final accounts = (accountsData['accounts'] as List?) ?? const [];
+                final rawAccounts = (accountsData['accounts'] as List?) ?? const [];
+                final accounts = List<Map<String, dynamic>>.from(
+                  rawAccounts.map((item) => Map<String, dynamic>.from(item as Map))
+                );
+
+                // Sort: prioritize Moniepoint first
+                accounts.sort((a, b) {
+                  final aName = (a['bank_name'] ?? '').toString().toLowerCase();
+                  final bName = (b['bank_name'] ?? '').toString().toLowerCase();
+                  if (aName.contains('moniepoint') && !bName.contains('moniepoint')) return -1;
+                  if (!aName.contains('moniepoint') && bName.contains('moniepoint')) return 1;
+                  return 0;
+                });
+
+                // If only 1 account, add a placeholder
+                if (accounts.length == 1) {
+                  accounts.add({
+                    'isPlaceholder': true,
+                    'bank_name': 'Sterling Bank',
+                    'account_number': 'PENDING',
+                    'account_name': 'AxisVTU / ${name.toUpperCase()}',
+                  });
+                }
+
                 final requiresKyc = accountsData['requires_kyc'] == true;
                 if (accounts.isEmpty) {
                   return _WalletAccountUnavailable(
@@ -787,7 +810,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     onAction: requiresKyc
                         ? () {
                             if (widget.onNavigateTab != null) {
-                              widget.onNavigateTab!(3);
+                                widget.onNavigateTab!(3);
                             } else {
                               _openScreen(const ProfileScreen());
                             }
@@ -797,18 +820,30 @@ class _WalletScreenState extends State<WalletScreen> {
                 }
 
                 final activeIndex = _activeAccountIndex.clamp(0, accounts.length - 1);
-                final account = accounts[activeIndex] is Map
-                    ? Map<String, dynamic>.from(accounts[activeIndex] as Map)
-                    : <String, dynamic>{};
+                final account = accounts[activeIndex];
+                final isPlaceholder = account['isPlaceholder'] == true;
                 final bankName = (account['bank_name'] ?? 'Paystack-Titan')
                     .toString()
                     .trim();
                 final accountNumber = (account['account_number'] ?? '')
                     .toString()
                     .trim();
-                final accountName = (account['account_name'] ?? name)
-                    .toString()
-                    .trim();
+
+                // Format accountHolderName nicely
+                String rawName = (account['account_name'] ?? name).toString().trim();
+                String cleanName = rawName.toUpperCase();
+                if (cleanName.startsWith('MMTECHGLOBE/')) {
+                  cleanName = cleanName.substring('MMTECHGLOBE/'.length);
+                } else if (cleanName.startsWith('MMTECHGLOBE')) {
+                  cleanName = cleanName.substring('MMTECHGLOBE'.length);
+                }
+                if (cleanName.startsWith('AXISVTU/')) {
+                  cleanName = cleanName.substring('AXISVTU/'.length);
+                } else if (cleanName.startsWith('AXISVTU')) {
+                  cleanName = cleanName.substring('AXISVTU'.length);
+                }
+                final accountName = 'AxisVTU / ${cleanName.trim()}';
+
                 if (accountNumber.isEmpty) {
                   return _WalletAccountUnavailable(
                     message: 'Wallet details will appear shortly.',
@@ -828,10 +863,12 @@ class _WalletScreenState extends State<WalletScreen> {
                             icon: Icons.copy_rounded,
                             label: 'Copy Account',
                             accent: const Color(0xFF3B82F6),
-                            onTap: () => _copyText(
-                              accountNumber,
-                              'Account number',
-                            ),
+                            onTap: isPlaceholder
+                                ? null
+                                : () => _copyText(
+                                    accountNumber,
+                                    'Account number',
+                                  ),
                           ),
                           _WalletActionPill(
                             icon: Icons.wifi_rounded,
@@ -879,13 +916,17 @@ class _WalletScreenState extends State<WalletScreen> {
                       bankName: bankName.isEmpty ? 'Paystack-Titan' : bankName,
                       accountNumber: accountNumber,
                       accountName: accountName.isEmpty ? name : accountName,
-                      onCopyAccount: () =>
-                          _copyText(accountNumber, 'Account number'),
-                      onShareAccount: () => _shareAccountDetails(
-                        bankName: bankName.isEmpty ? 'Paystack-Titan' : bankName,
-                        accountNumber: accountNumber,
-                        accountName: accountName.isEmpty ? name : accountName,
-                      ),
+                      isPlaceholder: isPlaceholder,
+                      onCopyAccount: isPlaceholder
+                          ? () {}
+                          : () => _copyText(accountNumber, 'Account number'),
+                      onShareAccount: isPlaceholder
+                          ? null
+                          : () => _shareAccountDetails(
+                                bankName: bankName.isEmpty ? 'Paystack-Titan' : bankName,
+                                accountNumber: accountNumber,
+                                accountName: accountName.isEmpty ? name : accountName,
+                              ),
                     ),
                     if (accounts.length > 1) ...[
                       const SizedBox(height: 8),
@@ -1569,6 +1610,7 @@ class _BankCard extends StatelessWidget {
     required this.accountName,
     required this.onCopyAccount,
     this.onShareAccount,
+    this.isPlaceholder = false,
   });
 
   final String bankName;
@@ -1576,6 +1618,7 @@ class _BankCard extends StatelessWidget {
   final String accountName;
   final VoidCallback onCopyAccount;
   final VoidCallback? onShareAccount;
+  final bool isPlaceholder;
 
   @override
   Widget build(BuildContext context) {
@@ -1634,109 +1677,177 @@ class _BankCard extends StatelessWidget {
                       ),
                 ),
               ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isPlaceholder
+                      ? const Color(0xFFFEF3C7)
+                      : const Color(0xFFD1FAE5),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  isPlaceholder ? 'PENDING' : 'ACTIVE',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: isPlaceholder
+                        ? const Color(0xFFD97706)
+                        : const Color(0xFF059669),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
             ],
           ),
           SizedBox(height: compact ? 10 : 16),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onCopyAccount,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        displayNumber.isEmpty ? '—' : displayNumber,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              color: isDark ? Colors.white : Colors.black87,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: compact ? 2.8 : 4.4,
-                              fontFeatures: const [FontFeature.tabularFigures()],
-                              height: 1.1,
-                              fontSize: compact ? 28 : null,
-                            ),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: compact ? 6 : 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: isDark ? 0.14 : 0.10),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: isDark ? 0.12 : 0.08),
-                    ),
-                  ),
-                  child: IconButton(
-                    onPressed: onCopyAccount,
-                    icon: const Icon(Icons.copy_rounded, size: 17),
-                    tooltip: 'Copy account number',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.all(compact ? 8 : 10),
-                    constraints: BoxConstraints.tightFor(
-                      width: compact ? 34 : 40,
-                      height: compact ? 34 : 40,
-                    ),
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: compact ? 6 : 12),
-          Text(
-            accountName,
-            textAlign: TextAlign.center,
-            maxLines: compact ? 1 : 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: isDark ? Colors.white : Colors.black87,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.05,
-                ),
-          ),
-          if (onShareAccount != null) ...[
-            SizedBox(height: compact ? 6 : 8),
+          if (isPlaceholder) ...[
             Center(
-              child: TextButton.icon(
-                onPressed: onShareAccount,
-                icon: const Icon(Icons.share_rounded, size: 16),
-                label: Text(compact ? 'Share' : 'Share details'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 12 : 14,
-                    vertical: compact ? 6 : 8,
+              child: Text(
+                'PENDING',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: isDark ? Colors.white.withValues(alpha: 0.35) : Colors.black26,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 6.0,
+                      height: 1.1,
+                      fontSize: compact ? 26 : 30,
+                    ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              accountName,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.05,
                   ),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Text(
+                'Activation in progress. Your second virtual account will appear here automatically.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                  height: 1.45,
                 ),
               ),
             ),
-          ],
-          SizedBox(height: compact ? 6 : 10),
-          Text(
-            'Transfer to this account to fund your wallet.',
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.58),
-                  height: 1.25,
+          ] else ...[
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onCopyAccount,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          displayNumber.isEmpty ? '—' : displayNumber,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: isDark ? Colors.white : Colors.black87,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: compact ? 2.8 : 4.4,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                                height: 1.1,
+                                fontSize: compact ? 28 : null,
+                              ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: compact ? 6 : 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: isDark ? 0.14 : 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: isDark ? 0.12 : 0.08),
+                      ),
+                    ),
+                    child: IconButton(
+                      onPressed: onCopyAccount,
+                      icon: const Icon(Icons.copy_rounded, size: 17),
+                      tooltip: 'Copy account number',
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.all(compact ? 8 : 10),
+                      constraints: BoxConstraints.tightFor(
+                        width: compact ? 34 : 40,
+                        height: compact ? 34 : 40,
+                      ),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: compact ? 6 : 12),
+            Text(
+              accountName,
+              textAlign: TextAlign.center,
+              maxLines: compact ? 1 : 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: isDark ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.05,
+                  ),
+            ),
+            if (onShareAccount != null) ...[
+              SizedBox(height: compact ? 6 : 8),
+              Center(
+                child: TextButton.icon(
+                  onPressed: onShareAccount,
+                  icon: const Icon(Icons.share_rounded, size: 16),
+                  label: Text(compact ? 'Share' : 'Share details'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: compact ? 12 : 14,
+                      vertical: compact ? 6 : 8,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
-          ),
+              ),
+            ],
+            SizedBox(height: compact ? 6 : 10),
+            Text(
+              'Transfer to this account to fund your wallet.',
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.58),
+                    height: 1.25,
+                  ),
+            ),
+          ],
         ],
       ),
     );
