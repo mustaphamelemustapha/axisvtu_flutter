@@ -831,18 +831,15 @@ class _WalletScreenState extends State<WalletScreen> {
 
                 // Format accountHolderName nicely
                 String rawName = (account['account_name'] ?? name).toString().trim();
-                String cleanName = rawName.toUpperCase();
-                if (cleanName.startsWith('MMTECHGLOBE/')) {
-                  cleanName = cleanName.substring('MMTECHGLOBE/'.length);
-                } else if (cleanName.startsWith('MMTECHGLOBE')) {
-                  cleanName = cleanName.substring('MMTECHGLOBE'.length);
+                final prefixPattern = RegExp(
+                  r'^(?:MMTECHGLOBE|AXISVTU)(?:\s*[-\/:]\s*|\s+)?',
+                  caseSensitive: false,
+                );
+                String cleanName = rawName.replaceFirst(prefixPattern, '').trim();
+                if (cleanName.isEmpty) {
+                  cleanName = rawName;
                 }
-                if (cleanName.startsWith('AXISVTU/')) {
-                  cleanName = cleanName.substring('AXISVTU/'.length);
-                } else if (cleanName.startsWith('AXISVTU')) {
-                  cleanName = cleanName.substring('AXISVTU'.length);
-                }
-                final accountName = 'AxisVTU / ${cleanName.trim()}';
+                final accountName = 'AxisVTU / $cleanName';
 
                 if (accountNumber.isEmpty) {
                   return _WalletAccountUnavailable(
