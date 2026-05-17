@@ -260,6 +260,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           : 'Sign In Securely',
                       loading: session.isLoading || _loading,
                       icon: Icons.lock_outline_rounded,
+                      isPremium: true,
                       onPressed: (session.isLoading || _loading) ? null : _login,
                     ),
                     if (_biometricAvailable) ...[
@@ -508,7 +509,7 @@ class _AuthInputState extends State<_AuthInput> {
           prefixIconConstraints: const BoxConstraints(minWidth: 40),
           suffixIcon: widget.suffix,
           filled: true,
-          fillColor: isDark ? const Color(0xFF111827) : Colors.white,
+          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide(

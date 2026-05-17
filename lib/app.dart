@@ -15,6 +15,8 @@ import 'screens/onboarding_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/force_update_screen.dart';
+import 'screens/security_preference_screen.dart';
+import 'screens/app_lock_screen.dart';
 
 class AxisVTUApp extends StatelessWidget {
   const AxisVTUApp({super.key});
@@ -47,8 +49,9 @@ class AxisVTUApp extends StatelessWidget {
             routes: {
               '/splash': (_) => const SplashScreen(),
               WelcomeScreen.route: (_) => const WelcomeScreen(),
-              RegisterScreen.route: (_) => const RegisterScreen(),
+               RegisterScreen.route: (_) => const RegisterScreen(),
               ShellScreen.route: (_) => const ShellScreen(),
+              SecurityPreferenceScreen.route: (_) => const SecurityPreferenceScreen(),
             },
             home: const AppEntryGate(),
           );
@@ -65,7 +68,7 @@ class AppEntryGate extends StatefulWidget {
   State<AppEntryGate> createState() => _AppEntryGateState();
 }
 
-class _AppEntryGateState extends State<AppEntryGate> {
+class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver {
   bool _splashDone = false;
   bool _onboardingDone = false;
   bool _onboardingLoaded = false;
@@ -79,10 +82,19 @@ class _AppEntryGateState extends State<AppEntryGate> {
       setState(() => _splashDone = true);
     });
     _loadInitialState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      context.read<SessionController>().lock();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _splashTimer?.cancel();
     super.dispose();
   }
@@ -139,6 +151,12 @@ class _AppEntryGateState extends State<AppEntryGate> {
     }
 
     if (session.isAuthenticated) {
+      if (session.isLocked) {
+        return const AppLockScreen();
+      }
+      if (!session.hasSecurityPreference) {
+        return const SecurityPreferenceScreen();
+      }
       return const ShellScreen();
     }
 

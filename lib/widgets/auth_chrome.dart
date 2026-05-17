@@ -87,29 +87,37 @@ class AuthHeroBlock extends StatelessWidget {
                 width: compact ? logoSize * 0.8 : logoSize,
                 height: compact ? logoSize * 0.8 : logoSize,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(compact ? 24 : 28),
+                  borderRadius: BorderRadius.circular(compact ? 24 : 32),
                   border: Border.all(
                     color: isDark
-                        ? const Color(0x3D60A5FA)
-                        : const Color(0x1F2563EB),
-                    width: 1.5,
+                        ? const Color(0xFF4F46E5).withValues(alpha: 0.35)
+                        : const Color(0xFF2563EB).withValues(alpha: 0.15),
+                    width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.1,),
-                      blurRadius: compact ? 16 : 22,
-                      offset: Offset(0, compact ? 8 : 12),
+                      color: (isDark ? const Color(0xFF4F46E5) : Colors.black)
+                          .withValues(alpha: isDark ? 0.3 : 0.1),
+                      blurRadius: compact ? 24 : 32,
+                      offset: Offset(0, compact ? 10 : 16),
                     ),
                   ],
                 ),
                 child: Center(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(compact ? 22 : 26),
-                    child: Image.asset(
-                      'assets/brand/axisvtu-icon.png',
-                      width: compact ? logoSize * 0.8 : logoSize,
-                      height: compact ? logoSize * 0.8 : logoSize,
-                      fit: BoxFit.cover,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(compact ? 22 : 30),
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(compact ? 20 : 28),
+                      child: Image.asset(
+                        'assets/brand/axisvtu-icon.png',
+                        width: compact ? logoSize * 0.8 : logoSize,
+                        height: compact ? logoSize * 0.8 : logoSize,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),

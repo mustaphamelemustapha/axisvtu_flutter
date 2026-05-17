@@ -15,6 +15,7 @@ class SessionController extends ChangeNotifier {
   static const String lastIdentifierKey = 'axisvtu_last_identifier';
   static const String _tokenKey = 'axisvtu_secure_token_v1';
   static const String _biometricTokenKey = 'axisvtu_biometric_token_v1';
+  static const String _securityPrefKey = 'axisvtu_security_preference_v1';
   
   static const _secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -43,6 +44,25 @@ class SessionController extends ChangeNotifier {
   bool get isAdmin {
     final role = (_user?['role'] ?? '').toString().toLowerCase();
     return role == 'admin' || role == 'superadmin';
+  }
+
+  String? _securityPreference;
+  String? get securityPreference => _securityPreference;
+  bool get hasSecurityPreference => _securityPreference != null;
+
+  bool _isLocked = false;
+  bool get isLocked => _isLocked;
+
+  void lock() {
+    if (_securityPreference == 'max') {
+      _isLocked = true;
+      notifyListeners();
+    }
+  }
+
+  void unlock() {
+    _isLocked = false;
+    notifyListeners();
   }
 
   Map<String, dynamic>? _asMap(dynamic value) {
@@ -131,11 +151,12 @@ class SessionController extends ChangeNotifier {
         final fetched = await _fetchMe(_token!);
         if (fetched != null) {
           _user = fetched;
-        } else {
-          // If fetched is null, it means there was a non-auth error (e.g. network).
-          // We KEEP the token so biometric can still work or user can retry.
         }
       }
+
+      // 3. Load Security Preference
+      final prefs = await SharedPreferences.getInstance();
+      _securityPreference = prefs.getString(_securityPrefKey);
     } catch (e) {
       // Definitive 401/403
       if (e is ApiException && (e.statusCode == 401 || e.statusCode == 403)) {
@@ -259,6 +280,15 @@ class SessionController extends ChangeNotifier {
     }
     _token = null;
     _user = null;
+    _securityPreference = null;
+    _isLocked = false;
+    notifyListeners();
+  }
+
+  Future<void> setSecurityPreference(String pref) async {
+    _securityPreference = pref;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_securityPrefKey, pref);
     notifyListeners();
   }
 

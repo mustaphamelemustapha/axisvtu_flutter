@@ -13,6 +13,7 @@ class PrimaryButton extends StatefulWidget {
     this.backgroundColor,
     this.foregroundColor,
     this.compact = false,
+    this.isPremium = false,
   });
 
   final String label;
@@ -22,6 +23,7 @@ class PrimaryButton extends StatefulWidget {
   final Color? backgroundColor;
   final Color? foregroundColor;
   final bool compact;
+  final bool isPremium;
 
   @override
   State<PrimaryButton> createState() => _PrimaryButtonState();
@@ -57,21 +59,31 @@ class _PrimaryButtonState extends State<PrimaryButton> {
           child: Container(
             decoration: BoxDecoration(
               gradient: _enabled
-                  ? LinearGradient(
-                      colors: [
-                        primary,
-                        primary.withValues(alpha: 0.82),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
+                  ? (widget.isPremium
+                      ? const LinearGradient(
+                          colors: [
+                            Color(0xFF4F46E5),
+                            Color(0xFFF97316),
+                          ],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        )
+                      : LinearGradient(
+                          colors: [
+                            primary,
+                            primary.withValues(alpha: 0.82),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ))
                   : null,
               color: _enabled ? null : theme.disabledColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AxisRadii.lg),
               boxShadow: [
                 if (_enabled)
                   BoxShadow(
-                    color: primary.withValues(alpha: isDark ? 0.28 : 0.2),
+                    color: (widget.isPremium ? const Color(0xFFF97316) : primary)
+                        .withValues(alpha: isDark ? 0.28 : 0.2),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   ),

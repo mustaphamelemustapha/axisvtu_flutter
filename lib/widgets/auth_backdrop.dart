@@ -25,7 +25,7 @@ class AuthBackdrop extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0A0F1D) : const Color(0xFFF8FAFF),
+        color: isDark ? const Color(0xFF070B14) : const Color(0xFFF8FAFF),
       ),
       child: Stack(
         children: [
@@ -36,10 +36,10 @@ class AuthBackdrop extends StatelessWidget {
             child: _Orb(
               width: 320,
               height: 320,
-              blur: 80,
+              blur: 100,
               colors: [
-                const Color(0xFF2457F5).withValues(alpha: isDark ? 0.15 : 0.08),
-                const Color(0xFF14B8A6).withValues(alpha: 0.0),
+                const Color(0xFF4F46E5).withValues(alpha: isDark ? 0.22 : 0.1),
+                const Color(0xFFF97316).withValues(alpha: 0.0),
               ],
             ),
           ),
@@ -50,10 +50,10 @@ class AuthBackdrop extends StatelessWidget {
             child: _Orb(
               width: 360,
               height: 360,
-              blur: 100,
+              blur: 120,
               colors: [
-                const Color(0xFF14B8A6).withValues(alpha: isDark ? 0.12 : 0.06),
-                const Color(0xFF2457F5).withValues(alpha: 0.0),
+                const Color(0xFFF97316).withValues(alpha: isDark ? 0.15 : 0.08),
+                const Color(0xFF4F46E5).withValues(alpha: 0.0),
               ],
             ),
           ),
