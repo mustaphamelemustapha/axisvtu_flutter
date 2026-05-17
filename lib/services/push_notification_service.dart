@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'api_client.dart';
+import '../config.dart';
 import '../state/session.dart';
 
 class PushNotificationService {
@@ -61,7 +62,7 @@ class PushNotificationService {
 
   static Future<void> syncTokenWithBackend(String fcmToken, String authToken) async {
     try {
-      final url = Uri.parse('${ApiClient.baseUrl}/api/v1/auth/fcm-token');
+      final url = Uri.parse('${AppConfig.baseUrl}/auth/fcm-token');
       final response = await http.post(
         url,
         headers: {

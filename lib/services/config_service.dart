@@ -1,17 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config.dart';
 import 'api_client.dart';
 
 class ConfigService {
   static Future<Map<String, dynamic>> fetchAppConfig() async {
     try {
-      final url = Uri.parse('${ApiClient.baseUrl}/api/v1/auth/app-config');
+      final url = Uri.parse('${AppConfig.baseUrl}/auth/app-config');
       final response = await http.get(url).timeout(const Duration(seconds: 10));
       
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
-        throw ApiException('Failed to load app config', response.statusCode);
+        throw ApiException(response.statusCode, 'Failed to load app config');
       }
     } catch (e) {
       // Return a safe default to not break the app entirely if network is down
