@@ -790,32 +790,9 @@ class _WalletScreenState extends State<WalletScreen> {
                   return 0;
                 });
 
-                // If only 1 account, add a placeholder
-                if (accounts.length == 1) {
-                  accounts.add({
-                    'isPlaceholder': true,
-                    'bank_name': 'Sterling Bank',
-                    'account_number': 'PENDING',
-                    'account_name': 'MMTECHGLOBE / ${name.toUpperCase()}',
-                  });
-                }
-
-                final requiresKyc = accountsData['requires_kyc'] == true;
                 if (accounts.isEmpty) {
-                  return _WalletAccountUnavailable(
-                    message: requiresKyc
-                        ? 'Finish verification to unlock your dedicated account.'
-                        : 'Wallet details will appear shortly.',
-                    actionLabel: requiresKyc ? 'View Profile' : 'Try again',
-                    onAction: requiresKyc
-                        ? () {
-                            if (widget.onNavigateTab != null) {
-                                widget.onNavigateTab!(3);
-                            } else {
-                              _openScreen(const ProfileScreen());
-                            }
-                          }
-                        : () => _refresh(),
+                  return _WalletAccountActivationCard(
+                    onActivated: () => _refresh(),
                   );
                 }
 
@@ -1912,6 +1889,302 @@ class _WalletAccountSkeleton extends StatelessWidget {
             decoration: BoxDecoration(
               color: fill,
               borderRadius: BorderRadius.circular(22),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WalletAccountActivationCard extends StatefulWidget {
+  final VoidCallback onActivated;
+
+  const _WalletAccountActivationCard({required this.onActivated});
+
+  @override
+  State<_WalletAccountActivationCard> createState() => _WalletAccountActivationCardState();
+}
+
+class _WalletAccountActivationCardState extends State<_WalletAccountActivationCard> {
+  String _option = 'bvn'; // 'bvn' or 'nin'
+  final _inputCtrl = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _inputCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final value = _inputCtrl.text.replaceAll(RegExp(r'\D'), '').trim();
+    if (value.length != 11) {
+      setState(() {
+        _error = 'Enter a valid 11-digit ${_option.toUpperCase()}.';
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final session = context.read<SessionController>();
+      final token = session.token;
+      if (token == null || token.isEmpty) {
+        throw Exception('User is not authenticated.');
+      }
+
+      final walletService = WalletService(token: token);
+      await walletService.createBankAccounts(
+        bvn: _option == 'bvn' ? value : null,
+        nin: _option == 'nin' ? value : null,
+      );
+
+      // Successfully generated
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dedicated funding accounts generated successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      widget.onActivated();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString().replaceAll('Exception:', '').trim();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return GlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Activate Dedicated Funding Accounts',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Generate Wema, Sterling, or Moniepoint virtual accounts linked to your wallet.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          
+          // Segmented Tab Selector
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: _loading
+                        ? null
+                        : () {
+                            setState(() {
+                              _option = 'bvn';
+                              _inputCtrl.clear();
+                              _error = null;
+                            });
+                          },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _option == 'bvn'
+                            ? theme.colorScheme.surface
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: _option == 'bvn'
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'BVN Option',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: _option == 'bvn'
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: _option == 'bvn'
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: _loading
+                        ? null
+                        : () {
+                            setState(() {
+                              _option = 'nin';
+                              _inputCtrl.clear();
+                              _error = null;
+                            });
+                          },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _option == 'nin'
+                            ? theme.colorScheme.surface
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: _option == 'nin'
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'NIN Option',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: _option == 'nin'
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: _option == 'nin'
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Number input field
+          TextField(
+            controller: _inputCtrl,
+            keyboardType: TextInputType.number,
+            maxLength: 11,
+            enabled: !_loading,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              hintText: _option == 'bvn'
+                  ? 'Enter 11-digit BVN'
+                  : 'Enter 11-digit NIN',
+              labelText: _option == 'bvn' ? 'BVN' : 'NIN',
+              counterText: '',
+              prefixIcon: Icon(
+                _option == 'bvn'
+                    ? Icons.security_rounded
+                    : Icons.badge_rounded,
+                size: 20,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+            ),
+          ),
+          
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.error.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Text(
+                _error!,
+                style: TextStyle(
+                  color: theme.colorScheme.error,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+          
+          const SizedBox(height: 16),
+          
+          // Submit Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _loading ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                disabledBackgroundColor: theme.colorScheme.primary.withValues(alpha: 0.6),
+                disabledForegroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              child: _loading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Activate Now',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
             ),
           ),
         ],
