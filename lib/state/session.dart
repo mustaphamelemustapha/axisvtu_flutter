@@ -15,6 +15,8 @@ class SessionController extends ChangeNotifier {
   static const String lastIdentifierKey = 'axisvtu_last_identifier';
   static const String _tokenKey = 'axisvtu_secure_token_v1';
   static const String _biometricTokenKey = 'axisvtu_biometric_token_v1';
+  static const String _biometricUserKey = 'axisvtu_biometric_user';
+  static const String _biometricPasswordKey = 'axisvtu_biometric_password';
   static const String _securityPrefKey = 'axisvtu_security_preference_v1';
   
   static const _secureStorage = FlutterSecureStorage(
@@ -24,6 +26,7 @@ class SessionController extends ChangeNotifier {
 
   String? _token;
   Map<String, dynamic>? _user;
+  String? _lastPassword;
   bool _loading = false;
   String? _error;
   bool _bootstrapped = false;
@@ -190,6 +193,7 @@ class SessionController extends ChangeNotifier {
       if (_token == null || _token!.isEmpty) {
         throw Exception('Login failed. Missing token.');
       }
+      _lastPassword = password;
       if (!_hasMeaningfulProfile(_user)) {
         final fresh = await _fetchMe(_token!);
         if (fresh != null) _user = fresh;
@@ -256,6 +260,7 @@ class SessionController extends ChangeNotifier {
           'Registration completed, but automatic sign-in failed. Please login now.',
         );
       }
+      _lastPassword = password;
       if (!_hasMeaningfulProfile(_user)) {
         final fresh = await _fetchMe(_token!);
         if (fresh != null) _user = fresh;
@@ -308,9 +313,17 @@ class SessionController extends ChangeNotifier {
     if (_token == null || _token!.isEmpty) return;
     try {
       await _secureStorage.write(key: _biometricTokenKey, value: _token!);
-      debugPrint('[Session] Biometric token saved.');
+      final prefs = await SharedPreferences.getInstance();
+      final identifier = prefs.getString(lastIdentifierKey) ?? '';
+      if (identifier.isNotEmpty) {
+        await _secureStorage.write(key: _biometricUserKey, value: identifier);
+      }
+      if (_lastPassword != null && _lastPassword!.isNotEmpty) {
+        await _secureStorage.write(key: _biometricPasswordKey, value: _lastPassword!);
+      }
+      debugPrint('[Session] Biometric token and credentials saved.');
     } catch (e) {
-      debugPrint('[Session] Failed to save biometric token: $e');
+      debugPrint('[Session] Failed to save biometric token/credentials: $e');
     }
   }
 
@@ -318,13 +331,15 @@ class SessionController extends ChangeNotifier {
   Future<void> disableBiometrics() async {
     try {
       await _secureStorage.delete(key: _biometricTokenKey);
-      debugPrint('[Session] Biometric token deleted.');
+      await _secureStorage.delete(key: _biometricUserKey);
+      await _secureStorage.delete(key: _biometricPasswordKey);
+      debugPrint('[Session] Biometric credentials deleted.');
     } catch (e) {
-      debugPrint('[Session] Failed to delete biometric token: $e');
+      debugPrint('[Session] Failed to delete biometric credentials: $e');
     }
   }
 
-  /// Attempts to restore the session using the saved biometric token.
+  /// Attempts to restore the session using the saved biometric token or credentials.
   Future<bool> loginWithBiometrics() async {
     try {
       final bioToken = await _secureStorage.read(key: _biometricTokenKey);
@@ -333,8 +348,8 @@ class SessionController extends ChangeNotifier {
         return false;
       }
 
+      // Try the session token first
       try {
-        // 1. Attempt to fetch profile to verify token & hydrate UI
         final user = await _fetchMe(bioToken);
         if (user != null) {
           _token = bioToken;
@@ -344,42 +359,60 @@ class SessionController extends ChangeNotifier {
           notifyListeners();
           return true;
         }
-      } on ApiException catch (e) {
-        if (e.statusCode == 401 || e.statusCode == 403) {
-          // Genuine session expiration
-          debugPrint('[Session] Biometric token is expired.');
-          _token = null;
-          await disableBiometrics();
-          return false;
-        }
-        // Network error (408, 503, etc.) - return true IF we can fallback to cached state
-        if (_user != null) {
-          debugPrint('[Session] Network error, using cached user.');
-          _token = bioToken;
-          _setError(null);
-          notifyListeners();
+      } catch (e) {
+        debugPrint('[Session] Biometric token fetch failed: $e. Trying stored credentials.');
+      }
+
+      // If token failed/expired, try to perform a full re-login using securely stored credentials!
+      final savedUser = await _secureStorage.read(key: _biometricUserKey);
+      final savedPass = await _secureStorage.read(key: _biometricPasswordKey);
+
+      if (savedUser != null && savedUser.isNotEmpty && savedPass != null && savedPass.isNotEmpty) {
+        debugPrint('[Session] Re-authenticating with saved biometric credentials.');
+        final loginSuccess = await _loginSilent(savedUser, savedPass);
+        if (loginSuccess) {
           return true;
         }
-        
-        // No cached user and network failed - we can't sign in right now, but DON'T disable biometrics
-        _token = null;
-        _setError(_friendlyError(e));
-        return false;
       }
 
-      // 2. Fallback for successful but null-user response
-      if (_user != null) {
-        _token = bioToken;
-        notifyListeners();
-        return true;
-      }
-
+      // If both token and credentials fail, do NOT disable biometrics or delete the keys!
+      // This is the core fix so the toggle stays enabled in settings and user can try again or use password!
+      debugPrint('[Session] Biometric login failed. Kept credentials intact.');
       _token = null;
       return false;
     } catch (e) {
       debugPrint('[Session] loginWithBiometrics unexpected error: $e');
       _token = null;
-      _setError(_friendlyError(e));
+      return false;
+    }
+  }
+
+  Future<bool> _loginSilent(String identifier, String password) async {
+    try {
+      final data = await AuthService().login(email: identifier, password: password);
+      final newToken = _extractToken(data);
+      final newUser = _extractUser(data);
+
+      if (newToken != null && newToken.isNotEmpty) {
+        _token = newToken;
+        _user = newUser;
+        _lastPassword = password;
+        
+        // Save new token
+        await _secureStorage.write(key: _tokenKey, value: _token!);
+        await _secureStorage.write(key: _biometricTokenKey, value: _token!);
+        
+        if (!_hasMeaningfulProfile(_user)) {
+          final fresh = await _fetchMe(_token!);
+          if (fresh != null) _user = fresh;
+        }
+        _setError(null);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[Session] Biometric silent login failed: $e');
       return false;
     }
   }
