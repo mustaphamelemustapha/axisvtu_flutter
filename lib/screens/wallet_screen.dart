@@ -131,11 +131,30 @@ class _WalletScreenState extends State<WalletScreen> {
     _walletFuture!.then((data) {
       if (!mounted || dashboardKey != _activeDashboardKey) return;
       unawaited(DashboardSnapshotCache.save(dashboardKey, wallet: data));
-    }).catchError((_) {});
+    }).catchError((e) {
+      if (mounted) _handleAuthError(e);
+    });
     _accountsFuture!.then((data) {
       if (!mounted || dashboardKey != _activeDashboardKey) return;
       unawaited(DashboardSnapshotCache.save(dashboardKey, accounts: data));
-    }).catchError((_) {});
+    }).catchError((e) {
+      if (mounted) _handleAuthError(e);
+    });
+  }
+
+  void _handleAuthError(Object error) {
+    if (error is ApiException && (error.statusCode == 401 || error.statusCode == 403)) {
+      final session = context.read<SessionController>();
+      if (session.isAuthenticated) {
+        session.logout();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your session has expired. Please sign in again.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   void _startAutoRefresh(String token) {
@@ -160,11 +179,17 @@ class _WalletScreenState extends State<WalletScreen> {
         ) ??
         token;
     setState(() => _reloadWallet(token, dashboardKey));
-    await Future.wait([
-      _walletFuture!,
-      _accountsFuture!,
-      _transactionsFuture ?? Future.value(const <Map<String, dynamic>>[]),
-    ]);
+    try {
+      await Future.wait([
+        _walletFuture!,
+        _accountsFuture!,
+        _transactionsFuture ?? Future.value(const <Map<String, dynamic>>[]),
+      ]);
+    } catch (e) {
+      if (mounted) {
+        _handleAuthError(e);
+      }
+    }
   }
 
   Future<void> _openScreen(Widget screen) async {
@@ -483,8 +508,9 @@ class _WalletScreenState extends State<WalletScreen> {
     final muted = Theme.of(
       context,
     ).colorScheme.onSurface.withValues(alpha: 0.64);
+    final canPop = Navigator.of(context).canPop();
 
-    return SafeArea(
+    Widget body = SafeArea(
       child: RefreshIndicator(
         onRefresh: _refresh,
         displacement: 18,
@@ -493,59 +519,61 @@ class _WalletScreenState extends State<WalletScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(
             compact ? 16 : 20,
-            14,
+            canPop ? 6 : 14,
             compact ? 16 : 20,
             28,
           ),
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    gradient: AxisPalette.gradient,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: AxisShadows.premiumGlow,
+            if (!canPop) ...[
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: AxisPalette.gradient,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: AxisShadows.premiumGlow,
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet_rounded,
+                      color: Colors.white,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.account_balance_wallet_rounded,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(width: compact ? 10 : 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Wallet',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
+                  SizedBox(width: compact ? 10 : 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Wallet',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Dedicated accounts, live balance, instant credit',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: muted),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          'Dedicated accounts, live balance, instant credit',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: muted),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                SizedBox(width: compact ? 4 : 8),
-                GlassCard(
-                  padding: const EdgeInsets.all(4),
-                  child: IconButton(
-                    onPressed: _refresh,
-                    tooltip: 'Refresh wallet',
-                    icon: const Icon(Icons.refresh_rounded),
+                  SizedBox(width: compact ? 4 : 8),
+                  GlassCard(
+                    padding: const EdgeInsets.all(4),
+                    child: IconButton(
+                      onPressed: _refresh,
+                      tooltip: 'Refresh wallet',
+                      icon: const Icon(Icons.refresh_rounded),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: compact ? 14 : 18),
+                ],
+              ),
+              SizedBox(height: compact ? 14 : 18),
+            ],
             Container(
               padding: EdgeInsets.all(compact ? 14 : 18),
               decoration: BoxDecoration(
@@ -826,66 +854,11 @@ class _WalletScreenState extends State<WalletScreen> {
                   );
                 }
 
+                final hasMonie = accounts.any((acc) => (acc['bank_name'] ?? '').toString().toLowerCase().contains('moniepoint'));
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final narrow = constraints.maxWidth < 380;
-                        final actions = [
-                          _WalletActionPill(
-                            icon: Icons.copy_rounded,
-                            label: 'Copy Account',
-                            accent: const Color(0xFF3B82F6),
-                            onTap: isPlaceholder
-                                ? null
-                                : () => _copyText(
-                                    accountNumber,
-                                    'Account number',
-                                  ),
-                          ),
-                          _WalletActionPill(
-                            icon: Icons.wifi_rounded,
-                            label: 'Buy Data',
-                            accent: const Color(0xFF3B82F6),
-                            onTap: () => _openScreen(const DataScreen()),
-                          ),
-                          _WalletActionPill(
-                            icon: Icons.phone_iphone_rounded,
-                            label: 'Airtime',
-                            accent: const Color(0xFF10B981),
-                            onTap: () => _openScreen(const AirtimeScreen()),
-                          ),
-                          _WalletActionPill(
-                            icon: Icons.flash_on_rounded,
-                            label: 'Bills',
-                            accent: const Color(0xFFF59E0B),
-                            onTap: () => _openScreen(const ElectricityScreen()),
-                          ),
-                        ];
-                        if (narrow) {
-                          return Column(
-                            children: [
-                              for (var i = 0; i < actions.length; i++) ...[
-                                if (i > 0) const SizedBox(height: 8),
-                                actions[i],
-                              ],
-                            ],
-                          );
-                        }
-                        return Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            SizedBox(width: (constraints.maxWidth - 10) / 2, child: actions[0]),
-                            SizedBox(width: (constraints.maxWidth - 10) / 2, child: actions[1]),
-                            SizedBox(width: (constraints.maxWidth - 10) / 2, child: actions[2]),
-                            SizedBox(width: (constraints.maxWidth - 10) / 2, child: actions[3]),
-                          ],
-                        );
-                      },
-                    ),
-                    SizedBox(height: compact ? 10 : 12),
                     _BankCard(
                       bankName: bankName.isEmpty ? 'Paystack-Titan' : bankName,
                       accountNumber: accountNumber,
@@ -931,134 +904,17 @@ class _WalletScreenState extends State<WalletScreen> {
                         ],
                       ),
                     ],
+                    if (!hasMonie) ...[
+                      const SizedBox(height: 16),
+                      _WalletAccountActivationCard(
+                        onActivated: () => _refresh(),
+                      ),
+                    ],
                   ],
                 );
               },
             ),
-            SizedBox(height: compact ? 14 : 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Wallet insights',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.1,
-                        ),
-                  ),
-                ),
-                Text(
-                  'Live overview',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: muted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-              ],
-            ),
-            SizedBox(height: compact ? 8 : 10),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: _transactionsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const _WalletInsightsSkeleton();
-                }
-                final rows = _sortRecentTransactions(snapshot.data ?? const []);
-                final totalSpentToday = _spentLabel(rows, days: 1);
-                final totalSpentWeek = _spentLabel(rows, days: 7);
-                final transactionCount = rows.length.toString();
-                final mostUsed = _mostUsedService(rows);
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-                    final useList = width < 430;
-                    if (useList) {
-                      return Column(
-                        children: [
-                          _InsightCard(
-                            label: 'Spent today',
-                            value: totalSpentToday,
-                            subtitle: 'Across purchases',
-                            icon: Icons.today_rounded,
-                            accent: const Color(0xFF3B82F6),
-                          ),
-                          SizedBox(height: compact ? 8 : 10),
-                          _InsightCard(
-                            label: 'Spent this week',
-                            value: totalSpentWeek,
-                            subtitle: 'Rolling 7 days',
-                            icon: Icons.date_range_rounded,
-                            accent: const Color(0xFF10B981),
-                          ),
-                          SizedBox(height: compact ? 8 : 10),
-                          _InsightCard(
-                            label: 'Transactions',
-                            value: transactionCount,
-                            subtitle: 'Recorded here',
-                            icon: Icons.receipt_long_rounded,
-                            accent: const Color(0xFFF59E0B),
-                          ),
-                          SizedBox(height: compact ? 8 : 10),
-                          _InsightCard(
-                            label: 'Most used',
-                            value: mostUsed,
-                            subtitle: 'Top service',
-                            icon: Icons.auto_graph_rounded,
-                            accent: const Color(0xFF8B5CF6),
-                          ),
-                        ],
-                      );
-                    }
-                    final extent = _walletInsightExtentForWidth(width);
-                    final columns = _walletInsightColumnsForWidth(width);
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: 4,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: columns,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        mainAxisExtent: extent,
-                      ),
-                      itemBuilder: (context, index) {
-                        return switch (index) {
-                          0 => _InsightCard(
-                              label: 'Spent today',
-                              value: totalSpentToday,
-                              subtitle: 'Across purchases',
-                              icon: Icons.today_rounded,
-                              accent: const Color(0xFF3B82F6),
-                            ),
-                          1 => _InsightCard(
-                              label: 'Spent this week',
-                              value: totalSpentWeek,
-                              subtitle: 'Rolling 7 days',
-                              icon: Icons.date_range_rounded,
-                              accent: const Color(0xFF10B981),
-                            ),
-                          2 => _InsightCard(
-                              label: 'Transactions',
-                              value: transactionCount,
-                              subtitle: 'Recorded here',
-                              icon: Icons.receipt_long_rounded,
-                              accent: const Color(0xFFF59E0B),
-                            ),
-                          _ => _InsightCard(
-                              label: 'Most used',
-                              value: mostUsed,
-                              subtitle: 'Top service',
-                              icon: Icons.auto_graph_rounded,
-                              accent: const Color(0xFF8B5CF6),
-                            ),
-                        };
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -1145,6 +1001,25 @@ class _WalletScreenState extends State<WalletScreen> {
         ),
       ),
     );
+
+    if (canPop) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('My Wallet'),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              onPressed: _refresh,
+              tooltip: 'Refresh wallet',
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: body,
+      );
+    }
+    return body;
   }
 }
 
@@ -1999,7 +1874,7 @@ class _WalletAccountActivationCardState extends State<_WalletAccountActivationCa
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              color: (theme.brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0)).withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -2318,7 +2193,7 @@ class _DashboardBalanceError extends StatelessWidget {
   }
 }
 
-class _AnimatedBalance extends StatefulWidget {
+class _AnimatedBalance extends StatelessWidget {
   const _AnimatedBalance({
     super.key,
     required this.value,
@@ -2329,30 +2204,10 @@ class _AnimatedBalance extends StatefulWidget {
   final TextStyle? style;
 
   @override
-  State<_AnimatedBalance> createState() => _AnimatedBalanceState();
-}
-
-class _AnimatedBalanceState extends State<_AnimatedBalance> {
-  double _previous = 0;
-
-  @override
-  void didUpdateWidget(covariant _AnimatedBalance oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _previous = oldWidget.value;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: _previous, end: widget.value),
-      duration: AxisDurations.slow,
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Text('₦${value.toStringAsFixed(2)}', style: widget.style);
-      },
-    );
+    final formatter = NumberFormat("#,##0.00", "en_US");
+    final formatted = formatter.format(value);
+    return Text('₦$formatted', style: style);
   }
 }
 

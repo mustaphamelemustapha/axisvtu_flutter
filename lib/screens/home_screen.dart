@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/api_client.dart';
 import '../services/dashboard_snapshot_cache.dart';
 import '../services/notifications_service.dart';
 import '../services/transactions_service.dart';
@@ -27,6 +28,7 @@ import 'exam_screen.dart';
 import 'referral_screen.dart';
 import '../services/purchase_auth_service.dart';
 import '../services/transaction_pin_service.dart';
+import 'wallet_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onNavigateTab});
@@ -47,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _cachedWalletData;
   Map<String, dynamic>? _cachedAccountsData;
   List<dynamic>? _cachedTransactionsData;
+  int _activeAccountIndex = 0;
   String _activeToken = '';
   String _activeDashboardKey = '';
   bool _hideBalance = false;
@@ -171,11 +174,15 @@ class _HomeScreenState extends State<HomeScreen> {
         _cachedWalletData = _asMap(data);
       });
       unawaited(DashboardSnapshotCache.save(dashboardKey, wallet: data));
-    }).catchError((_) {});
+    }).catchError((e) {
+      if (mounted) _handleAuthError(e);
+    });
     _accountsFuture!.then((data) {
       if (!mounted || dashboardKey != _activeDashboardKey) return;
       unawaited(DashboardSnapshotCache.save(dashboardKey, accounts: data));
-    }).catchError((_) {});
+    }).catchError((e) {
+      if (mounted) _handleAuthError(e);
+    });
     _transactionsFuture!.then((data) {
       if (!mounted || dashboardKey != _activeDashboardKey) return;
       final normalized = data
@@ -191,14 +198,31 @@ class _HomeScreenState extends State<HomeScreen> {
           transactions: normalized,
         ),
       );
-    }).catchError((_) {});
+    }).catchError((e) {
+      if (mounted) _handleAuthError(e);
+    });
+  }
+
+  void _handleAuthError(Object error) {
+    if (error is ApiException && (error.statusCode == 401 || error.statusCode == 403)) {
+      final session = context.read<SessionController>();
+      if (session.isAuthenticated) {
+        session.logout();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your session has expired. Please sign in again.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) {
       return value.map(
-        (key, item) => MapEntry(key.toString(), item),
+          (key, item) => MapEntry(key.toString(), item),
       );
     }
     return null;
@@ -215,12 +239,18 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _reloadDashboard(token, dashboardKey);
     });
-    await Future.wait([
-      _walletFuture!,
-      _accountsFuture!,
-      _transactionsFuture ?? Future.value(<dynamic>[]),
-      _notificationsFuture ?? Future.value(<Map<String, dynamic>>[]),
-    ]);
+    try {
+      await Future.wait([
+        _walletFuture!,
+        _accountsFuture!,
+        _transactionsFuture ?? Future.value(<dynamic>[]),
+        _notificationsFuture ?? Future.value(<Map<String, dynamic>>[]),
+      ]);
+    } catch (e) {
+      if (mounted) {
+        _handleAuthError(e);
+      }
+    }
   }
 
   Future<List<Map<String, dynamic>>> _loadNotifications(String token) async {
@@ -723,7 +753,100 @@ class _HomeScreenState extends State<HomeScreen> {
                             builder: (context, snapshot) {
                               final data = snapshot.data;
                               final rawAccounts = (data?['accounts'] as List?) ?? [];
-                              if (rawAccounts.isEmpty) return const SizedBox.shrink();
+                              
+                              if (rawAccounts.isEmpty) {
+                                return Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        const Color(0xFF0F172A),
+                                        const Color(0xFF0C1D3F).withValues(alpha: 0.8),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: Colors.blue.withValues(alpha: 0.25),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue.withValues(alpha: 0.2),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: const Icon(
+                                              Icons.auto_awesome,
+                                              size: 14,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            'ACTIVATE MONIEPOINT ROUTE',
+                                            style: TextStyle(
+                                              color: Colors.blue,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 1.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        'Get a Dedicated Moniepoint Account ⚡',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Enjoy 100% automated deposits for instant wallet funding. Link your BVN or NIN to generate Wema, Sterling, and Moniepoint accounts in seconds.',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(alpha: 0.7),
+                                          fontSize: 11,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 38,
+                                        child: FilledButton(
+                                          onPressed: () {
+                                            _openScreen(const WalletScreen());
+                                          },
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: Colors.blue.shade600,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Link BVN/NIN to Start',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
                               
                               final accounts = List<Map<String, dynamic>>.from(
                                 rawAccounts.map((item) => Map<String, dynamic>.from(item as Map))
@@ -738,12 +861,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 return 0;
                               });
 
-                              final first = accounts.first;
-                              final bank = (first['bank_name'] ?? 'Bank').toString().toUpperCase();
-                              final number = first['account_number'] ?? '';
+                              final activeIndex = _activeAccountIndex.clamp(0, accounts.length - 1);
+                              final activeAccount = accounts[activeIndex];
+                              final bank = (activeAccount['bank_name'] ?? 'Bank').toString().toUpperCase();
+                              final number = activeAccount['account_number'] ?? '';
                               
                               // Format account holder name nicely
-                              String rawName = (first['account_name'] ?? name).toString().trim();
+                              String rawName = (activeAccount['account_name'] ?? name).toString().trim();
                               final prefixPattern = RegExp(
                                 r'^(?:MMTECHGLOBE|AXISVTU)(?:\s*[-\/:]\s*|\s+)?',
                                 caseSensitive: false,
@@ -754,86 +878,307 @@ class _HomeScreenState extends State<HomeScreen> {
                               }
                               final accountName = 'MMTECHGLOBE / $cleanName';
 
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.03),
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        FittedBox(
-                                          fit: BoxFit.scaleDown,
-                                          child: Text(
-                                            bank,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: -0.2,
+                              final isMoniepoint = bank.toLowerCase().contains('moniepoint');
+                              final isWema = bank.toLowerCase().contains('wema');
+                              final isSterling = bank.toLowerCase().contains('sterling');
+
+                              final cardGradient = isMoniepoint
+                                  ? const LinearGradient(
+                                      colors: [Color(0xFF070F24), Color(0xFF0F1E4A), Color(0xFF142966)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    )
+                                  : isWema
+                                      ? const LinearGradient(
+                                          colors: [Color(0xFF1F0825), Color(0xFF3B0C46), Color(0xFF5D1268)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        )
+                                      : isSterling
+                                          ? const LinearGradient(
+                                              colors: [Color(0xFF1F090B), Color(0xFF4C0E11), Color(0xFF8B1E22)],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            )
+                                          : LinearGradient(
+                                              colors: [
+                                                Colors.white.withValues(alpha: 0.02),
+                                                Colors.white.withValues(alpha: 0.04),
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            );
+
+                              final cardBorderColor = isMoniepoint
+                                  ? Colors.blue.withValues(alpha: 0.3)
+                                  : isWema
+                                      ? Colors.purple.withValues(alpha: 0.3)
+                                      : isSterling
+                                          ? Colors.red.withValues(alpha: 0.3)
+                                          : Colors.white.withValues(alpha: 0.05);
+
+                              final badgeBg = isMoniepoint
+                                  ? Colors.blue.withValues(alpha: 0.15)
+                                  : isWema
+                                      ? Colors.purple.withValues(alpha: 0.15)
+                                      : isSterling
+                                          ? Colors.red.withValues(alpha: 0.15)
+                                          : Colors.white.withValues(alpha: 0.08);
+
+                              final badgeText = isMoniepoint
+                                  ? Colors.blue.shade300
+                                  : isWema
+                                      ? Colors.purple.shade300
+                                      : isSterling
+                                          ? Colors.red.shade300
+                                          : Colors.white.withValues(alpha: 0.5);
+
+                              final routeName = isMoniepoint
+                                  ? 'MONIEPOINT SECURE ROUTE'
+                                  : isWema
+                                      ? 'WEMA BANK AUTOMATED'
+                                      : isSterling
+                                          ? 'STERLING DEDICATED'
+                                          : 'AUTOMATED PAYMENTS';
+
+                              final hasMonie = accounts.any((acc) => (acc['bank_name'] ?? '').toString().toLowerCase().contains('moniepoint'));
+
+                              return Column(
+                                children: [
+                                  // Shuffle/Segment Selection Row
+                                  if (accounts.length > 1) ...[
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: List.generate(accounts.length, (idx) {
+                                          final acc = accounts[idx];
+                                          final isM = (acc['bank_name'] ?? '').toString().toLowerCase().contains('moniepoint');
+                                          final isSel = activeIndex == idx;
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _activeAccountIndex = idx;
+                                              });
+                                            },
+                                            child: Container(
+                                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: isSel
+                                                    ? (isM ? Colors.blue.withValues(alpha: 0.15) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15))
+                                                    : Colors.white.withValues(alpha: 0.03),
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(
+                                                  color: isSel
+                                                      ? (isM ? Colors.blue.withValues(alpha: 0.4) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.4))
+                                                      : Colors.white.withValues(alpha: 0.05),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  if (isM) ...[
+                                                    Icon(Icons.auto_awesome, size: 10, color: Colors.blue.shade300),
+                                                    const SizedBox(width: 4),
+                                                  ],
+                                                  Text(
+                                                    (acc['bank_name'] ?? 'Bank').toString(),
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w900,
+                                                      color: isSel
+                                                          ? (isM ? Colors.blue.shade300 : Theme.of(context).colorScheme.primary)
+                                                          : Colors.white.withValues(alpha: 0.5),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        FittedBox(
-                                          fit: BoxFit.scaleDown,
-                                          child: Text(
-                                            accountName,
-                                            style: TextStyle(
-                                              color: Colors.blue.withAlpha(230),
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.1,
-                                            ),
-                                          ),
+                                          );
+                                        }),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
+
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    decoration: BoxDecoration(
+                                      gradient: cardGradient,
+                                      borderRadius: BorderRadius.circular(18),
+                                      border: Border.all(
+                                        color: cardBorderColor,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.25),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 8),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    child: Column(
                                       children: [
-                                        Expanded(
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                alignment: Alignment.centerLeft,
+                                                child: Text(
+                                                  bank,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.w900,
+                                                    letterSpacing: -0.2,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: badgeBg,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                routeName,
+                                                style: TextStyle(
+                                                  color: badgeText,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Align(
+                                          alignment: Alignment.centerLeft,
                                           child: FittedBox(
                                             fit: BoxFit.scaleDown,
-                                            alignment: Alignment.centerLeft,
                                             child: Text(
-                                              number.toString(),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 22,
+                                              accountName,
+                                              style: TextStyle(
+                                                color: isMoniepoint ? Colors.blue.shade300 : (isWema ? Colors.purple.shade300 : (isSterling ? Colors.red.shade300 : Colors.blue.withAlpha(230))),
+                                                fontSize: 13,
                                                 fontWeight: FontWeight.w800,
-                                                letterSpacing: 2,
-                                                fontFeatures: [FontFeature.tabularFigures()],
+                                                letterSpacing: 0.1,
                                               ),
                                             ),
                                           ),
                                         ),
-                                        Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            onTap: () => _copyAccountNumber(number.toString()),
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(8),
-                                              child: Icon(
-                                                Icons.copy_rounded,
-                                                size: 16,
-                                                color: Colors.white.withValues(alpha: 0.4),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                alignment: Alignment.centerLeft,
+                                                child: Text(
+                                                  number.toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 22,
+                                                    fontWeight: FontWeight.w800,
+                                                    letterSpacing: 2,
+                                                    fontFeatures: [FontFeature.tabularFigures()],
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                          ),
+                                            Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                onTap: () => _copyAccountNumber(number.toString()),
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(8),
+                                                  child: Icon(
+                                                    Icons.copy_rounded,
+                                                    size: 16,
+                                                    color: Colors.white.withValues(alpha: 0.6),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
+                                  ),
+
+                                  // Breathtaking Moniepoint Upsell inside accounts list if they don't have Moniepoint yet
+                                  if (!hasMonie) ...[
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: Colors.blue.withValues(alpha: 0.15),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.auto_awesome, size: 16, color: Colors.blue),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                const Text(
+                                                  'MONIEPOINT ROUTE AVAILABLE',
+                                                  style: TextStyle(
+                                                    color: Colors.blue,
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.w900,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  'Add Moniepoint for zero-delay instant wallet deposits! Link your BVN/NIN now.',
+                                                  style: TextStyle(
+                                                    color: Colors.white.withValues(alpha: 0.7),
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              _openScreen(const WalletScreen());
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.blue.shade600,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              minimumSize: Size.zero,
+                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              'Add',
+                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
-                                ),
+                                ],
                               );
                             },
                           ),

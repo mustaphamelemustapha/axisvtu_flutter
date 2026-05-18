@@ -6,6 +6,7 @@ import 'electricity_screen.dart';
 import 'cable_screen.dart';
 import 'exam_screen.dart';
 import 'referral_screen.dart';
+import 'wallet_screen.dart';
 import '../theme/axis_tokens.dart';
 
 class ServicesScreen extends StatelessWidget {
@@ -26,6 +27,23 @@ class ServicesScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
+          _SectionHeader(
+            title: 'Account Verification',
+            subtitle: 'Link KYC to generate dedicated bank accounts',
+            isDark: isDark,
+          ),
+          _ServiceGrid(
+            items: [
+              _ServiceItem(
+                label: 'Link BVN/NIN',
+                subtitle: 'Activate Moniepoint/Wema/Sterling',
+                icon: Icons.verified_user_rounded,
+                accent: const Color(0xFF2457F5),
+                onTap: () => _openScreen(context, const WalletScreen()),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
           _SectionHeader(
             title: 'Mobile Services',
             subtitle: 'Data bundles and airtime top-up',
