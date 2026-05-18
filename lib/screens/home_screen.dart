@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _accountsFuture == null ||
             _transactionsFuture == null ||
             dashboardKey != _activeDashboardKey)) {
-      if (dashboardKey != _activeDashboardKey) {
+      if (_activeDashboardKey.isNotEmpty && dashboardKey != _activeDashboardKey) {
         _cachedWalletData = null;
         _cachedAccountsData = null;
         _cachedTransactionsData = null;
@@ -474,7 +474,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final heroSoftText = isDark
         ? Colors.white.withValues(alpha: 0.84)
         : const Color(0xFF5B6B82);
-    final balance = _extractBalance(_cachedWalletData);
+    final balance = _cachedWalletData != null
+        ? _extractBalance(_cachedWalletData)
+        : _extractBalance(user);
 
     final services = <_HomeService>[
       _HomeService(

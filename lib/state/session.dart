@@ -58,6 +58,14 @@ class SessionController extends ChangeNotifier {
   String? get securityPreference => _securityPreference;
   bool get hasSecurityPreference => _securityPreference != null;
 
+  String _getUserPrefKey(String? identifier) {
+    if (identifier == null || identifier.trim().isEmpty) {
+      return _securityPrefKey;
+    }
+    final sanitized = identifier.trim().toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+    return 'axisvtu_security_preference_v1_$sanitized';
+  }
+
   bool _isLocked = false;
   bool get isLocked => _isLocked;
 
@@ -171,7 +179,8 @@ class SessionController extends ChangeNotifier {
 
       // 3. Load Security Preference
       final prefs = await SharedPreferences.getInstance();
-      _securityPreference = prefs.getString(_securityPrefKey);
+      final identifier = prefs.getString(lastIdentifierKey);
+      _securityPreference = prefs.getString(_getUserPrefKey(identifier));
       
       final lastUserJson = prefs.getString(_lastUserJsonKey);
       if (lastUserJson != null && lastUserJson.isNotEmpty) {
@@ -239,6 +248,8 @@ class SessionController extends ChangeNotifier {
       if (trimmedIdentifier.isNotEmpty) {
         await prefs.setString(lastIdentifierKey, trimmedIdentifier);
       }
+      _securityPreference = prefs.getString(_getUserPrefKey(trimmedIdentifier));
+      _isLocked = _token != null && _token!.isNotEmpty && _securityPreference == 'max';
       if (_user != null) {
         _lastUser = _user;
         await prefs.setString(_lastUserJsonKey, jsonEncode(_user));
@@ -324,6 +335,8 @@ class SessionController extends ChangeNotifier {
       if (preferredIdentifier.isNotEmpty) {
         await prefs.setString(lastIdentifierKey, preferredIdentifier);
       }
+      _securityPreference = prefs.getString(_getUserPrefKey(preferredIdentifier));
+      _isLocked = _token != null && _token!.isNotEmpty && _securityPreference == 'max';
       if (_user != null) {
         _lastUser = _user;
         await prefs.setString(_lastUserJsonKey, jsonEncode(_user));
@@ -343,7 +356,8 @@ class SessionController extends ChangeNotifier {
     try {
       await _secureStorage.delete(key: _tokenKey);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_securityPrefKey);
+      final identifier = prefs.getString(lastIdentifierKey);
+      await prefs.remove(_getUserPrefKey(identifier));
       // Clear any stored transaction PIN for the logged‑out user
       await BiometricService.deletePin();
     } catch (e) {
@@ -372,7 +386,8 @@ class SessionController extends ChangeNotifier {
   Future<void> setSecurityPreference(String pref) async {
     _securityPreference = pref;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_securityPrefKey, pref);
+    final identifier = prefs.getString(lastIdentifierKey);
+    await prefs.setString(_getUserPrefKey(identifier), pref);
     notifyListeners();
   }
 

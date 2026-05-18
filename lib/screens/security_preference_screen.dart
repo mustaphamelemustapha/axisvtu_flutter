@@ -360,7 +360,10 @@ class _SecurityOption extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       Text(
                         title,
@@ -370,8 +373,7 @@ class _SecurityOption extends StatelessWidget {
                           color: isDark ? Colors.white : SlateColors.shade900,
                         ),
                       ),
-                      if (recommended) ...[
-                        const SizedBox(width: 8),
+                      if (recommended)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
@@ -387,7 +389,6 @@ class _SecurityOption extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 6),

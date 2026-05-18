@@ -81,7 +81,7 @@ class _WalletScreenState extends State<WalletScreen> {
             _walletFuture == null ||
             _accountsFuture == null ||
             dashboardKey != _activeDashboardKey)) {
-      if (dashboardKey != _activeDashboardKey) {
+      if (_activeDashboardKey.isNotEmpty && dashboardKey != _activeDashboardKey) {
         _cachedWalletData = null;
         _cachedAccountsData = null;
       }
@@ -678,11 +678,17 @@ class _WalletScreenState extends State<WalletScreen> {
                     builder: (context, snapshot) {
                       final isLoading =
                           snapshot.connectionState == ConnectionState.waiting;
-                      final walletData = snapshot.data ??
+                      var walletData = snapshot.data ??
                           ((isLoading || snapshot.hasError) &&
                                   _cachedWalletData != null
                               ? _cachedWalletData
                               : null);
+                      if (walletData == null) {
+                        final sessionUser = context.read<SessionController>().user;
+                        if (sessionUser != null && sessionUser['wallet'] != null) {
+                          walletData = sessionUser;
+                        }
+                      }
                       if (walletData == null) {
                         if (snapshot.hasError) {
                           return _DashboardBalanceError(onRefresh: _refresh);
