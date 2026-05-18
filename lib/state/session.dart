@@ -60,7 +60,7 @@ class SessionController extends ChangeNotifier {
   bool _isLocked = false;
   bool get isLocked => _isLocked;
 
-  void lock() {
+  Future<void> lock() async {
     if (_securityPreference == 'max') {
       // Also clear any stored transaction PIN for the logged‑out user
       await BiometricService.deletePin();
