@@ -59,7 +59,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadBalancePreference();
     Future.delayed(Duration.zero, () {
-      if (mounted) _initialSecurityCheck();
+      if (mounted) {
+        _initialSecurityCheck();
+        final session = context.read<SessionController>();
+        if (session.isAuthenticated && session.user == null) {
+          session.syncProfileIfNeeded();
+        }
+      }
     });
   }
 
@@ -824,21 +830,23 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const SizedBox(height: 12),
                                       SizedBox(
                                         width: double.infinity,
-                                        height: 38,
+                                        height: 44,
                                         child: FilledButton(
                                           onPressed: () {
                                             _openScreen(const WalletScreen());
                                           },
                                           style: FilledButton.styleFrom(
                                             backgroundColor: Colors.blue.shade600,
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
+                                              borderRadius: BorderRadius.circular(12),
                                             ),
                                           ),
                                           child: const Text(
                                             'Link BVN/NIN to Start',
                                             style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: 13,
                                               fontWeight: FontWeight.bold,
                                               color: Colors.white,
                                             ),

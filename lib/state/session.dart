@@ -186,6 +186,10 @@ class SessionController extends ChangeNotifier {
       if (lastUserJson != null && lastUserJson.isNotEmpty) {
         try {
           _lastUser = jsonDecode(lastUserJson) as Map<String, dynamic>;
+          // Establish temporary offline profile fallback to prevent empty state UI on boot
+          if (_user == null) {
+            _user = _lastUser;
+          }
         } catch (_) {}
       }
       
@@ -500,6 +504,27 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+
+  /// Securely re-fetches the user profile if it is missing or needs synchronization.
+  Future<void> syncProfileIfNeeded() async {
+    if (_token == null || _token!.isEmpty) return;
+    if (_loading) return;
+    
+    try {
+      final fresh = await _fetchMe(_token!);
+      if (fresh != null) {
+        _user = fresh;
+        _lastUser = fresh;
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_lastUserJsonKey, jsonEncode(fresh));
+        notifyListeners();
+        debugPrint('[Session] Silently synchronized missing profile data successfully.');
+      }
+    } catch (e) {
+      debugPrint('[Session] Lazy profile sync failed: $e');
+    }
+  }
 
   void updateUser(Map<String, dynamic> user) {
     _user = user;

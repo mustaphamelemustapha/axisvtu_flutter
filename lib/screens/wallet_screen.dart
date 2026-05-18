@@ -1536,11 +1536,11 @@ class _BankCard extends StatelessWidget {
                   bankName.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         color: isDark ? Colors.white : Colors.black,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -0.15,
-                        fontSize: 22,
+                        letterSpacing: -0.2,
+                        fontSize: 26,
                       ),
                 ),
               ),
