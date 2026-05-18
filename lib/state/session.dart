@@ -213,9 +213,11 @@ class SessionController extends ChangeNotifier {
       
       await _secureStorage.write(key: _tokenKey, value: _token!);
       
-      // If biometrics were previously enabled, keep the token and credentials fresh.
-      final hasBio = await _secureStorage.read(key: _biometricTokenKey) != null;
-      if (hasBio) {
+      // Always automatically save and enable biometric credentials on successful login.
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('app_biometric_lock', true);
+        
         await _secureStorage.write(key: _biometricTokenKey, value: _token!);
         final trimmedIdentifier = email.trim();
         if (trimmedIdentifier.isNotEmpty) {
@@ -224,6 +226,9 @@ class SessionController extends ChangeNotifier {
         if (_lastPassword != null && _lastPassword!.isNotEmpty) {
           await _secureStorage.write(key: _biometricPasswordKey, value: _lastPassword!);
         }
+        debugPrint('[Session] Automatically enabled biometrics for logged in user.');
+      } catch (e) {
+        debugPrint('[Session] Failed to auto-enable biometrics on login: $e');
       }
       
       final prefs = await SharedPreferences.getInstance();
@@ -291,9 +296,11 @@ class SessionController extends ChangeNotifier {
 
       await _secureStorage.write(key: _tokenKey, value: _token!);
 
-      // If biometrics were previously enabled, keep the token and credentials fresh.
-      final hasBio = await _secureStorage.read(key: _biometricTokenKey) != null;
-      if (hasBio) {
+      // Always automatically save and enable biometric credentials on successful registration.
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('app_biometric_lock', true);
+        
         await _secureStorage.write(key: _biometricTokenKey, value: _token!);
         final preferredIdentifier = normalizedEmail.isNotEmpty ? normalizedEmail : phone.trim();
         if (preferredIdentifier.isNotEmpty) {
@@ -302,6 +309,9 @@ class SessionController extends ChangeNotifier {
         if (_lastPassword != null && _lastPassword!.isNotEmpty) {
           await _secureStorage.write(key: _biometricPasswordKey, value: _lastPassword!);
         }
+        debugPrint('[Session] Automatically enabled biometrics for registered user.');
+      } catch (e) {
+        debugPrint('[Session] Failed to auto-enable biometrics on registration: $e');
       }
 
       final prefs = await SharedPreferences.getInstance();
