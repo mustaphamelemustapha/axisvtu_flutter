@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/session.dart';
 import '../widgets/auth_backdrop.dart';
+import '../services/api_client.dart';
 import '../services/biometric_service.dart';
 import '../services/transaction_pin_service.dart';
 
