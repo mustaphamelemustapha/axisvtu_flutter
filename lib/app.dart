@@ -17,6 +17,7 @@ import 'screens/splash_screen.dart';
 import 'screens/force_update_screen.dart';
 import 'screens/security_preference_screen.dart';
 import 'screens/app_lock_screen.dart';
+import 'screens/quick_auth_screen.dart';
 
 class AxisVTUApp extends StatelessWidget {
   const AxisVTUApp({super.key});
@@ -52,6 +53,7 @@ class AxisVTUApp extends StatelessWidget {
                RegisterScreen.route: (_) => const RegisterScreen(),
               ShellScreen.route: (_) => const ShellScreen(),
               SecurityPreferenceScreen.route: (_) => const SecurityPreferenceScreen(),
+              QuickAuthScreen.route: (_) => const QuickAuthScreen(),
             },
             home: const AppEntryGate(),
           );
@@ -165,6 +167,9 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
 
     if (!_onboardingDone) {
       return const OnboardingScreen();
+    }
+    if (session.lastUser != null) {
+      return const QuickAuthScreen();
     }
     return const WelcomeScreen();
   }

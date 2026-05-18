@@ -18,6 +18,7 @@ import '../widgets/theme_toggle_button.dart';
 import '../services/transaction_pin_service.dart';
 import '../services/biometric_service.dart';
 import '../services/push_notification_service.dart';
+import 'quick_auth_screen.dart';
 import 'welcome_screen.dart';
 import 'about_screen.dart';
 import 'referral_screen.dart';
@@ -1545,7 +1546,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 await session.logout();
                 if (!context.mounted) return;
                 Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-                  WelcomeScreen.route,
+                  QuickAuthScreen.route,
                   (_) => false,
                 );
               },

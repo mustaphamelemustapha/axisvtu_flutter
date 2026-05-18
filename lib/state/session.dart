@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -18,6 +19,7 @@ class SessionController extends ChangeNotifier {
   static const String _biometricUserKey = 'axisvtu_biometric_user';
   static const String _biometricPasswordKey = 'axisvtu_biometric_password';
   static const String _securityPrefKey = 'axisvtu_security_preference_v1';
+  static const String _lastUserJsonKey = 'axisvtu_last_user_v1';
   
   static const _secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -26,6 +28,7 @@ class SessionController extends ChangeNotifier {
 
   String? _token;
   Map<String, dynamic>? _user;
+  Map<String, dynamic>? _lastUser;
   String? _lastPassword;
   bool _loading = false;
   String? _error;
@@ -37,6 +40,7 @@ class SessionController extends ChangeNotifier {
 
   String? get token => _token;
   Map<String, dynamic>? get user => _user;
+  Map<String, dynamic>? get lastUser => _lastUser;
   bool get isLoading => _loading;
   String? get error => _error;
   bool get isBootstrapped => _bootstrapped;
@@ -165,6 +169,14 @@ class SessionController extends ChangeNotifier {
       // 3. Load Security Preference
       final prefs = await SharedPreferences.getInstance();
       _securityPreference = prefs.getString(_securityPrefKey);
+      
+      final lastUserJson = prefs.getString(_lastUserJsonKey);
+      if (lastUserJson != null && lastUserJson.isNotEmpty) {
+        try {
+          _lastUser = jsonDecode(lastUserJson) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+      
       if (_token != null && _token!.isNotEmpty && _securityPreference == 'max') {
         _isLocked = true;
       }
@@ -211,6 +223,10 @@ class SessionController extends ChangeNotifier {
       final trimmedIdentifier = email.trim();
       if (trimmedIdentifier.isNotEmpty) {
         await prefs.setString(lastIdentifierKey, trimmedIdentifier);
+      }
+      if (_user != null) {
+        _lastUser = _user;
+        await prefs.setString(_lastUserJsonKey, jsonEncode(_user));
       }
       _setError(null);
       notifyListeners();
@@ -275,6 +291,10 @@ class SessionController extends ChangeNotifier {
       if (preferredIdentifier.isNotEmpty) {
         await prefs.setString(lastIdentifierKey, preferredIdentifier);
       }
+      if (_user != null) {
+        _lastUser = _user;
+        await prefs.setString(_lastUserJsonKey, jsonEncode(_user));
+      }
       _setError(null);
       notifyListeners();
       return true;
@@ -298,6 +318,17 @@ class SessionController extends ChangeNotifier {
     _user = null;
     _securityPreference = null;
     _isLocked = false;
+    notifyListeners();
+  }
+
+  Future<void> clearLastUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_lastUserJsonKey);
+      await prefs.remove(lastIdentifierKey);
+      await disableBiometrics();
+    } catch (_) {}
+    _lastUser = null;
     notifyListeners();
   }
 
