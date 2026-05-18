@@ -94,13 +94,24 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
     super.dispose();
   }
 
+  DateTime? _pausedTime;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.paused) {
+      _pausedTime = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
       final session = context.read<SessionController>();
       if (session.isAuthenticated) {
-        session.lockForcefully();
+        final pausedAt = _pausedTime;
+        if (pausedAt != null) {
+          final difference = DateTime.now().difference(pausedAt);
+          if (difference.inSeconds >= 2) {
+            session.lockForcefully();
+          }
+        }
       }
+      _pausedTime = null;
     }
   }
 
