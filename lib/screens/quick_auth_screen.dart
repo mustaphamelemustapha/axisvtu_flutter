@@ -236,16 +236,11 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(40),
                       child: Container(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        child: Center(
-                          child: Text(
-                            fullName.isNotEmpty ? fullName.substring(0, 1) : 'U',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              color: primaryColor,
-                            ),
-                          ),
+                        color: Colors.white,
+                        padding: const EdgeInsets.all(10),
+                        child: Image.asset(
+                          'assets/brand/axisvtu-logo.png',
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),

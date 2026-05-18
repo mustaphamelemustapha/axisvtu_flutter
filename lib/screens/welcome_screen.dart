@@ -105,7 +105,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       setState(() {
         _biometricLoading = false;
         _localError = session.error ??
-            'Please sign in once with your password to enable biometric quick sign-in.';
+            'Authentication failed. Please sign in with your password to activate quick biometric access.';
       });
     }
   }

@@ -213,10 +213,17 @@ class SessionController extends ChangeNotifier {
       
       await _secureStorage.write(key: _tokenKey, value: _token!);
       
-      // If biometrics were previously enabled, keep the token fresh.
+      // If biometrics were previously enabled, keep the token and credentials fresh.
       final hasBio = await _secureStorage.read(key: _biometricTokenKey) != null;
       if (hasBio) {
         await _secureStorage.write(key: _biometricTokenKey, value: _token!);
+        final trimmedIdentifier = email.trim();
+        if (trimmedIdentifier.isNotEmpty) {
+          await _secureStorage.write(key: _biometricUserKey, value: trimmedIdentifier);
+        }
+        if (_lastPassword != null && _lastPassword!.isNotEmpty) {
+          await _secureStorage.write(key: _biometricPasswordKey, value: _lastPassword!);
+        }
       }
       
       final prefs = await SharedPreferences.getInstance();
@@ -283,6 +290,19 @@ class SessionController extends ChangeNotifier {
       }
 
       await _secureStorage.write(key: _tokenKey, value: _token!);
+
+      // If biometrics were previously enabled, keep the token and credentials fresh.
+      final hasBio = await _secureStorage.read(key: _biometricTokenKey) != null;
+      if (hasBio) {
+        await _secureStorage.write(key: _biometricTokenKey, value: _token!);
+        final preferredIdentifier = normalizedEmail.isNotEmpty ? normalizedEmail : phone.trim();
+        if (preferredIdentifier.isNotEmpty) {
+          await _secureStorage.write(key: _biometricUserKey, value: preferredIdentifier);
+        }
+        if (_lastPassword != null && _lastPassword!.isNotEmpty) {
+          await _secureStorage.write(key: _biometricPasswordKey, value: _lastPassword!);
+        }
+      }
 
       final prefs = await SharedPreferences.getInstance();
       final preferredIdentifier = normalizedEmail.isNotEmpty
