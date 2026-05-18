@@ -3,23 +3,31 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_client.dart';
 import '../config.dart';
 import '../state/session.dart';
 
 class PushNotificationService {
-  static Future<void> initialize(SessionController session) async {
-    // -------------------------------------------------------------------------
-    // IMPORTANT: Firebase Setup Required!
-    // 1. Create a Firebase project at console.firebase.google.com
-    // 2. Add an Android app with package name: com.axisvtu.app
-    // 3. Download google-services.json and place it in android/app/
-    // 4. Run: flutter pub add firebase_core firebase_messaging
-    // 5. Uncomment the imports above and the code below.
-    // -------------------------------------------------------------------------
+  static const _pushNotificationsKey = 'axis_profile_push_notifications_v1';
 
+  static Future<void> initialize(SessionController session) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final isEnabled = prefs.getBool(_pushNotificationsKey) ?? true;
+
+      if (!session.isAuthenticated) {
+        return;
+      }
+
+      if (!isEnabled) {
+        // If disabled, ensure we wipe the FCM token from the backend
+        debugPrint("[PushNotification] Notification option is disabled. Wiping token from backend.");
+        await syncTokenWithBackend("", session.token!);
+        return;
+      }
+
       await Firebase.initializeApp();
       
       final messaging = FirebaseMessaging.instance;
@@ -40,8 +48,10 @@ class PushNotificationService {
         }
 
         // Listen for token refreshes
-        messaging.onTokenRefresh.listen((newToken) {
-          if (session.isAuthenticated) {
+        messaging.onTokenRefresh.listen((newToken) async {
+          final currentPrefs = await SharedPreferences.getInstance();
+          final currentEnabled = currentPrefs.getBool(_pushNotificationsKey) ?? true;
+          if (session.isAuthenticated && currentEnabled) {
             syncTokenWithBackend(newToken, session.token!);
           }
         });

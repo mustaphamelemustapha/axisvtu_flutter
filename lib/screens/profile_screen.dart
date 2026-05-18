@@ -17,6 +17,7 @@ import '../widgets/primary_button.dart';
 import '../widgets/theme_toggle_button.dart';
 import '../services/transaction_pin_service.dart';
 import '../services/biometric_service.dart';
+import '../services/push_notification_service.dart';
 import 'welcome_screen.dart';
 import 'about_screen.dart';
 import 'referral_screen.dart';
@@ -1171,6 +1172,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _togglePushPreference(bool value) async {
     setState(() => _pushNotifications = value);
     await _saveBoolPref(_pushNotificationsKey, value);
+    
+    // Sync or wipe token in backend in real-time
+    final session = context.read<SessionController>();
+    await PushNotificationService.initialize(session);
+
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1476,7 +1482,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _ProfileTile(
               label: 'Notifications',
               icon: Icons.notifications_none_rounded,
-              onTap: () => _showComingSoon('Notifications', 'Advanced notification settings coming soon.'),
+              trailing: Switch.adaptive(
+                value: _pushNotifications,
+                onChanged: (value) => _togglePushPreference(value),
+                activeColor: Theme.of(context).colorScheme.primary,
+              ),
+              onTap: () => _togglePushPreference(!_pushNotifications),
               backgroundColor: tileBg,
             ),
             _ProfileTile(
