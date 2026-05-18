@@ -158,9 +158,11 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
       backgroundColor: isDark ? const Color(0xFF070B12) : const Color(0xFFF8FAFC),
       body: AuthBackdrop(
         showBrandText: false,
-        child: Column(
-          children: [
-            const Spacer(flex: 2),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
 
             // Premium Animated Face ID Scanner Frame at the Top
             if (_hasBiometrics) ...[
@@ -255,7 +257,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                 ),
               ),
             
-            const Spacer(flex: 1),
+            const SizedBox(height: 16),
 
             // PIN Indicator Dots with Shake Animation
             AnimatedBuilder(
@@ -290,7 +292,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
               ),
             ),
 
-            const Spacer(flex: 2),
+            const SizedBox(height: 20),
 
             // Premium Custom Passcode Numeric Keypad ( Translucent glass keys )
             Padding(
@@ -344,7 +346,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
               ),
             ),
 
-            const Spacer(flex: 3),
+            const SizedBox(height: 24),
 
             // Bottom Actions (Sign Out & Use Password)
             SafeArea(
@@ -391,7 +393,8 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

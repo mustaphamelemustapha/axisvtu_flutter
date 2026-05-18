@@ -140,8 +140,10 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
       body: AuthBackdrop(
         showBrandText: false,
         child: SafeArea(
-          child: Column(
-            children: [
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children: [
               // Top Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -173,7 +175,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                 ),
               ),
 
-              const Spacer(flex: 1),
+              const SizedBox(height: 16),
 
               // Brand Logo (Glowing AxisVTU Header)
               Row(
@@ -268,7 +270,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                 ],
               ),
 
-              const Spacer(flex: 2),
+              const SizedBox(height: 24),
 
               // Biometric Icon Container (OPay Custom Neon Scanner Vector)
               ScaleTransition(
@@ -323,7 +325,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                 ),
               ],
 
-              const Spacer(flex: 2),
+              const SizedBox(height: 24),
 
               // Primary "Verify Face" Action Button
               Padding(
@@ -337,7 +339,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                 ),
               ),
 
-              const Spacer(flex: 2),
+              const SizedBox(height: 24),
 
               // Bottom Actions (Switch Account | Log in with Password)
               Padding(
@@ -382,6 +384,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
               ),
             ],
           ),
+         ),
         ),
       ),
     );

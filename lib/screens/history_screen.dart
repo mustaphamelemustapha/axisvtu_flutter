@@ -816,32 +816,69 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _closeDetailAndOpenReceipt(
-                              context,
-                              tx,
-                              autoShareOnOpen: false,
-                            ),
-                            icon: const Icon(Icons.receipt_long_rounded),
-                            label: const Text('View Receipt'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _closeDetailAndOpenReceipt(
-                              context,
-                              tx,
-                              autoShareOnOpen: true,
-                            ),
-                            icon: const Icon(Icons.share_rounded),
-                            label: const Text('Share Receipt'),
-                          ),
-                        ),
-                      ],
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final useVertical = constraints.maxWidth < 330;
+                        if (useVertical) {
+                          return Column(
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _closeDetailAndOpenReceipt(
+                                    context,
+                                    tx,
+                                    autoShareOnOpen: false,
+                                  ),
+                                  icon: const Icon(Icons.receipt_long_rounded),
+                                  label: const Text('View Receipt'),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _closeDetailAndOpenReceipt(
+                                    context,
+                                    tx,
+                                    autoShareOnOpen: true,
+                                  ),
+                                  icon: const Icon(Icons.share_rounded),
+                                  label: const Text('Share Receipt'),
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _closeDetailAndOpenReceipt(
+                                    context,
+                                    tx,
+                                    autoShareOnOpen: false,
+                                  ),
+                                  icon: const Icon(Icons.receipt_long_rounded),
+                                  label: const Text('View Receipt'),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _closeDetailAndOpenReceipt(
+                                    context,
+                                    tx,
+                                    autoShareOnOpen: true,
+                                  ),
+                                  icon: const Icon(Icons.share_rounded),
+                                  label: const Text('Share Receipt'),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                      },
                     ),
                     if (status == 'failed') ...[
                       const SizedBox(height: 10),

@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/api_client.dart';
 import '../services/biometric_service.dart';
 import '../services/push_notification_service.dart';
+import '../services/config_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class SessionController extends ChangeNotifier {

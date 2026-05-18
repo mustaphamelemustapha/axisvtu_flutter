@@ -38,9 +38,11 @@ class _SecurityPreferenceScreenState extends State<SecurityPreferenceScreen> {
       body: AuthBackdrop(
         showBrandText: false,
         child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
               
               // Top Pagination Dots Indicator
               Row(
@@ -196,7 +198,7 @@ class _SecurityPreferenceScreenState extends State<SecurityPreferenceScreen> {
                 ),
               ),
               
-              const Spacer(),
+              const SizedBox(height: 40),
               
               // Gradient Continue Button
               Padding(
@@ -282,6 +284,7 @@ class _SecurityPreferenceScreenState extends State<SecurityPreferenceScreen> {
               const SizedBox(height: 24),
             ],
           ),
+         ),
         ),
       ),
     );
