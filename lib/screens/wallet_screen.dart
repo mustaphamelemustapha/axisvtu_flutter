@@ -1498,7 +1498,19 @@ class _BankCard extends StatelessWidget {
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.10 : 0.08,),
         ),
-        boxShadow: AxisShadows.softGlow,
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.24 : 0.16),
+            blurRadius: 32,
+            spreadRadius: 2,
+            offset: const Offset(0, 12),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1521,11 +1533,11 @@ class _BankCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  bankName,
+                  bankName.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: isDark ? Colors.white : Colors.black,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.15,
                         fontSize: 22,
@@ -1660,14 +1672,14 @@ class _BankCard extends StatelessWidget {
             ),
             SizedBox(height: compact ? 6 : 12),
             Text(
-              accountName,
+              'ACCOUNT NAME: ${accountName.toUpperCase()}',
               textAlign: TextAlign.center,
               maxLines: compact ? 1 : 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: isDark ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.05,
+                    color: isDark ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.2,
                   ),
             ),
             if (onShareAccount != null) ...[
@@ -2066,6 +2078,39 @@ class _WalletAccountActivationCardState extends State<_WalletAccountActivationCa
                         fontSize: 14,
                       ),
                     ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.15),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.verified_user_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'AxisVTU does NOT store or keep your BVN or NIN. This identity verification is securely routed directly to our central CBN-licensed payment partner (Monnify) to automatically generate your personalized funding accounts.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontSize: 11,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
