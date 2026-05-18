@@ -157,6 +157,9 @@ class SessionController extends ChangeNotifier {
       // 3. Load Security Preference
       final prefs = await SharedPreferences.getInstance();
       _securityPreference = prefs.getString(_securityPrefKey);
+      if (_token != null && _token!.isNotEmpty && _securityPreference == 'max') {
+        _isLocked = true;
+      }
     } catch (e) {
       // Definitive 401/403
       if (e is ApiException && (e.statusCode == 401 || e.statusCode == 403)) {
