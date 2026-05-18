@@ -146,10 +146,10 @@ class _WalletScreenState extends State<WalletScreen> {
     if (error is ApiException && (error.statusCode == 401 || error.statusCode == 403)) {
       final session = context.read<SessionController>();
       if (session.isAuthenticated) {
-        session.logout();
+        session.lockForcefully();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Your session has expired. Please sign in again.'),
+            content: Text('Your session has expired. Please enter PIN or tap Use Password.'),
             backgroundColor: Colors.redAccent,
           ),
         );

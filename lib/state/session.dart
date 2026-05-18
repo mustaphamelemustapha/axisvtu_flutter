@@ -60,6 +60,11 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  void lockForcefully() {
+    _isLocked = true;
+    notifyListeners();
+  }
+
   void unlock() {
     _isLocked = false;
     notifyListeners();
@@ -161,9 +166,10 @@ class SessionController extends ChangeNotifier {
         _isLocked = true;
       }
     } catch (e) {
-      // Definitive 401/403
+      // Definitive 401/403 (session expired/token invalid)
       if (e is ApiException && (e.statusCode == 401 || e.statusCode == 403)) {
-        await logout();
+        // Do NOT log out or delete token. Instead, lock the app locally and show lock screen.
+        _isLocked = true;
       }
       // We ignore network errors during bootstrap to allow the app to open offline
     } finally {

@@ -68,7 +68,7 @@ class AppEntryGate extends StatefulWidget {
   State<AppEntryGate> createState() => _AppEntryGateState();
 }
 
-class _AppEntryGateState extends State<AppEntryGate> {
+class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver {
   bool _splashDone = false;
   bool _onboardingDone = false;
   bool _onboardingLoaded = false;
@@ -77,6 +77,7 @@ class _AppEntryGateState extends State<AppEntryGate> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _splashTimer = Timer(const Duration(seconds: 2), () {
       if (!mounted) return;
       setState(() => _splashDone = true);
@@ -86,8 +87,19 @@ class _AppEntryGateState extends State<AppEntryGate> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _splashTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final session = context.read<SessionController>();
+      if (session.isAuthenticated) {
+        session.lockForcefully();
+      }
+    }
   }
 
   Future<void> _loadInitialState() async {

@@ -134,10 +134,14 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
       }
     } catch (e) {
       if (mounted) {
+        String err = 'Incorrect PIN, try again.';
+        if (e is ApiException && (e.statusCode == 401 || e.statusCode == 403)) {
+          err = 'Session expired. Tap "Use Password" to log in again.';
+        }
         setState(() {
           _pinCode = '';
           _isVerifyingPin = false;
-          _errorMessage = 'Incorrect PIN, try again.';
+          _errorMessage = err;
         });
         _shakeController.forward(from: 0.0);
       }
