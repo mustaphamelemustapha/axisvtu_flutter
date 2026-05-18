@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class DashboardSnapshotCache {
   const DashboardSnapshotCache._();
 
+  static final Map<String, Map<String, dynamic>> _memoryCache = {};
+
   static Future<void> _saveQueue = Future.value();
 
   static String? identityFromUser(Map<String, dynamic>? user) {
@@ -25,16 +27,25 @@ class DashboardSnapshotCache {
     return null;
   }
 
+  static Map<String, dynamic>? loadSync(String identity) {
+    return _memoryCache[identity];
+  }
+
   static Future<Map<String, dynamic>?> load(String identity) async {
+    if (_memoryCache.containsKey(identity)) {
+      return _memoryCache[identity];
+    }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_keyFor(identity));
     if (raw == null || raw.trim().isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
       if (decoded is Map) {
-        return decoded.map(
+        final result = decoded.map(
           (key, value) => MapEntry(key.toString(), value),
         );
+        _memoryCache[identity] = result;
+        return result;
       }
     } catch (_) {
       return null;
@@ -48,6 +59,14 @@ class DashboardSnapshotCache {
     Map<String, dynamic>? accounts,
     List<Map<String, dynamic>>? transactions,
   }) async {
+    // Instantly update the static memory cache synchronously so the next frame is 100% accurate without latency
+    final currentMem = _memoryCache[identity] ?? <String, dynamic>{};
+    if (wallet != null) currentMem['wallet'] = wallet;
+    if (accounts != null) currentMem['accounts'] = accounts;
+    if (transactions != null) currentMem['transactions'] = transactions;
+    currentMem['saved_at'] = DateTime.now().toIso8601String();
+    _memoryCache[identity] = currentMem;
+
     _saveQueue = _saveQueue.then((_) async {
       final prefs = await SharedPreferences.getInstance();
       final current = await load(identity) ?? <String, dynamic>{};

@@ -35,9 +35,9 @@ class ServicesScreen extends StatelessWidget {
           _ServiceGrid(
             items: [
               _ServiceItem(
-                label: 'Link BVN/NIN',
-                subtitle: 'Activate Moniepoint/Wema/Sterling',
-                icon: Icons.verified_user_rounded,
+                label: 'Wallet',
+                subtitle: 'Activate accounts & fund wallet',
+                icon: Icons.account_balance_wallet_rounded,
                 accent: const Color(0xFF2457F5),
                 onTap: () => _openScreen(context, const WalletScreen()),
               ),

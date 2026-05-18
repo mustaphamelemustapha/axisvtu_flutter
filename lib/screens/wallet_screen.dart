@@ -1586,10 +1586,11 @@ class _BankCard extends StatelessWidget {
               accountName,
               textAlign: TextAlign.center,
               maxLines: 1,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: isDark ? Colors.white70 : Colors.black87,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.05,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    letterSpacing: 0.1,
                   ),
             ),
             const SizedBox(height: 12),
@@ -1672,14 +1673,15 @@ class _BankCard extends StatelessWidget {
             ),
             SizedBox(height: compact ? 6 : 12),
             Text(
-              'ACCOUNT NAME: ${accountName.toUpperCase()}',
+              accountName,
               textAlign: TextAlign.center,
               maxLines: compact ? 1 : 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: isDark ? Colors.white : Colors.black,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.2,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: isDark ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    letterSpacing: 0.1,
                   ),
             ),
             if (onShareAccount != null) ...[

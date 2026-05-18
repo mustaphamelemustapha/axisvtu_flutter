@@ -115,7 +115,23 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       _activeDashboardKey = dashboardKey;
       _reloadDashboard(token, dashboardKey);
-      _loadCachedDashboard(dashboardKey);
+      
+      // Load from high-speed in-memory static cache synchronously on the very first frame to prevent UI flickering!
+      final memCached = DashboardSnapshotCache.loadSync(dashboardKey);
+      if (memCached != null) {
+        _cachedWalletData = _asMap(memCached['wallet']);
+        _cachedAccountsData = _asMap(memCached['accounts']);
+        final memTransactions = memCached['transactions'];
+        if (memTransactions is List) {
+          _cachedTransactionsData = memTransactions
+              .whereType<Map>()
+              .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
+              .toList();
+        }
+      } else {
+        _loadCachedDashboard(dashboardKey);
+      }
+      
       _activeToken = token;
     }
   }
@@ -185,6 +201,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     _accountsFuture!.then((data) {
       if (!mounted || dashboardKey != _activeDashboardKey) return;
+      setState(() {
+        _cachedAccountsData = _asMap(data);
+      });
       unawaited(DashboardSnapshotCache.save(dashboardKey, accounts: data));
     }).catchError((e) {
       if (mounted) _handleAuthError(e);
