@@ -1,5 +1,7 @@
 platform :ios, '15.0'
 
+use_modular_headers!
+
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
