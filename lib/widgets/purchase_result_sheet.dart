@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../services/receipt_export_service.dart';
+import 'interactive_notification_banner.dart';
 
 class ReceiptField {
   const ReceiptField({required this.label, required this.value});
@@ -53,6 +54,16 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
   @override
   void initState() {
     super.initState();
+    if (_isSuccess) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        InteractiveNotificationBanner.show(
+          context,
+          title: 'AxisVTU',
+          message: widget.subtitle.isNotEmpty ? widget.subtitle : '${widget.title} transaction was successful.',
+        );
+      });
+    }
     if (widget.autoShareOnOpen) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _autoShareTriggered) return;
