@@ -6,7 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
-import '../services/config_service.dart';
+import '../services/biometric_service.dart';
 import '../services/push_notification_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -62,6 +62,8 @@ class SessionController extends ChangeNotifier {
 
   void lock() {
     if (_securityPreference == 'max') {
+      // Also clear any stored transaction PIN for the logged‑out user
+      await BiometricService.deletePin();
       _isLocked = true;
       notifyListeners();
     }
@@ -341,6 +343,8 @@ class SessionController extends ChangeNotifier {
       await _secureStorage.delete(key: _tokenKey);
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_securityPrefKey);
+      // Clear any stored transaction PIN for the logged‑out user
+      await BiometricService.deletePin();
     } catch (e) {
       debugPrint('[Session] Secure storage/SharedPreferences delete failed: $e');
     }
@@ -357,6 +361,8 @@ class SessionController extends ChangeNotifier {
       await prefs.remove(_lastUserJsonKey);
       await prefs.remove(lastIdentifierKey);
       await disableBiometrics();
+      // Also clear any stored transaction PIN for the previous user
+      await BiometricService.deletePin();
     } catch (_) {}
     _lastUser = null;
     notifyListeners();
