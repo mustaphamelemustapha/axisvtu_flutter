@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
@@ -13,6 +14,12 @@ class PushNotificationService {
   static const _pushNotificationsKey = 'axis_profile_push_notifications_v1';
 
   static Future<void> initialize(SessionController session) async {
+    // Only support Android push notifications for now, as requested
+    if (!Platform.isAndroid) {
+      debugPrint("[PushNotification] Disabled for non-Android platforms.");
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final isEnabled = prefs.getBool(_pushNotificationsKey) ?? true;
@@ -28,7 +35,9 @@ class PushNotificationService {
         return;
       }
 
-      await Firebase.initializeApp();
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp();
+      }
       
       final messaging = FirebaseMessaging.instance;
       
