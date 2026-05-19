@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_client.dart';
 import '../services/data_service.dart';
 import '../services/purchase_auth_service.dart';
+import '../services/biometric_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
@@ -2060,7 +2061,7 @@ class _RecentRecipientsInline extends StatelessWidget {
   }
 }
 
-class _PurchaseSummaryModal extends StatelessWidget {
+class _PurchaseSummaryModal extends StatefulWidget {
   final String phone;
   final String network;
   final String planName;
@@ -2080,6 +2081,29 @@ class _PurchaseSummaryModal extends StatelessWidget {
   });
 
   @override
+  State<_PurchaseSummaryModal> createState() => _PurchaseSummaryModalState();
+}
+
+class _PurchaseSummaryModalState extends State<_PurchaseSummaryModal> {
+  bool _bioAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBio();
+  }
+
+  Future<void> _checkBio() async {
+    final enabled = await BiometricService.isAppLockEnabled;
+    final availability = await BiometricService.getAvailability();
+    if (mounted) {
+      setState(() {
+        _bioAvailable = enabled && availability.ready;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
@@ -2093,7 +2117,7 @@ class _PurchaseSummaryModal extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -2175,7 +2199,7 @@ class _PurchaseSummaryModal extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '₦$price',
+                    '₦${widget.price}',
                     style: TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.w900,
@@ -2192,47 +2216,86 @@ class _PurchaseSummaryModal extends StatelessWidget {
             // Details List
             _PremiumSummaryItem(
               label: 'Network Provider',
-              value: network.toUpperCase(),
+              value: widget.network.toUpperCase(),
               icon: Icons.cell_tower_rounded,
               isDark: isDark,
             ),
             _PremiumSummaryItem(
               label: 'Phone Number',
-              value: phone,
+              value: widget.phone,
               icon: Icons.phone_android_rounded,
               isDark: isDark,
             ),
             _PremiumSummaryItem(
               label: 'Data Package',
-              value: planName,
+              value: widget.planName,
               icon: Icons.wifi_tethering_rounded,
               isDark: isDark,
             ),
             _PremiumSummaryItem(
               label: 'Validity Period',
-              value: planValidity,
+              value: widget.planValidity,
               icon: Icons.event_available_rounded,
               isDark: isDark,
             ),
             
             const SizedBox(height: 40),
             
-            // Action Buttons (Vertical Stack for Premium Feel & No Overlap)
-            _PremiumPaymentButton(
-              label: 'Pay with Biometrics',
-              sublabel: 'Fast & Secure Authentication',
-              icon: Icons.fingerprint_rounded,
-              isPrimary: true,
-              onTap: onProceedBiometric,
+            // Modern Pay Button Block
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  if (_bioAvailable) {
+                    widget.onProceedBiometric();
+                  } else {
+                    widget.onProceedPin();
+                  }
+                },
+                icon: Icon(
+                  _bioAvailable ? Icons.fingerprint_rounded : Icons.lock_outline_rounded,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  _bioAvailable ? 'Confirm with Biometrics' : 'Confirm & Pay with PIN',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  elevation: 2,
+                  shadowColor: primary.withValues(alpha: 0.25),
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
-            _PremiumPaymentButton(
-              label: 'Authorize with Secret PIN',
-              sublabel: 'Standard Transaction Security',
-              icon: Icons.dialpad_rounded,
-              isPrimary: false,
-              onTap: onProceedPin,
-            ),
+            if (_bioAvailable) ...[
+              const SizedBox(height: 14),
+              TextButton(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  widget.onProceedPin();
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                ),
+                child: Text(
+                  'Pay with PIN instead',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: primary,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -2299,98 +2362,6 @@ class _PremiumSummaryItem extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PremiumPaymentButton extends StatelessWidget {
-  final String label;
-  final String sublabel;
-  final IconData icon;
-  final bool isPrimary;
-  final VoidCallback onTap;
-
-  const _PremiumPaymentButton({
-    required this.label,
-    required this.sublabel,
-    required this.icon,
-    required this.isPrimary,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = Theme.of(context).colorScheme.primary;
-
-    return InkWell(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        onTap();
-      },
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        decoration: BoxDecoration(
-          color: isPrimary ? primary : (isDark ? const Color(0xFF1E293B) : Colors.white),
-          borderRadius: BorderRadius.circular(24),
-          border: isPrimary 
-            ? null 
-            : Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0), width: 2),
-          boxShadow: isPrimary ? [
-            BoxShadow(
-              color: primary.withValues(alpha: 0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            )
-          ] : [],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isPrimary ? Colors.white.withValues(alpha: 0.2) : primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                icon,
-                color: isPrimary ? Colors.white : primary,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: isPrimary ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A)),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  Text(
-                    sublabel,
-                    style: TextStyle(
-                      color: isPrimary ? Colors.white.withValues(alpha: 0.7) : (isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: isPrimary ? Colors.white.withValues(alpha: 0.5) : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-            ),
-          ],
-        ),
       ),
     );
   }

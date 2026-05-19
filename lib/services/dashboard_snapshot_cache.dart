@@ -59,6 +59,7 @@ class DashboardSnapshotCache {
     Map<String, dynamic>? accounts,
     List<Map<String, dynamic>>? transactions,
     List<Map<String, dynamic>>? announcements,
+    Map<String, dynamic>? referrals,
   }) async {
     // Instantly update the static memory cache synchronously so the next frame is 100% accurate without latency
     final currentMem = _memoryCache[identity] ?? <String, dynamic>{};
@@ -66,6 +67,7 @@ class DashboardSnapshotCache {
     if (accounts != null) currentMem['accounts'] = accounts;
     if (transactions != null) currentMem['transactions'] = transactions;
     if (announcements != null) currentMem['announcements'] = announcements;
+    if (referrals != null) currentMem['referrals'] = referrals;
     currentMem['saved_at'] = DateTime.now().toIso8601String();
     _memoryCache[identity] = currentMem;
 
@@ -76,6 +78,7 @@ class DashboardSnapshotCache {
       if (accounts != null) current['accounts'] = accounts;
       if (transactions != null) current['transactions'] = transactions;
       if (announcements != null) current['announcements'] = announcements;
+      if (referrals != null) current['referrals'] = referrals;
       current['saved_at'] = DateTime.now().toIso8601String();
       await prefs.setString(_keyFor(identity), jsonEncode(current));
     });

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../services/referral_service.dart';
+import '../services/dashboard_snapshot_cache.dart';
 import '../state/session.dart';
 import '../widgets/service_shell.dart';
 import '../widgets/glass_card.dart';
@@ -17,16 +18,55 @@ class ReferralScreen extends StatefulWidget {
 }
 
 class _ReferralScreenState extends State<ReferralScreen> {
-  Future<Map<String, dynamic>>? _future;
+  Map<String, dynamic>? _cachedData;
+  bool _isLoading = true;
   String _activeToken = '';
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final token = (context.watch<SessionController>().token ?? '').trim();
-    if (token.isNotEmpty && (token != _activeToken || _future == null)) {
+    final session = context.watch<SessionController>();
+    final token = (session.token ?? '').trim();
+    if (token.isNotEmpty && token != _activeToken) {
       _activeToken = token;
-      _future = ReferralService(token: token).getMe();
+
+      // Load from cache first for instant loading
+      final identity = DashboardSnapshotCache.identityFromUser(session.user);
+      if (identity != null) {
+        final mem = DashboardSnapshotCache.loadSync(identity);
+        if (mem != null && mem['referrals'] != null) {
+          _cachedData = mem['referrals'] as Map<String, dynamic>;
+          _isLoading = false;
+        } else {
+          DashboardSnapshotCache.load(identity).then((disk) {
+            if (disk != null && disk['referrals'] != null && _cachedData == null && mounted) {
+              setState(() {
+                _cachedData = disk['referrals'] as Map<String, dynamic>;
+                _isLoading = false;
+              });
+            }
+          });
+        }
+      }
+
+      // Fetch fresh data from API in background and sync
+      ReferralService(token: token).getMe().then((freshData) {
+        if (identity != null) {
+          DashboardSnapshotCache.save(identity, referrals: freshData);
+        }
+        if (mounted) {
+          setState(() {
+            _cachedData = freshData;
+            _isLoading = false;
+          });
+        }
+      }).catchError((err) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      });
     }
   }
 
@@ -102,262 +142,257 @@ class _ReferralScreenState extends State<ReferralScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.66);
 
+    final loading = _isLoading && _cachedData == null;
+    final data = _cachedData;
+    final items = (data?['referrals'] as List?) ?? const [];
+    final referralCode = (data?['referral_code'] ?? '—').toString();
+    final referralLink = data != null ? _getReferralLink(data) : '';
+    final totalReferrals = (data?['total_referrals'] ?? 0).toString();
+    final rewardedReferrals = (data?['rewarded_referrals'] ?? 0).toString();
+    final totalEarned = _money(data?['total_earned']);
+
     return ServiceShell(
       title: 'Referrals',
       subtitle: 'Invite friends and earn when they keep buying data.',
       icon: Icons.group_add_rounded,
-      child: FutureBuilder<Map<String, dynamic>>(
-        future: _future,
-        builder: (context, snapshot) {
-          final loading = _future == null || snapshot.connectionState == ConnectionState.waiting;
-          final data = snapshot.data;
-          final items = (data?['referrals'] as List?) ?? const [];
-          final referralCode = (data?['referral_code'] ?? '—').toString();
-          final referralLink = data != null ? _getReferralLink(data) : '';
-          final totalReferrals = (data?['total_referrals'] ?? 0).toString();
-          final rewardedReferrals = (data?['rewarded_referrals'] ?? 0).toString();
-          final totalEarned = _money(data?['total_earned']);
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ServiceSectionCard(
-                title: 'Your Referral Identity',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ServiceSectionCard(
+            title: 'Your Referral Identity',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
                         children: [
-                          Row(
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'REFERRAL CODE',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
+                                    color: muted,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  referralCode,
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton.filledTonal(
+                            onPressed: referralCode == '—' ? null : () => _copyCode(referralCode),
+                            icon: const Icon(Icons.copy_rounded, size: 20),
+                            style: IconButton.styleFrom(
+                              padding: const EdgeInsets.all(12),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filled(
+                            onPressed: (loading || referralCode == '—') ? null : () => _shareInvite(data ?? const {}),
+                            icon: const Icon(Icons.share_rounded, size: 20),
+                            style: IconButton.styleFrom(
+                              padding: const EdgeInsets.all(12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (referralLink.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: Row(
                             children: [
+                              Icon(Icons.link_rounded, size: 16, color: muted),
+                              const SizedBox(width: 10),
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'REFERRAL CODE',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1.2,
-                                        color: muted,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      referralCode,
-                                      style: const TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton.filledTonal(
-                                onPressed: referralCode == '—' ? null : () => _copyCode(referralCode),
-                                icon: const Icon(Icons.copy_rounded, size: 20),
-                                style: IconButton.styleFrom(
-                                  padding: const EdgeInsets.all(12),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton.filled(
-                                onPressed: (loading || referralCode == '—') ? null : () => _shareInvite(data ?? const {}),
-                                icon: const Icon(Icons.share_rounded, size: 20),
-                                style: IconButton.styleFrom(
-                                  padding: const EdgeInsets.all(12),
+                                child: Text(
+                                  referralLink,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: muted,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          if (referralLink.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.link_rounded, size: 16, color: muted),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      referralLink,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: muted,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              ServiceSectionCard(
-                title: 'Performance Stats',
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = (constraints.maxWidth - 12) / 2;
-                    return Column(
-                      children: [
-                        Row(
-                          children: [
-                            _StatPill(
-                              label: 'Total Invited',
-                              value: totalReferrals,
-                              icon: Icons.group_outlined,
-                              width: width,
-                            ),
-                            const SizedBox(width: 12),
-                            _StatPill(
-                              label: 'Rewarded',
-                              value: rewardedReferrals,
-                              icon: Icons.verified_outlined,
-                              width: width,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        _StatPill(
-                          label: 'Total Earned',
-                          value: totalEarned,
-                          icon: Icons.payments_outlined,
-                          width: constraints.maxWidth,
-                          isLarge: true,
                         ),
                       ],
-                    );
-                  },
-                ),
-              ),
-
-              ServiceSectionCard(
-                title: 'Reward Policy',
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.auto_awesome_rounded,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Earn 2% Lifetime Rewards',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 15,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Get rewarded instantly when your friends fund their wallet for the first time.',
-                              style: TextStyle(
-                                color: muted,
-                                fontSize: 12,
-                                height: 1.4,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
-              ),
+              ],
+            ),
+          ),
 
-              const Padding(
-                padding: EdgeInsets.fromLTRB(4, 8, 16, 16),
-                child: Text(
-                  'REFERRAL HISTORY',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                    color: Colors.grey,
-                  ),
+          ServiceSectionCard(
+            title: 'Performance Stats',
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = (constraints.maxWidth - 12) / 2;
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        _StatPill(
+                          label: 'Total Invited',
+                          value: totalReferrals,
+                          icon: Icons.group_outlined,
+                          width: width,
+                        ),
+                        const SizedBox(width: 12),
+                        _StatPill(
+                          label: 'Rewarded',
+                          value: rewardedReferrals,
+                          icon: Icons.verified_outlined,
+                          width: width,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _StatPill(
+                      label: 'Total Earned',
+                      value: totalEarned,
+                      icon: Icons.payments_outlined,
+                      width: constraints.maxWidth,
+                      isLarge: true,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+
+          ServiceSectionCard(
+            title: 'Reward Policy',
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                 ),
               ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Earn 2% Lifetime Rewards',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Get rewarded instantly when your friends fund their wallet for the first time.',
+                          style: TextStyle(
+                            color: muted,
+                            fontSize: 12,
+                            height: 1.4,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
-              if (loading)
-                const _ReferralLoading()
-              else if (snapshot.hasError)
-                _EmptyHistory(
-                  message: 'Referral details are temporarily unavailable. Pull to refresh and try again.',
-                  isError: true,
-                )
-              else if (items.isEmpty)
-                _EmptyHistory(
-                  message: 'No referrals yet. Share your code to start earning once your friends join AxisVTU.',
-                )
-              else
-                ...items.whereType<Map>().map((raw) {
-                  final item = raw.map((k, v) => MapEntry(k.toString(), v));
-                  final status = (item['status'] ?? 'pending').toString();
-                  final itemName = (item['referred_user_name'] ?? 'Referral').toString();
-                  final firstDeposit = _money(item['first_deposit_amount'] ?? 0);
-                  final reward = _money(item['reward_amount'] ?? 0);
-                  return _ReferralItem(
-                    name: itemName,
-                    code: (item['referral_code_used'] ?? '—').toString(),
-                    status: status,
-                    deposit: firstDeposit,
-                    reward: reward,
-                  );
-                }),
-              
-              const SizedBox(height: 20),
-            ],
-          );
-        },
+          const Padding(
+            padding: EdgeInsets.fromLTRB(4, 8, 16, 16),
+            child: Text(
+              'REFERRAL HISTORY',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+
+          if (loading)
+            const _ReferralLoading()
+          else if (data == null)
+            _EmptyHistory(
+              message: 'Referral details are temporarily unavailable. Pull to refresh and try again.',
+              isError: true,
+            )
+          else if (items.isEmpty)
+            _EmptyHistory(
+              message: 'No referrals yet. Share your code to start earning once your friends join AxisVTU.',
+            )
+          else
+            ...items.whereType<Map>().map((raw) {
+              final item = raw.map((k, v) => MapEntry(k.toString(), v));
+              final status = (item['status'] ?? 'pending').toString();
+              final itemName = (item['referred_user_name'] ?? 'Referral').toString();
+              final firstDeposit = _money(item['first_deposit_amount'] ?? 0);
+              final reward = _money(item['reward_amount'] ?? 0);
+              return _ReferralItem(
+                name: itemName,
+                code: (item['referral_code_used'] ?? '—').toString(),
+                status: status,
+                deposit: firstDeposit,
+                reward: reward,
+              );
+            }),
+          
+          const SizedBox(height: 20),
+        ],
       ),
     );
   }
