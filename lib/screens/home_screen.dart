@@ -1653,7 +1653,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 40),
             Center(
               child: Text(
-                'AXISVTU v1.0.6 • SECURE & TRUSTED',
+                'AXISVTU v1.0.7 • SECURE & TRUSTED',
                 style: TextStyle(
                   color: muted.withValues(alpha: 0.4),
                   fontSize: 10,
