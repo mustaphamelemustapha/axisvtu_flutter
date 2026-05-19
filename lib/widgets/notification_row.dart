@@ -112,15 +112,21 @@ class NotificationRow extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
-                        const Spacer(),
-                        if (item.reference != null && item.reference!.isNotEmpty)
-                          Text(
-                            item.reference!,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: muted,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        if (item.reference != null && item.reference!.isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              item.reference!,
+                              textAlign: TextAlign.end,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: muted,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
                           ),
+                        ],
                       ],
                     ),
                   ],
