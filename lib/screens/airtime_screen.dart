@@ -1865,11 +1865,14 @@ class _SuccessModalState extends State<_SuccessModal> {
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
+              ),
             ],
           ),
-        ),
+        ],
       ),
-    );
+    ),
+  ),
+);
   }
 }
 
