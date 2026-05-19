@@ -50,6 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _cachedWalletData;
   Map<String, dynamic>? _cachedAccountsData;
   List<dynamic>? _cachedTransactionsData;
+  List<Map<String, dynamic>>? _announcements;
+  Set<String> _dismissedAnnouncementIds = {};
   int _activeAccountIndex = 0;
   String _activeToken = '';
   String _activeDashboardKey = '';
@@ -59,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadBalancePreference();
+    _loadDismissedAnnouncements();
     Future.delayed(Duration.zero, () {
       if (mounted) {
         _initialSecurityCheck();
@@ -68,6 +71,24 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+  }
+
+  Future<void> _loadDismissedAnnouncements() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('dismissed_announcements') ?? [];
+    if (mounted) {
+      setState(() {
+        _dismissedAnnouncementIds = list.toSet();
+      });
+    }
+  }
+
+  Future<void> _dismissAnnouncement(String id) async {
+    setState(() {
+      _dismissedAnnouncementIds.add(id);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('dismissed_announcements', _dismissedAnnouncementIds.toList());
   }
 
   Future<void> _initialSecurityCheck() async {
@@ -129,6 +150,13 @@ class _HomeScreenState extends State<HomeScreen> {
               .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
               .toList();
         }
+        final memAnnouncements = memCached['announcements'];
+        if (memAnnouncements is List) {
+          _announcements = memAnnouncements
+              .whereType<Map>()
+              .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
+              .toList();
+        }
       } else {
         _loadCachedDashboard(dashboardKey);
       }
@@ -167,17 +195,28 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadCachedDashboard(String dashboardKey) async {
     final cached = await DashboardSnapshotCache.load(dashboardKey);
     if (!mounted || dashboardKey != _activeDashboardKey) return;
-      setState(() {
-        _cachedWalletData = _asMap(cached?['wallet']);
-        _cachedAccountsData = _asMap(cached?['accounts']);
-        final cachedTransactions = cached?['transactions'];
-        if (cachedTransactions is List) {
-          _cachedTransactionsData = cachedTransactions
-              .whereType<Map>()
-              .map(
-                (item) => item.map(
-                  (k, v) => MapEntry(k.toString(), v),
-                ),
+    setState(() {
+      _cachedWalletData = _asMap(cached?['wallet']);
+      _cachedAccountsData = _asMap(cached?['accounts']);
+      final cachedTransactions = cached?['transactions'];
+      if (cachedTransactions is List) {
+        _cachedTransactionsData = cachedTransactions
+            .whereType<Map>()
+            .map(
+              (item) => item.map(
+                (k, v) => MapEntry(k.toString(), v),
+              ),
+            )
+            .toList();
+      }
+      final cachedAnnouncements = cached?['announcements'];
+      if (cachedAnnouncements is List) {
+        _announcements = cachedAnnouncements
+            .whereType<Map>()
+            .map(
+              (item) => item.map(
+                (k, v) => MapEntry(k.toString(), v),
+              ),
             )
             .toList();
       }
@@ -227,6 +266,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }).catchError((e) {
       if (mounted) _handleAuthError(e);
     });
+    _notificationsFuture!.then((data) {
+      if (!mounted || dashboardKey != _activeDashboardKey) return;
+      setState(() {
+        _announcements = data;
+      });
+      unawaited(
+        DashboardSnapshotCache.save(
+          dashboardKey,
+          announcements: data,
+        ),
+      );
+    }).catchError((_) {});
   }
 
   void _handleAuthError(Object error) {
@@ -554,6 +605,96 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildAnnouncementBanner(Map<String, dynamic> announcement) {
+    final id = announcement['id']?.toString() ?? announcement['message']?.toString() ?? '';
+    final title = announcement['title']?.toString() ?? 'Announcement';
+    final message = (announcement['message'] ?? announcement['text'] ?? '').toString();
+    
+    if (message.isEmpty || _dismissedAnnouncementIds.contains(id)) {
+      return const SizedBox.shrink();
+    }
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFFBBF24), // Amber 400
+            Color(0xFFF59E0B), // Amber 500
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.info_outline_rounded,
+              color: Color(0xFF451A03), // Amber 950
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (title.isNotEmpty && title != 'Announcement')
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Color(0xFF451A03),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  if (title.isNotEmpty && title != 'Announcement') const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Color(0xFF78350F), // Amber 900
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => _dismissAnnouncement(id),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF451A03).withValues(alpha: 0.08),
+                ),
+                child: const Icon(
+                  Icons.close_rounded,
+                  color: Color(0xFF451A03),
+                  size: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   double _homeServiceAspectRatioForWidth(double width) {
     if (width < 340) return 0.98;
     if (width < 380) return 1.04;
@@ -732,7 +873,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            (() {
+              final active = (_announcements ?? [])
+                  .where((a) {
+                    final id = a['id']?.toString() ?? a['message']?.toString() ?? '';
+                    final message = (a['message'] ?? a['text'] ?? '').toString();
+                    return message.isNotEmpty && !_dismissedAnnouncementIds.contains(id);
+                  })
+                  .toList();
+                  
+              if (active.isNotEmpty) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 20),
+                    ...active.map((a) => _buildAnnouncementBanner(a)),
+                    const SizedBox(height: 12),
+                  ],
+                );
+              }
+              return const SizedBox(height: 32);
+            })(),
 
             // THE MASTERPIECE: Classically Premium Balance Section
             Container(
