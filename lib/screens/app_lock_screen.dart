@@ -47,8 +47,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _shakeAnimation = Tween<double>(begin: 0.0, end: 24.0)
-        .chain(CurveTween(curve: const _ShakeCurve()))
+    _shakeAnimation = _ShakeTween(begin: 0.0, end: 24.0)
         .animate(_shakeController);
 
     _checkAndTriggerBiometrics();
@@ -398,12 +397,12 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
   }
 }
 
-// Shake animation curve for incorrect PIN entry feedback
-class _ShakeCurve extends Curve {
-  const _ShakeCurve();
+// Shake animation tween for incorrect PIN entry feedback
+class _ShakeTween extends Tween<double> {
+  _ShakeTween({super.begin, super.end});
   @override
-  double transform(double t) {
-    return math.sin(t * 3 * math.pi);
+  double lerp(double t) {
+    return begin! + (end! - begin!) * math.sin(t * 3 * math.pi);
   }
 }
 

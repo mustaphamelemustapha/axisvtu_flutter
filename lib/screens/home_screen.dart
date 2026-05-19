@@ -17,6 +17,7 @@ import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/purchase_result_sheet.dart';
 import '../widgets/primary_button.dart';
 import 'notification_center_screen.dart';
 import '../widgets/theme_toggle_button.dart';
@@ -450,6 +451,91 @@ class _HomeScreenState extends State<HomeScreen> {
       return double.tryParse((nested['balance'] ?? 0).toString()) ?? 0;
     }
     return 0;
+  }
+
+  void _openReceipt(Map<String, dynamic> tx) {
+    final status = _txStatusOf(tx);
+    final title = _txTitleFor(tx);
+    final isCredit = _txIsCredit(tx);
+    
+    // Build receipt fields nicely
+    final meta = tx['meta'] is Map ? (tx['meta'] as Map).map((k, v) => MapEntry(k.toString(), v)) : const <String, dynamic>{};
+    
+    String getFirst(Iterable<dynamic?> values, {String fallback = '—'}) {
+      for (final value in values) {
+        final text = value?.toString().trim() ?? '';
+        if (text.isNotEmpty) return text;
+      }
+      return fallback;
+    }
+    
+    final recipient = getFirst([
+      meta['recipient_phone'],
+      meta['phone_number'],
+      meta['meter_number'],
+      meta['smartcard_number'],
+      tx['recipient_phone'],
+      tx['phone_number'],
+      tx['meter_number'],
+      tx['smartcard_number'],
+    ]);
+    
+    final network = getFirst([
+      tx['network'],
+      meta['network'],
+      meta['provider'],
+      tx['provider'],
+    ]);
+    
+    final plan = getFirst([
+      meta['plan'],
+      meta['plan_name'],
+      meta['bundle'],
+      meta['package_name'],
+      meta['package_code'],
+      tx['plan'],
+      tx['plan_name'],
+      tx['bundle'],
+      tx['package_code'],
+      tx['service'],
+    ], fallback: title);
+    
+    final reference = getFirst([
+      tx['reference'],
+      tx['external_reference'],
+      meta['reference'],
+      meta['external_reference'],
+      tx['id']?.toString(),
+    ]);
+    
+    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
+    
+    final fields = <ReceiptField>[
+      ReceiptField(label: 'Time', value: _txDateLabel(tx)),
+      ReceiptField(label: 'Sender Name', value: userName),
+      if (recipient != '—') ReceiptField(label: 'Recipient', value: recipient),
+      if (network != '—') ReceiptField(label: 'Network', value: network.toUpperCase()),
+      if (plan != title && plan != '—') ReceiptField(label: 'Plan', value: plan),
+      ReceiptField(label: 'Amount', value: _txAmountLabel(tx).replaceAll('+', '').replaceAll('-', '')),
+      ReceiptField(label: 'Reference', value: reference),
+    ];
+    
+    final subtitleParts = <String>[];
+    if (recipient != '—') subtitleParts.add(recipient);
+    if (network != '—') subtitleParts.add(network.toUpperCase());
+    final subtitle = subtitleParts.isEmpty ? 'Transaction Receipt' : subtitleParts.join(' • ');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => PurchaseResultSheet(
+        status: status,
+        title: isCredit ? 'Credit Added' : title,
+        subtitle: subtitle,
+        fields: fields,
+      ),
+    );
   }
 
   Future<void> _openScreen(Widget screen) async {
@@ -1305,8 +1391,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 final recent = items.take(4).toList();
                 
                 if (recent.isEmpty && !isLoading) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
+                  return GlassCard(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
                     child: Center(
                       child: Text(
                         'No transactions yet',
@@ -1316,14 +1402,32 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 }
                 
-                return Column(
-                  children: recent.map((tx) => _RecentActivityTile(
-                    tx: tx,
-                    title: _txTitleFor(tx),
-                    subtitle: _txSubtitleFor(tx),
-                    amount: _txAmountLabel(tx),
-                    date: _txDateLabel(tx).split(' • ').first,
-                  )).toList(),
+                return GlassCard(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < recent.length; i++) ...[
+                        _RecentActivityTile(
+                          tx: recent[i],
+                          title: _txTitleFor(recent[i]),
+                          subtitle: _txSubtitleFor(recent[i]),
+                          amount: _txAmountLabel(recent[i]),
+                          date: _txDateLabel(recent[i]).split(' • ').first,
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _openReceipt(recent[i]);
+                          },
+                        ),
+                        if (i < recent.length - 1)
+                          Divider(
+                            height: 1,
+                            indent: 72,
+                            endIndent: 16,
+                            color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.08 : 0.05),
+                          ),
+                      ]
+                    ],
+                  ),
                 );
               },
             ),
@@ -1388,7 +1492,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 40),
             Center(
               child: Text(
-                'AXISVTU v1.0.4 • SECURE & TRUSTED',
+                'AXISVTU v1.0.6 • SECURE & TRUSTED',
                 style: TextStyle(
                   color: muted.withValues(alpha: 0.4),
                   fontSize: 10,
@@ -2697,150 +2801,181 @@ class _RecentActivityTile extends StatelessWidget {
     required this.subtitle,
     required this.amount,
     required this.date,
+    required this.onTap,
   });
   final Map<String, dynamic> tx;
   final String title;
   final String subtitle;
   final String amount;
   final String date;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isCredit = tx['tx_type'] == 'wallet_fund';
+    final type = tx['tx_type']?.toString() ?? '';
+    final isCredit = type == 'wallet_fund';
     final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
     final status = (tx['status'] ?? 'success').toString().toLowerCase();
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF161F2C) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.05),
+
+    final gradient = switch (type) {
+      'data' => const LinearGradient(
+          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: (isCredit ? const Color(0xFF10B981) : const Color(0xFF3B82F6)).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-              color: isCredit ? const Color(0xFF10B981) : const Color(0xFF3B82F6),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
-                        color: isDark ? Colors.white : const Color(0xFF1E293B),
-                      ),
+      'airtime' => const LinearGradient(
+          colors: [Color(0xFF10B981), Color(0xFF047857)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      'electricity' => const LinearGradient(
+          colors: [Color(0xFFFBBF24), Color(0xFFD97706)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      'cable' => const LinearGradient(
+          colors: [Color(0xFFA78BFA), Color(0xFF7C3AED)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      'exam' => const LinearGradient(
+          colors: [Color(0xFFFCA5A5), Color(0xFFDC2626)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      'wallet_fund' => const LinearGradient(
+          colors: [Color(0xFF2DD4BF), Color(0xFF0D9488)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      _ => const LinearGradient(
+          colors: [Color(0xFF94A3B8), Color(0xFF475569)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+    };
+
+    final icon = switch (type) {
+      'data' => Icons.wifi_rounded,
+      'airtime' => Icons.phone_iphone_rounded,
+      'electricity' => Icons.bolt_rounded,
+      'cable' => Icons.live_tv_rounded,
+      'exam' => Icons.school_rounded,
+      'wallet_fund' => Icons.add_rounded,
+      _ => Icons.receipt_long_rounded,
+    };
+
+    final statusColor = status == 'success'
+        ? const Color(0xFF10B981)
+        : (status == 'pending' || status == 'processing' || status == 'queued'
+            ? const Color(0xFFF59E0B)
+            : const Color(0xFFEF4444));
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 2),
-                Row(
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Flexible(
-                      child: Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: muted,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 3,
-                      height: 3,
-                      decoration: BoxDecoration(color: muted, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
                     Text(
-                      status.toUpperCase(),
+                      title,
                       style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                        color: status == 'success' ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        letterSpacing: -0.2,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
                       ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: muted,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 3,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: muted.withValues(alpha: 0.4),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          status.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                            color: statusColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
                     amount,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: isCredit ? const Color(0xFF10B981) : (isDark ? Colors.white : const Color(0xFF1E293B)),
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: isCredit ? const Color(0xFF10B981) : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
-                ),
-                Text(
-                  date,
-                  style: TextStyle(fontSize: 10, color: muted, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 2),
+                  Text(
+                    date,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: muted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
-  }
-
-  String _txTitleFor(Map<String, dynamic> tx) {
-    final type = tx['tx_type']?.toString() ?? '';
-    return switch (type) {
-      'data' => 'Data Bundle',
-      'airtime' => 'Airtime',
-      'wallet_fund' => 'Top-up',
-      'cable' => 'Cable TV',
-      'electricity' => 'Electricity',
-      'exam' => 'Exam PIN',
-      _ => 'Service',
-    };
-  }
-
-  String _txSubtitleFor(Map<String, dynamic> tx) {
-    final network = tx['network']?.toString() ?? '';
-    if (network.isNotEmpty) return network.toUpperCase();
-    return tx['reference']?.toString() ?? '';
-  }
-
-  String _txAmountLabel(Map<String, dynamic> tx) {
-    final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
-    final isCredit = tx['tx_type'] == 'wallet_fund';
-    return '${isCredit ? '+' : '-'}₦${amount.toStringAsFixed(0)}';
   }
 }

@@ -1729,14 +1729,20 @@ class _SuccessModalState extends State<_SuccessModal> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
           Container(
             width: 40,
             height: 4,
@@ -1859,10 +1865,9 @@ class _SuccessModalState extends State<_SuccessModal> {
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

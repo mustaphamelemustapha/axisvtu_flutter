@@ -2085,6 +2085,9 @@ class _PurchaseSummaryModal extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),

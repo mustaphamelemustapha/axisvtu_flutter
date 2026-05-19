@@ -126,6 +126,9 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+      ),
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
