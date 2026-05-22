@@ -751,6 +751,10 @@ class _DataScreenState extends State<DataScreen> {
         statusRaw == 'order_onhold';
     final status = ok ? 'success' : (pending ? 'pending' : 'failed');
 
+    if (status != 'failed') {
+      context.read<SessionController>().refreshBalance();
+    }
+
     final selected = _selectedPlan;
     final userName =
         context.read<SessionController>().user?['full_name'] ?? 'User';

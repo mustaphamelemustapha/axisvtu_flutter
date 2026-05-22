@@ -58,6 +58,14 @@ class SessionController extends ChangeNotifier {
   String? get securityPreference => _securityPreference;
   bool get hasSecurityPreference => _securityPreference != null;
 
+  int _balanceRefreshTick = 0;
+  int get balanceRefreshTick => _balanceRefreshTick;
+
+  void refreshBalance() {
+    _balanceRefreshTick++;
+    notifyListeners();
+  }
+
   String _getUserPrefKey(String? identifier) {
     if (identifier == null || identifier.trim().isEmpty) {
       return _securityPrefKey;
@@ -145,39 +153,7 @@ class SessionController extends ChangeNotifier {
     if (_bootstrapped && isAuthenticated && !_updateRequired) return;
     
     try {
-      // 1. Fetch config and check app version FIRST
-      try {
-        final config = await ConfigService.fetchAppConfig();
-        _playStoreUrl = config['play_store_url'] ?? '';
-        _appStoreUrl = config['app_store_url'] ?? '';
-        
-        final minVersionStr = config['min_app_version'] as String?;
-        if (minVersionStr != null && minVersionStr.isNotEmpty) {
-          final packageInfo = await PackageInfo.fromPlatform();
-          final currentVersion = packageInfo.version;
-          _updateRequired = _isVersionOutdated(currentVersion, minVersionStr);
-        }
-      } catch (e) {
-        debugPrint('[Session] Failed to fetch app config: $e');
-      }
-
-      // If update is required, we don't necessarily stop bootstrap, but we do set the flag.
-      // We can continue bootstrapping auth so they stay logged in underneath.
-      
-      try {
-        _token = await _secureStorage.read(key: _tokenKey);
-      } catch (e) {
-        debugPrint('[Session] Secure storage read failed: $e');
-        _token = null;
-      }
-      if (_token != null && _token!.isNotEmpty) {
-        final fetched = await _fetchMe(_token!);
-        if (fetched != null) {
-          _user = fetched;
-        }
-      }
-
-      // 3. Load Security Preference
+      // 1. Load security preference and cached profile locally FIRST (sub-millisecond)
       final prefs = await SharedPreferences.getInstance();
       final identifier = prefs.getString(lastIdentifierKey);
       _securityPreference = prefs.getString(_getUserPrefKey(identifier));
@@ -192,23 +168,78 @@ class SessionController extends ChangeNotifier {
           }
         } catch (_) {}
       }
+
+      // 2. Read stored secure token locally
+      try {
+        _token = await _secureStorage.read(key: _tokenKey);
+      } catch (e) {
+        debugPrint('[Session] Secure storage read failed: $e');
+        _token = null;
+      }
       
       if (_token != null && _token!.isNotEmpty && _securityPreference == 'max') {
         _isLocked = true;
       }
     } catch (e) {
-      // Definitive 401/403 (session expired/token invalid)
-      if (e is ApiException && (e.statusCode == 401 || e.statusCode == 403)) {
-        // Do NOT log out or delete token. Instead, lock the app locally and show lock screen.
-        _isLocked = true;
-      }
-      // We ignore network errors during bootstrap to allow the app to open offline
+      debugPrint('[Session] Local bootstrap failed: $e');
     } finally {
+      // Mark bootstrapped immediately so the splash screen transitions instantly
       _bootstrapped = true;
       notifyListeners();
       
-      // Attempt to initialize Push Notifications (will do nothing until uncommented)
+      // 3. Trigger network checks asynchronously in the background
+      _bootstrapNetworkTasks();
+    }
+  }
+
+  Future<void> _bootstrapNetworkTasks() async {
+    // A. Fetch config and check app version in the background
+    try {
+      final config = await ConfigService.fetchAppConfig();
+      _playStoreUrl = config['play_store_url'] ?? '';
+      _appStoreUrl = config['app_store_url'] ?? '';
+      
+      final minVersionStr = config['min_app_version'] as String?;
+      if (minVersionStr != null && minVersionStr.isNotEmpty) {
+        final packageInfo = await PackageInfo.fromPlatform();
+        final currentVersion = packageInfo.version;
+        final isOutdated = _isVersionOutdated(currentVersion, minVersionStr);
+        if (isOutdated != _updateRequired) {
+          _updateRequired = isOutdated;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('[Session] Failed to fetch app config: $e');
+    }
+
+    // B. Verify and update profile details in the background if token exists
+    if (_token != null && _token!.isNotEmpty) {
+      try {
+        final fetched = await _fetchMe(_token!);
+        if (fetched != null) {
+          _user = fetched;
+          _lastUser = fetched;
+          
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_lastUserJsonKey, jsonEncode(fetched));
+          notifyListeners();
+        }
+      } catch (e) {
+        debugPrint('[Session] Background profile fetch failed: $e');
+        if (e is ApiException && (e.statusCode == 401 || e.statusCode == 403)) {
+          // Session expired: Lock app locally and display lock screen
+          _isLocked = true;
+          notifyListeners();
+        }
+      }
+    }
+    
+    // C. Initialize Push Notifications in the background
+    try {
       PushNotificationService.initialize(this);
+    } catch (e) {
+      debugPrint('[Session] Failed to initialize push notifications: $e');
     }
   }
 

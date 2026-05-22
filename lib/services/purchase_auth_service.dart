@@ -132,16 +132,36 @@ class PurchaseAuthService {
             try {
               await service.verify(savedPin);
               return true;
-            } catch (_) {
-              // If saved PIN fails, it might be outdated
-              await BiometricService.deletePin();
+            } on ApiException catch (e) {
+              final isValidationError = e.statusCode == 400 ||
+                  e.statusCode == 401 ||
+                  e.statusCode == 403 ||
+                  e.statusCode == 404 ||
+                  e.statusCode == 422 ||
+                  e.statusCode == 423 ||
+                  e.statusCode == 429;
+              if (isValidationError) {
+                await BiometricService.deletePin();
+              } else {
+                if (context.mounted) {
+                  _showSnack(context, _friendlyError(e.message, e.statusCode));
+                }
+                return false;
+              }
+            } catch (e) {
+              if (context.mounted) {
+                _showSnack(context, _friendlyError(e.toString()));
+              }
+              return false;
             }
           }
           // Biometric worked but no valid saved PIN — continue to manual entry
-          _showSnack(
-            context,
-            'Biometric verified. Please enter your PIN once to enable touch purchase.',
-          );
+          if (context.mounted) {
+            _showSnack(
+              context,
+              'Biometric verified. Please enter your PIN once to enable touch purchase.',
+            );
+          }
         } else if (preferredMethod == methodBiometric) {
           return false;
         }

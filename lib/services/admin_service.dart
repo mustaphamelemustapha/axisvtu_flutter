@@ -40,4 +40,51 @@ class AdminService {
     final list = data['data'] ?? data['users'] ?? data['items'] ?? [];
     return list is List ? list : [];
   }
+
+  /// Fetch all broadcast announcements for admin management
+  Future<List<dynamic>> getAdminAnnouncements() async {
+    final data = await _client.get('/notifications/broadcast/admin');
+    final list = data['data'] ?? data['items'] ?? [];
+    return list is List ? list : [];
+  }
+
+  /// Create a new broadcast announcement
+  Future<Map<String, dynamic>> createAnnouncement({
+    required String title,
+    required String message,
+    required String level,
+    required bool isActive,
+    DateTime? startsAt,
+    DateTime? endsAt,
+  }) async {
+    final body = <String, dynamic>{
+      'title': title,
+      'message': message,
+      'level': level,
+      'is_active': isActive,
+      'starts_at': startsAt?.toUtc().toIso8601String(),
+      'ends_at': endsAt?.toUtc().toIso8601String(),
+    };
+    return _client.post('/notifications/broadcast/admin', body);
+  }
+
+  /// Update an existing broadcast announcement
+  Future<Map<String, dynamic>> updateAnnouncement(
+    int id, {
+    String? title,
+    String? message,
+    String? level,
+    bool? isActive,
+    DateTime? startsAt,
+    DateTime? endsAt,
+  }) async {
+    final body = <String, dynamic>{};
+    if (title != null) body['title'] = title;
+    if (message != null) body['message'] = message;
+    if (level != null) body['level'] = level;
+    if (isActive != null) body['is_active'] = isActive;
+    if (startsAt != null) body['starts_at'] = startsAt.toUtc().toIso8601String();
+    if (endsAt != null) body['ends_at'] = endsAt.toUtc().toIso8601String();
+    return _client.patch('/notifications/broadcast/admin/$id', body);
+  }
 }

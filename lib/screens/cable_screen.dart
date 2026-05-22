@@ -338,6 +338,9 @@ class _CableScreenState extends State<CableScreen> {
     required String reference,
     required List<ReceiptField> fields,
   }) {
+    if (status != 'failed') {
+      context.read<SessionController>().refreshBalance();
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

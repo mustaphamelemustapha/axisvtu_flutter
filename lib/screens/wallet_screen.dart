@@ -11,15 +11,12 @@ import '../services/dashboard_snapshot_cache.dart';
 import '../services/auth_service.dart';
 import '../services/transactions_service.dart';
 import '../services/wallet_service.dart';
-import 'airtime_screen.dart';
-import 'data_screen.dart';
-import 'electricity_screen.dart';
-import 'profile_screen.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/primary_button.dart';
+import '../widgets/animated_balance_text.dart';
 
 const double _walletInsightAspectRatio = 1.46;
 
@@ -59,6 +56,7 @@ class _WalletScreenState extends State<WalletScreen> {
   String _activeDashboardKey = '';
   Timer? _pollTimer;
   int _activeAccountIndex = 0;
+  int? _activeBalanceTick;
 
   @override
   void initState() {
@@ -69,18 +67,30 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final token = (context.watch<SessionController>().token ?? '').trim();
+    final session = context.watch<SessionController>();
+    final token = (session.token ?? '').trim();
+    final balanceTick = session.balanceRefreshTick;
     final dashboardKey =
         DashboardSnapshotCache.identityFromUser(
-          context.read<SessionController>().user,
+          session.user,
         ) ??
         token;
+
+    bool tickChanged = false;
+    if (_activeBalanceTick == null) {
+      _activeBalanceTick = balanceTick;
+    } else if (balanceTick != _activeBalanceTick) {
+      _activeBalanceTick = balanceTick;
+      tickChanged = true;
+    }
+
     if (token.isNotEmpty &&
         dashboardKey.isNotEmpty &&
         (token != _activeToken ||
             _walletFuture == null ||
             _accountsFuture == null ||
-            dashboardKey != _activeDashboardKey)) {
+            dashboardKey != _activeDashboardKey ||
+            tickChanged)) {
       if (_activeDashboardKey.isNotEmpty && dashboardKey != _activeDashboardKey) {
         _cachedWalletData = null;
         _cachedAccountsData = null;
@@ -720,60 +730,31 @@ class _WalletScreenState extends State<WalletScreen> {
                             ],
                           ),
                           const SizedBox(height: 6),
-                          AnimatedSwitcher(
-                            duration: AxisDurations.normal,
-                            switchInCurve: Curves.easeOut,
-                            switchOutCurve: Curves.easeIn,
-                            layoutBuilder: (currentChild, previousChildren) {
-                              return Stack(
-                                alignment: Alignment.centerLeft,
-                                children: [
-                                  ...previousChildren,
-                                  if (currentChild != null) currentChild,
-                                ],
-                              );
-                            },
-                            transitionBuilder: (child, animation) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(0, 0.08),
-                                    end: Offset.zero,
-                                  ).animate(
-                                    CurvedAnimation(
-                                      parent: animation,
-                                      curve: Curves.easeOut,
-                                    ),
-                                  ),
-                                  child: child,
+                          AnimatedBalanceText(
+                            value: balance,
+                            hideBalance: _hideBalance,
+                            currencySymbol: '₦',
+                            style: Theme.of(context)
+                                .textTheme
+                                .displaySmall
+                                ?.copyWith(
+                                  color: heroText,
+                                  fontWeight: FontWeight.w800,
                                 ),
-                              );
-                            },
-                            child: _hideBalance
-                                ? Text(
-                                    '₦ ••••••',
-                                    key: const ValueKey('hidden_balance'),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .displaySmall
-                                        ?.copyWith(
-                                          color: heroText,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 2.4,
-                                        ),
-                                  )
-                                : _AnimatedBalance(
-                                    key: const ValueKey('visible_balance'),
-                                    value: balance,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .displaySmall
-                                        ?.copyWith(
-                                          color: heroText,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                  ),
+                            decimalStyle: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  color: heroText.withValues(alpha: 0.5),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                            symbolStyle: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  color: heroText.withValues(alpha: 0.7),
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ],
                       );
@@ -2243,24 +2224,6 @@ class _DashboardBalanceError extends StatelessWidget {
         ),
       ],
     );
-  }
-}
-
-class _AnimatedBalance extends StatelessWidget {
-  const _AnimatedBalance({
-    super.key,
-    required this.value,
-    required this.style,
-  });
-
-  final double value;
-  final TextStyle? style;
-
-  @override
-  Widget build(BuildContext context) {
-    final formatter = NumberFormat("#,##0.00", "en_US");
-    final formatted = formatter.format(value);
-    return Text('₦$formatted', style: style);
   }
 }
 

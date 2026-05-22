@@ -22,6 +22,7 @@ import 'quick_auth_screen.dart';
 import 'welcome_screen.dart';
 import 'about_screen.dart';
 import 'referral_screen.dart';
+import 'admin_announcements_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -1129,9 +1130,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (_biometricEnabled) {
+        final session = context.read<SessionController>();
         setState(() => _biometricEnabled = false);
         await BiometricService.setAppLockEnabled(false);
-        final session = context.read<SessionController>();
+        await BiometricService.deletePin();
         await session.disableBiometrics();
         return;
       }
@@ -1140,12 +1142,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
         reason: 'Authenticate to enable biometric unlock',
       );
       if (authenticated) {
+        if (!mounted) return;
+        final session = context.read<SessionController>();
+        final token = (session.token ?? '').trim();
+        if (token.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Session expired. Please log in again.')),
+          );
+          return;
+        }
+
+        final pinService = TransactionPinService(token: token);
+
+        try {
+          final status = await pinService.status();
+          if (!status.isSet) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please create a transaction PIN in settings first.'),
+              ),
+            );
+            return;
+          }
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Unable to verify PIN status: ${e.toString()}'),
+            ),
+          );
+          return;
+        }
+
+        if (!mounted) return;
+
+        final pin = await PinEntrySheet.show(
+          context,
+          title: 'Enter Transaction PIN',
+          subtitle: 'Verify your PIN to secure biometric purchases.',
+          confirmLabel: 'Verify',
+          pinLength: 4,
+          onSubmit: (val) async {
+            try {
+              await pinService.verify(val);
+              return null; // success
+            } on ApiException catch (e) {
+              if (e.statusCode == 401 || e.statusCode == 403 || e.statusCode == 423 || e.statusCode == 429) {
+                return 'Incorrect PIN, try again.';
+              }
+              return e.message;
+            } catch (e) {
+              return e.toString();
+            }
+          },
+        );
+
+        if (pin == null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Biometric activation cancelled.')),
+          );
+          return;
+        }
+
+        await BiometricService.savePin(pin);
+
         setState(() => _biometricEnabled = true);
         await BiometricService.setAppLockEnabled(true);
         // Also save the token specifically for biometrics so it persists after logout
-        final session = context.read<SessionController>();
         await session.enableBiometrics();
-        
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Biometric unlock enabled.')),
@@ -1474,6 +1541,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
 
             // Settings List
+            if (session.isAdmin)
+              _ProfileTile(
+                label: 'Manage Announcements',
+                icon: Icons.campaign_rounded,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminAnnouncementsScreen(),
+                  ),
+                ),
+                backgroundColor: tileBg,
+              ),
             _ProfileTile(
               label: 'Account',
               icon: Icons.person_outline_rounded,

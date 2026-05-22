@@ -1,17 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'api_client.dart';
 import '../config.dart';
 import '../state/session.dart';
+import '../widgets/interactive_notification_banner.dart';
 
 class PushNotificationService {
   static const _pushNotificationsKey = 'axis_profile_push_notifications_v1';
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   static Future<void> initialize(SessionController session) async {
     // Only support Android push notifications for now, as requested
@@ -71,6 +72,16 @@ class PushNotificationService {
           debugPrint('Message data: ${message.data}');
           if (message.notification != null) {
             debugPrint('Message also contained a notification: ${message.notification}');
+            final context = navigatorKey.currentContext;
+            if (context != null && context.mounted) {
+              final title = message.notification?.title ?? 'AxisVTU';
+              final body = message.notification?.body ?? '';
+              InteractiveNotificationBanner.show(
+                context,
+                title: title,
+                message: body,
+              );
+            }
           }
         });
       }

@@ -30,6 +30,7 @@ import 'referral_screen.dart';
 import '../services/purchase_auth_service.dart';
 import '../services/transaction_pin_service.dart';
 import 'wallet_screen.dart';
+import '../widgets/animated_balance_text.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onNavigateTab});
@@ -56,12 +57,35 @@ class _HomeScreenState extends State<HomeScreen> {
   String _activeToken = '';
   String _activeDashboardKey = '';
   bool _hideBalance = false;
+  int? _activeBalanceTick;
+  Timer? _refreshTimer;
+
+  void _startRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (!mounted) return;
+      final session = context.read<SessionController>();
+      final token = (session.token ?? '').trim();
+      final dashboardKey =
+          DashboardSnapshotCache.identityFromUser(session.user) ?? token;
+      if (token.isNotEmpty && dashboardKey.isNotEmpty) {
+        _reloadDashboard(token, dashboardKey);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
     _loadBalancePreference();
     _loadDismissedAnnouncements();
+    _startRefreshTimer();
     Future.delayed(Duration.zero, () {
       if (mounted) {
         _initialSecurityCheck();
@@ -117,19 +141,28 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final token = (context.watch<SessionController>().token ?? '').trim();
+    final session = context.watch<SessionController>();
+    final token = (session.token ?? '').trim();
+    final balanceTick = session.balanceRefreshTick;
     final dashboardKey =
-        DashboardSnapshotCache.identityFromUser(
-          context.read<SessionController>().user,
-        ) ??
-        token;
+        DashboardSnapshotCache.identityFromUser(session.user) ?? token;
+
+    bool tickChanged = false;
+    if (_activeBalanceTick == null) {
+      _activeBalanceTick = balanceTick;
+    } else if (balanceTick != _activeBalanceTick) {
+      _activeBalanceTick = balanceTick;
+      tickChanged = true;
+    }
+
     if (token.isNotEmpty &&
         dashboardKey.isNotEmpty &&
         (token != _activeToken ||
             _walletFuture == null ||
             _accountsFuture == null ||
             _transactionsFuture == null ||
-            dashboardKey != _activeDashboardKey)) {
+            dashboardKey != _activeDashboardKey ||
+            tickChanged)) {
       if (_activeDashboardKey.isNotEmpty && dashboardKey != _activeDashboardKey) {
         _cachedWalletData = null;
         _cachedAccountsData = null;
@@ -948,57 +981,33 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Text(
-                                '₦',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
                               Expanded(
-                                child: _hideBalance
-                                    ? Padding(
-                                        padding: const EdgeInsets.only(top: 4.0),
-                                        child: Text(
-                                          '••••••••',
-                                          style: TextStyle(
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.white,
-                                            letterSpacing: 4,
-                                          ),
-                                        ),
-                                      )
-                                    : FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: Alignment.centerLeft,
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                                          textBaseline: TextBaseline.alphabetic,
-                                          children: [
-                                            Text(
-                                              _formatNaira(balance).split('.').first,
-                                              style: const TextStyle(
-                                                fontSize: 38,
-                                                fontWeight: FontWeight.w900,
-                                                color: Colors.white,
-                                                letterSpacing: -1,
-                                                fontFeatures: [FontFeature.tabularFigures()],
-                                              ),
-                                            ),
-                                            Text(
-                                              '.${_formatNaira(balance).split('.').last}',
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white.withValues(alpha: 0.3),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: AnimatedBalanceText(
+                                    value: balance,
+                                    hideBalance: _hideBalance,
+                                    currencySymbol: '₦',
+                                    style: const TextStyle(
+                                      fontSize: 38,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      letterSpacing: -1,
+                                      fontFeatures: [FontFeature.tabularFigures()],
+                                    ),
+                                    decimalStyle: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withValues(alpha: 0.3),
+                                    ),
+                                    symbolStyle: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                ),
                               ),
                               const SizedBox(width: 12),
                               GestureDetector(

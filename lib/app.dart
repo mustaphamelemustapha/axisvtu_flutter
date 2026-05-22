@@ -18,6 +18,7 @@ import 'screens/force_update_screen.dart';
 import 'screens/security_preference_screen.dart';
 import 'screens/app_lock_screen.dart';
 import 'screens/quick_auth_screen.dart';
+import 'services/push_notification_service.dart';
 
 class AxisVTUApp extends StatelessWidget {
   const AxisVTUApp({super.key});
@@ -33,6 +34,7 @@ class AxisVTUApp extends StatelessWidget {
         builder: (context) {
           final mode = context.watch<ThemeController>().mode;
           return MaterialApp(
+            navigatorKey: PushNotificationService.navigatorKey,
             title: 'AxisVTU',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(),
@@ -103,6 +105,7 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
     } else if (state == AppLifecycleState.resumed) {
       final session = context.read<SessionController>();
       if (session.isAuthenticated) {
+        session.refreshBalance();
         final pausedAt = _pausedTime;
         if (pausedAt != null) {
           final difference = DateTime.now().difference(pausedAt);

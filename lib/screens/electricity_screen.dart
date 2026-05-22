@@ -414,6 +414,9 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     required String reference,
     required List<ReceiptField> fields,
   }) {
+    if (status != 'failed') {
+      context.read<SessionController>().refreshBalance();
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
