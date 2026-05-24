@@ -21,7 +21,7 @@ class InteractiveNotificationBanner extends StatefulWidget {
     BuildContext context, {
     required String title,
     required String message,
-    String logoAsset = 'assets/brand/axisvtu-icon.png',
+    String logoAsset = 'assets/brand/meledata-icon.png',
   }) {
     // Generate tactile feedback to simulate native notification arrival
     HapticFeedback.lightImpact();

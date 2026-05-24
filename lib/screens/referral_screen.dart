@@ -104,28 +104,33 @@ class _ReferralScreenState extends State<ReferralScreen> {
     // Ensure we don't double up the domain
     String link = (data['referral_link'] ?? '').toString().trim();
     
-    // Fix the "double axisvtu" bug: axisvtu.vercel.app -> axisvtu.com
-    if (link.contains('axisvtu.vercel.app')) {
-      link = link.replaceFirst('https://axisvtu.vercel.app', 'https://axisvtu.com');
-      link = link.replaceFirst('axisvtu.vercel.app', 'axisvtu.com');
+    // Fix the "double meledata" bug: meledata.vercel.app -> meledata.ng
+    if (link.contains('meledata.vercel.app') || link.contains('axisvtu.vercel.app')) {
+      link = link.replaceFirst('https://meledata.vercel.app', 'https://meledata.ng');
+      link = link.replaceFirst('meledata.vercel.app', 'meledata.ng');
+      link = link.replaceFirst('https://axisvtu.vercel.app', 'https://meledata.ng');
+      link = link.replaceFirst('axisvtu.vercel.app', 'meledata.ng');
     } else if (link.contains('.vercel.app')) {
-      link = link.replaceAll('.vercel.app', 'axisvtu.com');
+      link = link.replaceAll('.vercel.app', 'meledata.ng');
     }
 
     // Final check to ensure it's the correct production domain
-    if (!link.startsWith('https://axisvtu.com')) {
+    if (!link.startsWith('https://meledata.ng')) {
       if (link.contains('/signup?')) {
         final query = link.split('?').last;
-        link = 'https://axisvtu.com/signup?$query';
+        link = 'https://meledata.ng/signup?$query';
       }
     }
     
     // Absolute permanent fix for any doubling
-    if (link.contains('axisvtu.comaxisvtu.com')) {
-      link = link.replaceAll('axisvtu.comaxisvtu.com', 'axisvtu.com');
+    if (link.contains('meledata.ngmeledata.ng')) {
+      link = link.replaceAll('meledata.ngmeledata.ng', 'meledata.ng');
     }
-    if (link.contains('axisvtu.com/axisvtu')) {
-      link = link.replaceFirst('axisvtu.com/axisvtu', 'axisvtu.com');
+    if (link.contains('meledata.ng/meledata')) {
+      link = link.replaceFirst('meledata.ng/meledata', 'meledata.ng');
+    }
+    if (link.contains('meledata.ng/axisvtu')) {
+      link = link.replaceFirst('meledata.ng/axisvtu', 'meledata.ng');
     }
     
     return link;

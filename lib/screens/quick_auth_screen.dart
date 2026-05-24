@@ -241,7 +241,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                         color: Colors.white,
                         padding: const EdgeInsets.all(10),
                         child: Image.asset(
-                          'assets/brand/axisvtu-logo.png',
+                          'assets/brand/meledata-logo.png',
                           fit: BoxFit.contain,
                         ),
                       ),

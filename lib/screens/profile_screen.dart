@@ -1704,7 +1704,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _SocialTile(
               label: 'Instagram',
               icon: Icons.camera_alt_outlined,
-              onTap: () => launchUrl(Uri.parse('https://instagram.com/axisvtu.app')),
+              onTap: () => launchUrl(Uri.parse('https://instagram.com/meledata')),
               backgroundColor: tileBg,
             ),
             const SizedBox(height: 40),

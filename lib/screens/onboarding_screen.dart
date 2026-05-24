@@ -212,7 +212,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(11),
-                          child: Image.asset('assets/brand/axisvtu-icon.png', fit: BoxFit.cover),
+                          child: Image.asset('assets/brand/meledata-icon.png', fit: BoxFit.cover),
                         ),
                       ),
                       const SizedBox(width: 8),

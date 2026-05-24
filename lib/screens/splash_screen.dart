@@ -38,7 +38,7 @@ class SplashScreen extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(30),
                   child: Image.asset(
-                    'assets/brand/axisvtu-icon.png',
+                    'assets/brand/meledata-icon.png',
                     fit: BoxFit.cover,
                   ),
                 ),

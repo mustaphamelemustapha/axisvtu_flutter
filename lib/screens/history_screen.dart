@@ -678,7 +678,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   child: Padding(
                                     padding: const EdgeInsets.all(6),
                                     child: Image.asset(
-                                      'assets/brand/axisvtu-logo.png',
+                                      'assets/brand/meledata-logo.png',
                                       fit: BoxFit.contain,
                                       errorBuilder: (c, e, s) => Icon(
                                         _iconFor(tx),

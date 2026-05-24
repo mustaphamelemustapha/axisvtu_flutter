@@ -3365,7 +3365,7 @@ class _ShareableReceipt extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(6),
                     child: Image.asset(
-                      'assets/brand/axisvtu-logo.png',
+                      'assets/brand/meledata-logo.png',
                       fit: BoxFit.contain,
                       errorBuilder: (c, e, s) => Icon(
                         ok ? Icons.local_florist : Icons.error_outline_rounded,
@@ -3484,7 +3484,7 @@ class _ShareableReceipt extends StatelessWidget {
               const Divider(height: 1),
               const SizedBox(height: 24),
               const Text(
-                'axisvtu.com',
+                'meledata.ng',
                 style: TextStyle(color: Colors.grey, fontSize: 11),
               ),
             ],

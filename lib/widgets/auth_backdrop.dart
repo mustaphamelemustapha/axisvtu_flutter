@@ -101,7 +101,7 @@ class AuthBackdrop extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(24),
                                   child: Image.asset(
-                                    'assets/brand/axisvtu-icon.png',
+                                    'assets/brand/meledata-icon.png',
                                     width: 98,
                                     height: 98,
                                     fit: BoxFit.cover,
@@ -235,7 +235,7 @@ class _BrandPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset('assets/brand/axisvtu-icon.png', width: 18, height: 18),
+          Image.asset('assets/brand/meledata-icon.png', width: 18, height: 18),
           const SizedBox(width: 8),
           Text(
             'MELE DATA',

@@ -113,7 +113,7 @@ class AuthHeroBlock extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(compact ? 20 : 28),
                       child: Image.asset(
-                        'assets/brand/axisvtu-icon.png',
+                        'assets/brand/meledata-icon.png',
                         width: compact ? logoSize * 0.8 : logoSize,
                         height: compact ? logoSize * 0.8 : logoSize,
                         fit: BoxFit.cover,

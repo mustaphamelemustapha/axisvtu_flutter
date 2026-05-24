@@ -2908,7 +2908,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Need help? Contact support at axisvtu.com',
+            'Need help? Contact support at meledata.ng',
             style: TextStyle(fontSize: 11, color: muted),
           ),
         ],

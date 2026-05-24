@@ -172,7 +172,7 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
                                 child: Image.asset(
-                                  'assets/brand/axisvtu-logo.png',
+                                  'assets/brand/meledata-logo.png',
                                   fit: BoxFit.contain,
                                   errorBuilder: (c, e, s) => Icon(
                                     _isSuccess ? Icons.local_florist : Icons.error_outline_rounded, 
@@ -236,7 +236,7 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                           const Divider(height: 1),
                           const SizedBox(height: 24),
                           const Text(
-                            'axisvtu.com',
+                            'meledata.ng',
                             style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
                           ),
                         ],
