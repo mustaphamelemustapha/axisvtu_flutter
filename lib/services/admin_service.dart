@@ -87,4 +87,51 @@ class AdminService {
     if (endsAt != null) body['ends_at'] = endsAt.toUtc().toIso8601String();
     return _client.patch('/notifications/broadcast/admin/$id', body);
   }
+
+  /// List all reward campaigns
+  Future<Map<String, dynamic>> listCampaigns({int page = 1, int pageSize = 50}) async {
+    return _client.get('/admin/agent/campaigns?page=$page&page_size=$pageSize');
+  }
+
+  /// Create a new reward campaign
+  Future<Map<String, dynamic>> createCampaign(Map<String, dynamic> campaignData) async {
+    return _client.post('/admin/agent/campaigns', campaignData);
+  }
+
+  /// Update an existing reward campaign
+  Future<Map<String, dynamic>> updateCampaign(int campaignId, Map<String, dynamic> updates) async {
+    return _client.put('/admin/agent/campaigns/$campaignId', updates);
+  }
+
+  /// Delete or deactivate a reward campaign
+  Future<Map<String, dynamic>> deleteCampaign(int campaignId) async {
+    return _client.delete('/admin/agent/campaigns/$campaignId');
+  }
+
+  /// List agent stats (optionally search/filter using query `q`)
+  Future<Map<String, dynamic>> listAgentStats({String? query, int page = 1, int pageSize = 50}) async {
+    final qParam = query != null && query.isNotEmpty ? '&q=${Uri.encodeComponent(query)}' : '';
+    return _client.get('/admin/agent/stats?page=$page&page_size=$pageSize$qParam');
+  }
+
+  /// Override an agent's stats
+  Future<Map<String, dynamic>> overrideAgentStats(int agentId, Map<String, dynamic> stats) async {
+    return _client.post('/admin/agent/stats/$agentId/override', stats);
+  }
+
+  /// Fetch an agent's rewards list
+  Future<Map<String, dynamic>> getAgentRewards(int agentId, {int page = 1, int pageSize = 50}) async {
+    return _client.get('/admin/agent/stats/$agentId/rewards?page=$page&page_size=$pageSize');
+  }
+
+  /// Award a manual reward to an agent
+  Future<Map<String, dynamic>> manualRewardAgent(int agentId, {int? campaignId, double? amount, required String reason}) async {
+    final body = <String, dynamic>{
+      'reason': reason,
+    };
+    if (campaignId != null) body['campaign_id'] = campaignId;
+    if (amount != null) body['amount'] = amount;
+    return _client.post('/admin/agent/stats/$agentId/manual-reward', body);
+  }
 }
+

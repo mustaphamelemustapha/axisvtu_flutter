@@ -24,6 +24,7 @@ import 'about_screen.dart';
 import 'referral_screen.dart';
 import 'admin_announcements_screen.dart';
 import 'agent_dashboard_screen.dart';
+import 'admin_agent_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -1575,6 +1576,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const AdminAnnouncementsScreen(),
+                  ),
+                ),
+                backgroundColor: tileBg,
+              ),
+            if (session.isAdmin)
+              _ProfileTile(
+                label: 'Manage Agents',
+                icon: Icons.support_agent_rounded,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminAgentScreen(),
                   ),
                 ),
                 backgroundColor: tileBg,

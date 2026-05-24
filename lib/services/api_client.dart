@@ -99,6 +99,44 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> put(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final uri = Uri.parse('$baseUrl$path');
+    _log('API PUT: $uri');
+    try {
+      final resp = await http
+          .put(uri, headers: _headers(), body: jsonEncode(body))
+          .timeout(_timeout);
+      _log('API RESP [$path]: ${resp.statusCode}');
+      return _decode(resp, path);
+    } on TimeoutException catch (e) {
+      _log('API ERR [$path]: Timeout - $e');
+      throw ApiException(
+        408,
+        'Request timed out. The server is taking too long to respond.',
+      );
+    } on SocketException catch (e) {
+      _log('API ERR [$path]: SocketException - $e');
+      throw ApiException(
+        503,
+        'Unable to connect. Check your internet connection and try again.',
+      );
+    } on http.ClientException catch (e) {
+      _log('API ERR [$path]: ClientException - $e');
+      throw ApiException(
+        503,
+        'Unable to reach server right now. Please try again shortly.',
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      _log('API ERR [$path]: Unexpected - $e');
+      throw ApiException(500, 'Unexpected error. Please try again.');
+    }
+  }
+
   Future<Map<String, dynamic>> patch(
     String path,
     Map<String, dynamic> body,

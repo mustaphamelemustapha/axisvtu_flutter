@@ -70,3 +70,82 @@ class RewardCampaign {
     );
   }
 }
+
+class AdminAgentStat {
+  final int id;
+  final int agentId;
+  final String agentEmail;
+  final String agentFullName;
+  final double totalDataMb;
+  final double totalAirtimeAmount;
+  final int totalTransactions;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  AdminAgentStat({
+    required this.id,
+    required this.agentId,
+    required this.agentEmail,
+    required this.agentFullName,
+    required this.totalDataMb,
+    required this.totalAirtimeAmount,
+    required this.totalTransactions,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory AdminAgentStat.fromJson(Map<String, dynamic> json) {
+    return AdminAgentStat(
+      id: json['id'],
+      agentId: json['agent_id'],
+      agentEmail: json['agent_email'] ?? '',
+      agentFullName: json['agent_full_name'] ?? '',
+      totalDataMb: (json['total_data_mb'] ?? 0).toDouble(),
+      totalAirtimeAmount: (json['total_airtime_amount'] ?? 0).toDouble(),
+      totalTransactions: json['total_transactions'] ?? 0,
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+}
+
+class AdminAgentReward {
+  final int id;
+  final int agentId;
+  final String agentEmail;
+  final int campaignId;
+  final String campaignTitle;
+  final double amount;
+  final String status;
+  final String transactionReference;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  AdminAgentReward({
+    required this.id,
+    required this.agentId,
+    required this.agentEmail,
+    required this.campaignId,
+    required this.campaignTitle,
+    required this.amount,
+    required this.status,
+    required this.transactionReference,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory AdminAgentReward.fromJson(Map<String, dynamic> json) {
+    return AdminAgentReward(
+      id: json['id'],
+      agentId: json['agent_id'],
+      agentEmail: json['agent_email'] ?? '',
+      campaignId: json['campaign_id'] ?? 0,
+      campaignTitle: json['campaign_title'] ?? '',
+      amount: (json['amount'] ?? 0).toDouble(),
+      status: json['status'] ?? '',
+      transactionReference: json['transaction_reference'] ?? '',
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+}

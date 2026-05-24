@@ -52,13 +52,17 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
     
     try {
       if (_agentService == null) return;
-      final stats = await _agentService!.getDashboardStats();
-      final campaigns = await _agentService!.getActiveCampaigns();
+      
+      // Parallelize both API requests to double loading speed
+      final results = await Future.wait([
+        _agentService!.getDashboardStats(),
+        _agentService!.getActiveCampaigns(),
+      ]);
       
       if (mounted) {
         setState(() {
-          _stats = stats;
-          _campaigns = campaigns;
+          _stats = results[0] as AgentDashboardStats;
+          _campaigns = results[1] as List<RewardCampaign>;
           _isLoading = false;
         });
       }
@@ -101,33 +105,47 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
 
   @override
   Widget build(BuildContext context) {
-    // Determine if we should force dark mode colors (since the requested design is very dark-themed)
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF12141D) : const Color(0xFF151722);
-    final cardColor = isDark ? const Color(0xFF1C1E2A) : const Color(0xFF1E2130);
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = isDark ? const Color(0xFF111827) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        title: const Text('Agent', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
-        backgroundColor: bgColor,
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Agent Dashboard',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: textPrimary,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.people_outline),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ReferralScreen())),
+            icon: const Icon(Icons.people_outline_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ReferralScreen()),
+            ),
             tooltip: 'Referrals',
           ),
           const SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.blueAccent,
+          indicatorColor: primaryColor,
           indicatorSize: TabBarIndicatorSize.label,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.grey.shade600,
-          isScrollable: true,
+          labelColor: textPrimary,
+          unselectedLabelColor: textSecondary,
+          isScrollable: false,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           tabs: const [
             Tab(text: 'Dashboard'),
             Tab(text: 'Offers'),
@@ -135,7 +153,13 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.blueAccent))
+          ? TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSkeletonLoader(context, cardColor),
+                _buildOffersSkeleton(cardColor),
+              ],
+            )
           : _error.isNotEmpty
               ? Center(
                   child: Column(
@@ -144,9 +168,12 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                       Text(_error, style: const TextStyle(color: Colors.redAccent)),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: cardColor),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: cardColor,
+                          side: BorderSide(color: borderColor),
+                        ),
                         onPressed: _fetchData,
-                        child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                        child: Text('Retry', style: TextStyle(color: textPrimary)),
                       ),
                     ],
                   ),
@@ -156,22 +183,31 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                   children: [
                     RefreshIndicator(
                       onRefresh: _fetchData,
-                      color: Colors.blueAccent,
+                      color: primaryColor,
                       backgroundColor: cardColor,
-                      child: _buildDashboardTab(cardColor),
+                      child: _buildDashboardTab(context, cardColor, borderColor, textPrimary, textSecondary),
                     ),
                     RefreshIndicator(
                       onRefresh: _fetchData,
-                      color: Colors.blueAccent,
+                      color: primaryColor,
                       backgroundColor: cardColor,
-                      child: _buildOffersTab(cardColor),
+                      child: _buildOffersTab(cardColor, borderColor, textPrimary, textSecondary),
                     ),
                   ],
                 ),
     );
   }
 
-  Widget _buildDashboardTab(Color cardColor) {
+  Widget _buildDashboardTab(
+    BuildContext context,
+    Color cardColor,
+    Color borderColor,
+    Color textPrimary,
+    Color textSecondary,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16.0),
@@ -181,27 +217,36 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           decoration: BoxDecoration(
             color: cardColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: borderColor, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withValues(alpha: 0.2),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Wallet Balance',
-                style: TextStyle(color: Colors.white70, fontSize: 16),
+                style: TextStyle(color: textSecondary, fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
                 ),
                 child: Text(
                   '₦${_stats!.walletBalance.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: primaryColor,
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
@@ -221,6 +266,9 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
           children: [
             _buildStatCard(
               cardColor: cardColor,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
               title: 'Data sold',
               value: '${_stats!.todayDataGb} GB',
               badgeText: 'Live',
@@ -228,6 +276,9 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
             ),
             _buildStatCard(
               cardColor: cardColor,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
               title: 'Airtime sold',
               value: '₦${_stats!.todayAirtime.toStringAsFixed(0)}',
               badgeText: 'Live',
@@ -235,6 +286,9 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
             ),
             _buildStatCard(
               cardColor: cardColor,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
               title: 'Data sold',
               value: '${_stats!.monthDataGb} GB',
               badgeText: '30d',
@@ -242,6 +296,9 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
             ),
             _buildStatCard(
               cardColor: cardColor,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
               title: 'Airtime sold',
               value: '₦${_stats!.monthAirtime.toStringAsFixed(0)}',
               badgeText: '30d',
@@ -256,7 +313,15 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: cardColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: borderColor, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withValues(alpha: 0.2),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,26 +329,26 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Sales Growth',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.w900),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.blueAccent.withOpacity(0.2),
+                      color: primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text('7d', style: TextStyle(color: Colors.blueAccent, fontSize: 12)),
+                    child: Text('7d', style: TextStyle(color: primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
                   )
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _legendItem(Colors.orangeAccent, 'Airtime (₦)'),
+                  _legendItem(const Color(0xFFF59E0B), 'Airtime (₦)', textSecondary),
                   const SizedBox(width: 16),
-                  _legendItem(Colors.blueAccent, 'Data (GB)'),
+                  _legendItem(primaryColor, 'Data (GB)', textSecondary),
                 ],
               ),
               const SizedBox(height: 24),
@@ -291,8 +356,8 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                 height: 150,
                 child: LineChart(
                   LineChartData(
-                    gridData: FlGridData(show: false),
-                    titlesData: FlTitlesData(
+                    gridData: const FlGridData(show: false),
+                    titlesData: const FlTitlesData(
                       leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -311,9 +376,9 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                           FlSpot(6, 3),
                         ],
                         isCurved: true,
-                        color: Colors.blueAccent,
-                        barWidth: 3,
-                        dotData: FlDotData(show: false),
+                        color: primaryColor,
+                        barWidth: 3.5,
+                        dotData: const FlDotData(show: false),
                       ),
                       LineChartBarData(
                         spots: const [
@@ -326,9 +391,9 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                           FlSpot(6, 1.5),
                         ],
                         isCurved: true,
-                        color: Colors.orangeAccent,
-                        barWidth: 3,
-                        dotData: FlDotData(show: false),
+                        color: const Color(0xFFF59E0B),
+                        barWidth: 3.5,
+                        dotData: const FlDotData(show: false),
                       ),
                     ],
                   ),
@@ -343,6 +408,9 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
 
   Widget _buildStatCard({
     required Color cardColor,
+    required Color borderColor,
+    required Color textPrimary,
+    required Color textSecondary,
     required String title,
     required String value,
     required String badgeText,
@@ -352,8 +420,8 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,38 +433,41 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                  style: TextStyle(color: textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: badgeColor.withOpacity(0.2),
+                  color: badgeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   badgeText,
-                  style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.w900),
                 ),
               )
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(color: textPrimary, fontSize: 22, fontWeight: FontWeight.w900),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             badgeText == 'Live' ? 'Orders/Tx' : '30 days total',
-            style: const TextStyle(color: Colors.white38, fontSize: 11),
+            style: TextStyle(color: textSecondary.withValues(alpha: 0.6), fontSize: 11, fontWeight: FontWeight.w600),
           ),
         ],
       ),
     );
   }
 
-  Widget _legendItem(Color color, String text) {
+  Widget _legendItem(Color color, String text, Color textColor) {
     return Row(
       children: [
         Container(
@@ -405,12 +476,14 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
-        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(text, style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.w600)),
       ],
     );
   }
 
-  Widget _buildOffersTab(Color cardColor) {
+  Widget _buildOffersTab(Color cardColor, Color borderColor, Color textPrimary, Color textSecondary) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16.0),
@@ -419,20 +492,27 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1E2A45), Color(0xFF151A29)],
+            gradient: LinearGradient(
+              colors: [primaryColor.withValues(alpha: 0.85), primaryColor.withValues(alpha: 0.6)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: primaryColor.withValues(alpha: 0.3), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: primaryColor.withValues(alpha: 0.25),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Up to 15% off on Data & Airtime.',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.3),
               ),
               const SizedBox(height: 40),
               Row(
@@ -440,7 +520,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                 children: [
                   const Text(
                     'Always-on  •  Agent perk',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                    style: TextStyle(color: Colors.whiteBorders, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -450,7 +530,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                     ),
                     child: const Text(
                       'Active',
-                      style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w900),
                     ),
                   ),
                 ],
@@ -460,19 +540,26 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
         ),
         const SizedBox(height: 16),
         
-        ..._campaigns.map((c) => _buildCampaignCard(c, cardColor)).toList(),
+        ..._campaigns.map((c) => _buildCampaignCard(c, cardColor, borderColor, textPrimary, textSecondary)).toList(),
         if (_campaigns.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 40),
             child: Center(
-              child: Text('No other active offers right now.', style: TextStyle(color: Colors.white54)),
+              child: Text('No other active offers right now.', style: TextStyle(color: textSecondary)),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildCampaignCard(RewardCampaign campaign, Color cardColor) {
+  Widget _buildCampaignCard(
+    RewardCampaign campaign,
+    Color cardColor,
+    Color borderColor,
+    Color textPrimary,
+    Color textSecondary,
+  ) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
     final progressPercent = (campaign.progressValue / campaign.targetValue).clamp(0.0, 1.0);
     
     return Container(
@@ -480,7 +567,8 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -495,23 +583,23 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                   children: [
                     Text(
                       campaign.title,
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Target: ${campaign.targetValue} ${campaign.targetMetric.contains('gb') ? 'GB' : ''}',
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      'Target: ${campaign.targetValue} ${campaign.targetMetric.toLowerCase().contains('gb') ? 'GB' : ''}',
+                      style: TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         Text(
                           '₦${campaign.rewardAmount.toStringAsFixed(0)}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: primaryColor, fontSize: 14, fontWeight: FontWeight.w900),
                         ),
-                        const Text(
-                          '  •  Free',
-                          style: TextStyle(color: Colors.white38, fontSize: 12),
+                        Text(
+                          '  •  Free Wallet Credit',
+                          style: TextStyle(color: textSecondary.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -524,15 +612,18 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: campaign.isQualified ? Colors.blueAccent : Colors.white.withOpacity(0.05),
+                    color: campaign.isQualified ? primaryColor : textSecondary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: campaign.isQualified ? primaryColor : borderColor,
+                    ),
                   ),
                   child: Text(
                     campaign.isQualified ? 'Claim' : 'Locked',
                     style: TextStyle(
-                      color: campaign.isQualified ? Colors.white : Colors.white70,
+                      color: campaign.isQualified ? Colors.white : textSecondary,
                       fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
@@ -544,7 +635,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
             children: [
               Text(
                 '${(progressPercent * 100).toInt()}%',
-                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(color: textPrimary, fontSize: 12, fontWeight: FontWeight.w900),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -552,9 +643,9 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: progressPercent,
-                    backgroundColor: Colors.white.withOpacity(0.1),
+                    backgroundColor: textSecondary.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      campaign.isQualified ? Colors.green : Colors.blueAccent,
+                      campaign.isQualified ? Colors.green : primaryColor,
                     ),
                     minHeight: 6,
                   ),
@@ -566,4 +657,221 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
       ),
     );
   }
+
+  Widget _buildSkeletonLoader(BuildContext context, Color cardColor) {
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SkeletonBlock(width: 120, height: 16),
+              SkeletonBlock(width: 80, height: 28, borderRadius: 20),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 1.1,
+          children: List.generate(4, (index) => Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SkeletonBlock(width: 70, height: 12),
+                    SkeletonBlock(width: 32, height: 18, borderRadius: 12),
+                  ],
+                ),
+                SkeletonBlock(width: 100, height: 22),
+                SkeletonBlock(width: 60, height: 10),
+              ],
+            ),
+          )),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SkeletonBlock(width: 100, height: 16),
+                  SkeletonBlock(width: 40, height: 22, borderRadius: 20),
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  SkeletonBlock(width: 80, height: 12),
+                  SizedBox(width: 16),
+                  SkeletonBlock(width: 80, height: 12),
+                ],
+              ),
+              SizedBox(height: 24),
+              SkeletonBlock(width: double.infinity, height: 150),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOffersSkeleton(Color cardColor) {
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkeletonBlock(width: 200, height: 18),
+              SizedBox(height: 40),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SkeletonBlock(width: 120, height: 12),
+                  SkeletonBlock(width: 50, height: 22, borderRadius: 16),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...List.generate(2, (index) => Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonBlock(width: 140, height: 16),
+                      SizedBox(height: 6),
+                      SkeletonBlock(width: 80, height: 12),
+                      SizedBox(height: 8),
+                      SkeletonBlock(width: 60, height: 12),
+                    ],
+                  ),
+                  SkeletonBlock(width: 64, height: 28, borderRadius: 20),
+                ],
+              ),
+              SizedBox(height: 20),
+              Row(
+                children: [
+                  SkeletonBlock(width: 30, height: 12),
+                  SizedBox(width: 12),
+                  Expanded(child: SkeletonBlock(width: double.infinity, height: 6)),
+                ],
+              ),
+            ],
+          ),
+        )),
+      ],
+    );
+  }
+}
+
+class SkeletonBlock extends StatefulWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const SkeletonBlock({
+    super.key,
+    required this.width,
+    required this.height,
+    this.borderRadius = 8,
+  });
+
+  @override
+  State<SkeletonBlock> createState() => _SkeletonBlockState();
+}
+
+class _SkeletonBlockState extends State<SkeletonBlock> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.35, end: 0.65).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _animation.value,
+          child: Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              color: baseColor,
+              borderRadius: BorderRadius.circular(widget.borderRadius),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+extension ColorsExtension on Colors {
+  static const Color whiteBorders = Colors.white70;
 }
