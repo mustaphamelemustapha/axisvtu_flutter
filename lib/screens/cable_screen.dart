@@ -14,6 +14,8 @@ import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
+import '../widgets/insufficient_funds_sheet.dart';
+import '../utils/balance_util.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
 import 'package:permission_handler/permission_handler.dart';
@@ -312,6 +314,13 @@ class _CableScreenState extends State<CableScreen> {
   void _showAuthChoiceSheet() {
     final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
     final smartcard = _smartcardCtrl.text.trim();
+
+    final balance = getUserBalance(context);
+    if (balance < amount) {
+      InsufficientFundsSheet.show(context, shortfall: amount - balance);
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,

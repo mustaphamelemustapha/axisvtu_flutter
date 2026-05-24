@@ -127,10 +127,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (status != null && !status.isSet) {
         // Show the setup flow proactively for new/web users
-        await PurchaseAuthService.authorizePin(
+        await PurchaseAuthService.setupPin(
           context: context,
           reason: 'account security',
-          preferredMethod: PurchaseAuthService.methodPin,
+          pinLength: status.pinLength,
         );
       }
     } catch (_) {
@@ -886,6 +886,26 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: 14,
                             color: Theme.of(context).colorScheme.primary,
                           ),
+                          if (role.toLowerCase() == 'reseller' || role.toLowerCase() == 'agent') ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                              ),
+                              child: const Text(
+                                'AGENT',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFFD97706),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -1038,6 +1058,23 @@ class _HomeScreenState extends State<HomeScreen> {
                               final rawAccounts = (data?['accounts'] as List?) ?? [];
                               
                               if (rawAccounts.isEmpty) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return Container(
+                                    width: double.infinity,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.03),
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue),
+                                      ),
+                                    ),
+                                  );
+                                }
                                 return Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

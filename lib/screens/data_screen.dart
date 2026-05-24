@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -16,6 +17,8 @@ import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
+import '../widgets/insufficient_funds_sheet.dart';
+import '../utils/balance_util.dart';
 import '../widgets/elite_phone_input.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
@@ -460,8 +463,8 @@ class _DataScreenState extends State<DataScreen> {
   Future<void> _openPlansSheet({bool requirePhone = true}) async {
     FocusManager.instance.primaryFocus?.unfocus();
     final normalizedPhone = _normalizePhone(_phoneCtrl.text);
-    if (requirePhone && normalizedPhone.isEmpty) {
-      setState(() => _error = 'Enter a phone number first.');
+    if (requirePhone && normalizedPhone.length < 10) {
+      setState(() => _error = 'Enter a valid 10-digit phone number first.');
       return;
     }
 
@@ -642,6 +645,19 @@ class _DataScreenState extends State<DataScreen> {
     if (plan == null) return;
 
     final phone = _normalizePhone(_phoneCtrl.text);
+    if (phone.length < 10) {
+      setState(() => _error = 'Enter a valid 10-digit phone number first.');
+      return;
+    }
+
+    final priceValue = _planPriceValue(plan);
+    final balance = getUserBalance(context);
+    
+    if (balance < priceValue) {
+      InsufficientFundsSheet.show(context, shortfall: priceValue - balance);
+      return;
+    }
+
     final price = _planPrice(plan);
 
     showModalBottomSheet(
@@ -859,7 +875,7 @@ class _DataScreenState extends State<DataScreen> {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 360 || size.height < 760;
     final selected = _selectedPlan;
-    final hasPhone = _normalizePhone(_phoneCtrl.text).isNotEmpty;
+    final hasPhone = _normalizePhone(_phoneCtrl.text).length >= 10;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ServiceShell(
@@ -949,14 +965,27 @@ class _DataScreenState extends State<DataScreen> {
                   onContactTap: _pickContact,
                   onChanged: (v) => _onPhoneChanged(),
                 ),
-                if (hasPhone && _selectedPlanCode == null) ...[
+                if (_selectedPlanCode == null) ...[
                   const SizedBox(height: 16),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: _PremiumSmallButton(
-                      label: 'Next: Select Plan',
-                      icon: Icons.arrow_forward_rounded,
-                      onTap: _openPlansSheet,
+                    child: Opacity(
+                      opacity: hasPhone ? 1.0 : 0.5,
+                      child: IgnorePointer(
+                        ignoring: !hasPhone,
+                        child: hasPhone ? _PremiumSmallButton(
+                          label: 'Next: Select Plan',
+                          icon: Icons.arrow_forward_rounded,
+                          onTap: _openPlansSheet,
+                        ) : ImageFiltered(
+                          imageFilter: ui.ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
+                          child: _PremiumSmallButton(
+                            label: 'Next: Select Plan',
+                            icon: Icons.arrow_forward_rounded,
+                            onTap: () {},
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],

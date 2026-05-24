@@ -1470,6 +1470,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final session = context.watch<SessionController>();
     final user = session.user ?? {};
     final name = _displayName(user);
+    final role = (user['role'] ?? '').toString().trim().toLowerCase();
     final joined = _joinedLabel(user['created_at']);
     final initials = _initialsFromName(name);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1524,13 +1525,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          joined,
-                          style: TextStyle(
-                            color: heroSoftText,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              joined,
+                              style: TextStyle(
+                                color: heroSoftText,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (role == 'reseller' || role == 'agent') ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                                ),
+                                child: const Text(
+                                  'AGENT',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFFD97706),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),

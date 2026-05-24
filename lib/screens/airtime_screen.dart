@@ -16,6 +16,9 @@ import '../widgets/service_shell.dart';
 import '../widgets/sticky_checkout_bar.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/elite_phone_input.dart';
+import '../widgets/sticky_checkout_bar.dart';
+import '../widgets/insufficient_funds_sheet.dart';
+import '../utils/balance_util.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
 import 'package:permission_handler/permission_handler.dart';
@@ -815,8 +818,15 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
   }
 
   void _showSummaryModal() {
-    final amountText = _amountCtrl.text.trim();
-    final amount = double.tryParse(amountText) ?? 0.0;
+    final amountText = _amountCtrl.text.replaceAll(',', '').trim();
+    final amount = double.tryParse(amountText) ?? 0;
+    final phone = widget.phone;
+
+    final balance = getUserBalance(context);
+    if (balance < amount) {
+      InsufficientFundsSheet.show(context, shortfall: amount - balance);
+      return;
+    }
 
     showModalBottomSheet(
       context: context,

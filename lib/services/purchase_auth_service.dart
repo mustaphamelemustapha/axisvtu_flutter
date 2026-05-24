@@ -38,6 +38,24 @@ class PurchaseAuthService {
     );
   }
 
+  static Future<bool> setupPin({
+    required BuildContext context,
+    String reason = 'account security',
+    int pinLength = 4,
+  }) async {
+    final session = context.read<SessionController>();
+    final token = (session.token ?? '').trim();
+    if (token.isEmpty) return false;
+
+    final service = TransactionPinService(token: token);
+    return _setupFlow(
+      context: context,
+      service: service,
+      reason: reason,
+      pinLength: pinLength,
+    );
+  }
+
   static Future<bool> _setupFlow({
     required BuildContext context,
     required TransactionPinService service,
@@ -133,10 +151,13 @@ class PurchaseAuthService {
               await service.verify(savedPin);
               return true;
             } on ApiException catch (e) {
+              if (e.statusCode == 404 || e.message.toLowerCase().contains('not set')) {
+                 await BiometricService.deletePin();
+                 return _setupFlow(context: context, service: service, reason: reason, pinLength: pinLength);
+              }
               final isValidationError = e.statusCode == 400 ||
                   e.statusCode == 401 ||
                   e.statusCode == 403 ||
-                  e.statusCode == 404 ||
                   e.statusCode == 422 ||
                   e.statusCode == 423 ||
                   e.statusCode == 429;
@@ -168,7 +189,7 @@ class PurchaseAuthService {
       }
     }
 
-    // 2. Manual PIN entry
+    // 3. Manual PIN entry
     if (!context.mounted) return false;
     final pin = await _requestPinInput(
       context: context,
@@ -194,8 +215,8 @@ class PurchaseAuthService {
           return null;
         } on ApiException catch (e) {
           if (e.statusCode == 404 || e.message.toLowerCase().contains('not set')) {
-             // PIN not set! This is where the loop happens if we don't handle it.
-             return 'PIN not set. Please create one.';
+             Navigator.of(context).pop('PIN_NOT_SET');
+             return null;
           }
           return _friendlyError(e.message, e.statusCode);
         } catch (e) {
@@ -205,11 +226,12 @@ class PurchaseAuthService {
     );
 
     if (pin == null || !context.mounted) return false;
-
-    // If the error was "PIN not set", the user will cancel and we should show setup.
-    // Actually, let's just trigger setup if verify fails with 404.
     
-    // 3. Sync PIN for future biometric use
+    if (pin == 'PIN_NOT_SET') {
+      return _setupFlow(context: context, service: service, reason: reason, pinLength: pinLength);
+    }
+
+    // 4. Sync PIN for future biometric use
     if (bioEnabled && availability.ready) {
       await BiometricService.savePin(pin);
     }
