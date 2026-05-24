@@ -23,6 +23,7 @@ import 'welcome_screen.dart';
 import 'about_screen.dart';
 import 'referral_screen.dart';
 import 'admin_announcements_screen.dart';
+import 'agent_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -1574,6 +1575,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const AdminAnnouncementsScreen(),
+                  ),
+                ),
+                backgroundColor: tileBg,
+              ),
+            if (role == 'reseller' || role == 'agent')
+              _ProfileTile(
+                label: 'Agent Dashboard',
+                icon: Icons.analytics_rounded,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AgentDashboardScreen(),
                   ),
                 ),
                 backgroundColor: tileBg,
