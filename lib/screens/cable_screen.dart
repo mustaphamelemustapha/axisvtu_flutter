@@ -44,15 +44,23 @@ class _CableScreenState extends State<CableScreen> {
     {'id': 'startimes', 'name': 'StarTimes'},
   ];
   bool _loading = false;
+  bool _verifying = false;
   String? _activeRequestId;
   bool _saveBeneficiary = true;
   List<Map<String, dynamic>> _beneficiaries = [];
   String? _error;
 
+  // Verification state
+  bool _verificationChecked = false;
+  bool _verificationOk = false;
+  String _verifiedCustomerName = '';
+  String _verificationMessage = '';
+
   @override
   void initState() {
     super.initState();
     _smartcardCtrl.addListener(_invalidateRequestId);
+    _smartcardCtrl.addListener(_clearVerification);
     _phoneCtrl.addListener(_invalidateRequestId);
     _packageCtrl.addListener(_invalidateRequestId);
     _amountCtrl.addListener(_invalidateRequestId);
@@ -63,6 +71,7 @@ class _CableScreenState extends State<CableScreen> {
   @override
   void dispose() {
     _smartcardCtrl.removeListener(_invalidateRequestId);
+    _smartcardCtrl.removeListener(_clearVerification);
     _phoneCtrl.removeListener(_invalidateRequestId);
     _packageCtrl.removeListener(_invalidateRequestId);
     _amountCtrl.removeListener(_invalidateRequestId);
@@ -134,6 +143,66 @@ class _CableScreenState extends State<CableScreen> {
     _activeRequestId = null;
   }
 
+  void _clearVerification() {
+    if (_verificationChecked || _verificationOk) {
+      setState(() {
+        _verificationChecked = false;
+        _verificationOk = false;
+        _verifiedCustomerName = '';
+        _verificationMessage = '';
+      });
+    }
+  }
+
+  Future<void> _verifySmartcard() async {
+    final token = (context.read<SessionController>().token ?? '').trim();
+    if (token.isEmpty) return;
+
+    final smartcard = _smartcardCtrl.text.trim();
+    if (smartcard.length < 5) {
+      setState(() => _error = 'Enter a valid smartcard number to verify.');
+      return;
+    }
+
+    setState(() {
+      _verifying = true;
+      _verificationChecked = false;
+      _verificationOk = false;
+      _verifiedCustomerName = '';
+      _verificationMessage = '';
+      _error = null;
+    });
+
+    try {
+      final res = await ServicesService(token: token).verifyCable(
+        provider: _provider,
+        smartcardNumber: smartcard,
+      );
+      final ok = res['ok'] == true;
+      setState(() {
+        _verificationChecked = true;
+        _verificationOk = ok;
+        _verifiedCustomerName = ok
+            ? (res['customer_name'] ?? '').toString().trim()
+            : '';
+        _verificationMessage = ok
+            ? 'Smartcard verified successfully.'
+            : (res['message'] ?? 'Unable to verify smartcard number.').toString();
+      });
+    } catch (e) {
+      final msg = e is ApiException ? e.message : e.toString();
+      setState(() {
+        _verificationChecked = true;
+        _verificationOk = false;
+        _verificationMessage = msg.isNotEmpty
+            ? msg
+            : 'Unable to verify smartcard number right now.';
+      });
+    } finally {
+      if (mounted) setState(() => _verifying = false);
+    }
+  }
+
   final FlutterNativeContactPicker _contactPicker = FlutterNativeContactPicker();
 
   Future<void> _pickContact() async {
@@ -202,6 +271,10 @@ class _CableScreenState extends State<CableScreen> {
     HapticFeedback.mediumImpact();
     setState(() {
       _invalidateRequestId();
+      _verificationChecked = false;
+      _verificationOk = false;
+      _verifiedCustomerName = '';
+      _verificationMessage = '';
       if (_providers.any((p) => p['id'] == provider)) {
         _provider = provider;
       }
@@ -223,6 +296,10 @@ class _CableScreenState extends State<CableScreen> {
     final packageCode = _packageCtrl.text.trim().toLowerCase();
     final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
 
+    if (!_verificationOk) {
+      setState(() => _error = 'Please verify your smartcard number before paying.');
+      return;
+    }
     if (smartcard.length < 5) {
       setState(() => _error = 'Enter a valid smartcard number.');
       return;
@@ -261,6 +338,7 @@ class _CableScreenState extends State<CableScreen> {
         phoneNumber: phone,
         packageCode: packageCode,
         amount: amount,
+        customerName: _verifiedCustomerName.isNotEmpty ? _verifiedCustomerName : null,
         clientRequestId: _activeRequestId,
       );
       final status = _resolveResultStatus(res);
@@ -276,6 +354,8 @@ class _CableScreenState extends State<CableScreen> {
         fields: [
           ReceiptField(label: 'Provider', value: _provider.toUpperCase()),
           ReceiptField(label: 'Smartcard', value: smartcard),
+          if (_verifiedCustomerName.isNotEmpty)
+            ReceiptField(label: 'Customer Name', value: _verifiedCustomerName),
           ReceiptField(label: 'Package', value: packageCode),
           ReceiptField(label: 'Phone', value: phone),
           ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
@@ -435,8 +515,8 @@ class _CableScreenState extends State<CableScreen> {
             : _smartcardCtrl.text.trim(),
         amount: '₦${amount.toStringAsFixed(2)}',
         active:
+            _verificationOk &&
             !_loading &&
-            _smartcardCtrl.text.trim().length >= 5 &&
             amount >= 500,
         loading: _loading,
         onBuy: _showAuthChoiceSheet,
@@ -459,9 +539,13 @@ class _CableScreenState extends State<CableScreen> {
                       onTap: () {
                         HapticFeedback.selectionClick();
                         _invalidateRequestId();
-                        setState(
-                          () => _provider = (p['id'] ?? _provider).toString(),
-                        );
+                        setState(() {
+                          _provider = (p['id'] ?? _provider).toString();
+                          _verificationChecked = false;
+                          _verificationOk = false;
+                          _verifiedCustomerName = '';
+                          _verificationMessage = '';
+                        });
                       },
                     ),
                   );
@@ -493,6 +577,104 @@ class _CableScreenState extends State<CableScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 10),
+                // --- Verify Smartcard button & feedback ---
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _verifying ? null : _verifySmartcard,
+                        icon: _verifying
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.verified_user_rounded, size: 18),
+                        label: Text(
+                          _verifying ? 'Verifying...' : 'Verify Smartcard',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_verificationChecked) ...[
+                  const SizedBox(height: 8),
+                  Builder(
+                    builder: (context) {
+                      final isDark =
+                          Theme.of(context).brightness == Brightness.dark;
+                      final okBg = isDark
+                          ? const Color(0xFF123322)
+                          : const Color(0xFFEAF9EF);
+                      final failBg = isDark
+                          ? const Color(0xFF3A1818)
+                          : const Color(0xFFFDECEC);
+                      final okBorder = isDark
+                          ? const Color(0xFF34D399)
+                          : const Color(0xFF22C55E);
+                      final failBorder = isDark
+                          ? const Color(0xFFF87171)
+                          : const Color(0xFFEF4444);
+                      final okText = isDark
+                          ? const Color(0xFFD1FAE5)
+                          : const Color(0xFF166534);
+                      final failText = isDark
+                          ? const Color(0xFFFEE2E2)
+                          : const Color(0xFF991B1B);
+
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: _verificationOk ? okBg : failBg,
+                          border: Border.all(
+                            color: _verificationOk ? okBorder : failBorder,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _verificationOk
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.cancel_outlined,
+                              size: 18,
+                              color: _verificationOk ? okText : failText,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _verificationOk &&
+                                        _verifiedCustomerName.isNotEmpty
+                                    ? 'Customer: $_verifiedCustomerName'
+                                    : _verificationMessage,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: _verificationOk ? okText : failText,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
                 const SizedBox(height: 16),
                 TextField(
                   controller: _packageCtrl,

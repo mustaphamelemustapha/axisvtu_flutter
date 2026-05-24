@@ -33,6 +33,7 @@ class ServicesService {
     required String phoneNumber,
     required String packageCode,
     required double amount,
+    String? customerName,
     String? clientRequestId,
   }) {
     return _client.post('/services/cable/purchase', {
@@ -41,8 +42,20 @@ class ServicesService {
       'phone_number': phoneNumber,
       'package_code': packageCode,
       'amount': amount,
+      if (customerName != null && customerName.trim().isNotEmpty)
+        'customer_name': customerName.trim(),
       if (clientRequestId != null && clientRequestId.trim().isNotEmpty)
         'client_request_id': clientRequestId.trim(),
+    });
+  }
+
+  Future<Map<String, dynamic>> verifyCable({
+    required String provider,
+    required String smartcardNumber,
+  }) {
+    return _client.post('/services/cable/verify', {
+      'provider': provider,
+      'smartcard_number': smartcardNumber,
     });
   }
 
