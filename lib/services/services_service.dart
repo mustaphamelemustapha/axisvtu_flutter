@@ -59,6 +59,10 @@ class ServicesService {
     });
   }
 
+  Future<Map<String, dynamic>> getCablePackages({required String provider}) {
+    return _client.get('/services/cable/packages?provider=$provider');
+  }
+
   Future<Map<String, dynamic>> verifyElectricity({
     required String disco,
     required String meterType,
