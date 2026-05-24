@@ -156,6 +156,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
     final network = (tx['network'] ?? '').toString().trim();
     if (network.isNotEmpty) return network.toUpperCase();
+    
+    final failureReason = (tx['failure_reason'] ?? '').toString().trim();
+    final type = _typeOf(tx);
+    if ((type == 'admin_credit' || type == 'admin_debit') && failureReason.isNotEmpty) {
+      return failureReason;
+    }
+    
     return (tx['reference'] ?? '').toString();
   }
 
