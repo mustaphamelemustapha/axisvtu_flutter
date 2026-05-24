@@ -520,7 +520,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                 children: [
                   const Text(
                     'Always-on  •  Agent perk',
-                    style: TextStyle(color: Colors.whiteBorders, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -872,6 +872,4 @@ class _SkeletonBlockState extends State<SkeletonBlock> with SingleTickerProvider
   }
 }
 
-extension ColorsExtension on Colors {
-  static const Color whiteBorders = Colors.white70;
-}
+
