@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>AxisVTU</string>
+	<string>MELE DATA</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>AxisVTU</string>
+	<string>MELE DATA</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -27,7 +27,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
-	<string>AxisVTU uses Face ID for secure and quick sign-in to your account.</string>
+	<string>MELE DATA uses Face ID for secure and quick sign-in to your account.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>This app requires contacts access to help you select phone numbers for airtime and data purchases.</string>
 	<key>UIApplicationSceneManifest</key>

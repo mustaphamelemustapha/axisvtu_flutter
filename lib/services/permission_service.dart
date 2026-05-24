@@ -35,7 +35,7 @@ class PermissionService {
           builder: (context) => _PermissionExplanationSheet(
             title: 'Access Contacts',
             description:
-                'AxisVTU needs access to your contacts to make it easier for you to select phone numbers for airtime and data top-ups.',
+                'MELE DATA needs access to your contacts to make it easier for you to select phone numbers for airtime and data top-ups.',
             icon: Icons.contacts_rounded,
             actionLabel: 'Allow Access',
           ),

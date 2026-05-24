@@ -997,7 +997,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Are you sure you want to delete your AxisVTU account? This will immediately:',
+                        'Are you sure you want to delete your MELE DATA account? This will immediately:',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               height: 1.4,
@@ -1322,7 +1322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openIssueSheet() async {
-    final subjectCtrl = TextEditingController(text: 'AxisVTU issue report');
+    final subjectCtrl = TextEditingController(text: 'MELE DATA issue report');
     final detailsCtrl = TextEditingController();
     await showModalBottomSheet(
       context: context,
@@ -1401,7 +1401,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.mail_outline_rounded,
                   onPressed: () async {
                     final subject = subjectCtrl.text.trim().isEmpty
-                        ? 'AxisVTU issue report'
+                        ? 'MELE DATA issue report'
                         : subjectCtrl.text.trim();
                     final body = detailsCtrl.text.trim().isEmpty
                         ? 'Hello mmtechglobe team,\n\nI need help with an issue in the app.'
@@ -1420,8 +1420,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _contactSupport() async {
     await _launchSupportEmail(
-      subject: 'AxisVTU support request',
-      body: 'Hello mmtechglobe team,\n\nI need help with my AxisVTU account.',
+      subject: 'MELE DATA support request',
+      body: 'Hello mmtechglobe team,\n\nI need help with my MELE DATA account.',
     );
   }
 

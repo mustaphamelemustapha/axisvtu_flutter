@@ -82,7 +82,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
 
     try {
       final success = await BiometricService.authenticate(
-        reason: 'Authenticate to unlock AxisVTU',
+        reason: 'Authenticate to unlock MELE DATA',
       );
       if (success && mounted) {
         context.read<SessionController>().unlock();

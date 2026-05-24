@@ -59,7 +59,7 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
         if (!mounted) return;
         InteractiveNotificationBanner.show(
           context,
-          title: 'AxisVTU',
+          title: 'MELE DATA',
           message: widget.subtitle.isNotEmpty ? widget.subtitle : '${widget.title} transaction was successful.',
         );
       });
@@ -185,7 +185,7 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            'AxisVTU',
+                            'MELE DATA',
                             style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                           ),
                           const Text(

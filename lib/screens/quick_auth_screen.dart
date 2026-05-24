@@ -60,7 +60,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
     });
 
     final success = await BiometricService.authenticate(
-      reason: 'Sign in to AxisVTU',
+      reason: 'Sign in to MELE DATA',
     );
 
     if (!mounted) return;
@@ -160,7 +160,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                     ),
                     TextButton(
                       onPressed: () {
-                        launchUrl(Uri.parse('mailto:mmtechglobe@gmail.com?subject=AxisVTU%20Support%20Request'));
+                        launchUrl(Uri.parse('mailto:mmtechglobe@gmail.com?subject=MELE DATA%20Support%20Request'));
                       },
                       child: Text(
                         'Help',
@@ -177,7 +177,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
 
               const SizedBox(height: 16),
 
-              // Brand Logo (Glowing AxisVTU Header)
+              // Brand Logo (Glowing MELE DATA Header)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -205,7 +205,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'AxisVTU',
+                    'MELE DATA',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w900,

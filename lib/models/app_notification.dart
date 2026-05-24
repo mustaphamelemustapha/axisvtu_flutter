@@ -208,8 +208,8 @@ class AppNotification {
       row['title'],
       row['heading'],
       row['subject'],
-      'AxisVTU update',
-    ], fallback: 'AxisVTU update');
+      'MELE DATA update',
+    ], fallback: 'MELE DATA update');
     final message = _firstNonEmpty([
       row['message'],
       row['body'],

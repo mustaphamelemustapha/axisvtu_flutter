@@ -84,7 +84,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       _localError = null;
     });
     final success = await BiometricService.authenticate(
-      reason: 'Sign in to AxisVTU',
+      reason: 'Sign in to MELE DATA',
     );
     if (!mounted) return;
     if (!success) {
@@ -280,7 +280,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
-                            'New to AxisVTU?',
+                            'New to MELE DATA?',
                             style: TextStyle(
                               color: muted,
                               fontWeight: FontWeight.w500,
@@ -408,7 +408,7 @@ class _TrustFooter extends StatelessWidget {
         const SizedBox(height: 12),
         TextButton(
           onPressed: () {
-            launchUrl(Uri.parse('mailto:mmtechglobe@gmail.com?subject=AxisVTU%20Support%20Request'));
+            launchUrl(Uri.parse('mailto:mmtechglobe@gmail.com?subject=MELE DATA%20Support%20Request'));
           },
           style: TextButton.styleFrom(
             visualDensity: VisualDensity.compact,

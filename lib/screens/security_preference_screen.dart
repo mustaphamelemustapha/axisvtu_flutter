@@ -123,7 +123,7 @@ class _SecurityPreferenceScreenState extends State<SecurityPreferenceScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
-                  'Choose how you\'d like to protect your AxisVTU account',
+                  'Choose how you\'d like to protect your MELE DATA account',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: isDark ? SlateColors.shade400 : SlateColors.shade600,

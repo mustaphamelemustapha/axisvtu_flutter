@@ -74,7 +74,7 @@ class PushNotificationService {
             debugPrint('Message also contained a notification: ${message.notification}');
             final context = navigatorKey.currentContext;
             if (context != null && context.mounted) {
-              final title = message.notification?.title ?? 'AxisVTU';
+              final title = message.notification?.title ?? 'MELE DATA';
               final body = message.notification?.body ?? '';
               InteractiveNotificationBanner.show(
                 context,

@@ -1,17 +1,17 @@
-# AxisVTU Store Copy Draft
+# MELE DATA Store Copy Draft
 
 ## App title
-AxisVTU
+MELE DATA
 
 ## Short description
 Fast VTU, wallet funding, and bill payments in one premium fintech app.
 
 ## Full description
-AxisVTU is a premium VTU and payments app built for fast mobile transactions.
+MELE DATA is a premium VTU and payments app built for fast mobile transactions.
 
 Fund your wallet through your dedicated virtual account, buy data, top up airtime, pay bills, and track every transaction with clean receipts and history.
 
-Designed for clarity, trust, and speed, AxisVTU gives you a calm transaction experience with secure approvals and a polished account center.
+Designed for clarity, trust, and speed, MELE DATA gives you a calm transaction experience with secure approvals and a polished account center.
 
 ### Key features
 - Dedicated virtual account wallet funding

@@ -1,74 +1,137 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  AxisVTU app icon (vector source).
-  Note: This is a clean, scalable approximation of the provided AV gradient icon for use across web + PWA.
--->
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="MELE DATA MD icon">
   <defs>
-    <linearGradient id="bg" x1="64" y1="960" x2="960" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0ea5a6"/>
-      <stop offset="0.55" stop-color="#f2a353"/>
-      <stop offset="1" stop-color="#f06a7a"/>
+    <linearGradient id="tile" x1="150" y1="120" x2="875" y2="902" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.62" stop-color="#f8fbff"/>
+      <stop offset="1" stop-color="#f1f5fb"/>
     </linearGradient>
-    <linearGradient id="tileShade" x1="128" y1="896" x2="896" y2="128" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0b7f82" stop-opacity="0.25"/>
-      <stop offset="1" stop-color="#1b1b1b" stop-opacity="0.12"/>
+    <linearGradient id="blueMain" x1="242" y1="258" x2="790" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38a9ff"/>
+      <stop offset="0.48" stop-color="#1677f2"/>
+      <stop offset="1" stop-color="#062d99"/>
     </linearGradient>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="38" stdDeviation="34" flood-color="#0b1220" flood-opacity="0.22"/>
+    <linearGradient id="blueDeep" x1="250" y1="720" x2="735" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#062c97"/>
+      <stop offset="0.52" stop-color="#0c52ca"/>
+      <stop offset="1" stop-color="#2296ff"/>
+    </linearGradient>
+    <linearGradient id="blueLight" x1="315" y1="230" x2="720" y2="545" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#47b7ff"/>
+      <stop offset="0.58" stop-color="#1f86ff"/>
+      <stop offset="1" stop-color="#0a4fca"/>
+    </linearGradient>
+    <linearGradient id="crease" x1="300" y1="730" x2="700" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#031f77"/>
+      <stop offset="1" stop-color="#0f6af1"/>
+    </linearGradient>
+    <filter id="tileShadow" x="-12%" y="-12%" width="124%" height="124%">
+      <feDropShadow dx="0" dy="28" stdDeviation="34" flood-color="#0b1f4d" flood-opacity="0.14"/>
+    </filter>
+    <filter id="markShadow" x="-18%" y="-18%" width="136%" height="145%">
+      <feDropShadow dx="0" dy="26" stdDeviation="22" flood-color="#061a4a" flood-opacity="0.24"/>
+    </filter>
+    <filter id="smallShadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#061a4a" flood-opacity="0.22"/>
     </filter>
   </defs>
 
-  <!-- background -->
-  <rect x="0" y="0" width="1024" height="1024" rx="80" fill="url(#bg)"/>
-
-  <!-- icon tile -->
-  <g filter="url(#shadow)">
-    <rect x="170" y="170" width="684" height="684" rx="150" fill="url(#bg)"/>
-    <rect x="170" y="170" width="684" height="684" rx="150" fill="url(#tileShade)"/>
+  <rect width="1024" height="1024" fill="#ffffff"/>
+  <g filter="url(#tileShadow)">
+    <rect x="124" y="124" width="776" height="776" rx="178" fill="url(#tile)" stroke="#d7deeb" stroke-width="2"/>
   </g>
 
-  <!-- AV monogram (stylized, geometric) -->
-  <g fill="#ffffff">
-    <!-- A -->
-    <path d="M332 690 L442 378 Q456 338 496 338 Q536 338 550 378 L658 690
-             L606 690 L571 600 L422 600 L387 690 Z
-             M440 552 L553 552 L496 404 Z"/>
-    <!-- V (diagonal cut) -->
-    <path d="M558 690 L676 358 L730 358 L612 690 Z"/>
-    <path d="M612 690 L730 358 L786 358 L666 690 Z" opacity="0.96"/>
+  <g filter="url(#markShadow)">
+    <!-- M: folded MELE initial, not the old Axis mark. -->
+    <path
+      d="M232 714
+         L232 346
+         Q232 326 252 326
+         L318 326
+         Q333 326 342 340
+         L512 596
+         L682 340
+         Q691 326 706 326
+         L772 326
+         Q792 326 792 346
+         L792 714
+         Q792 734 772 734
+         L706 734
+         Q686 734 686 714
+         L686 510
+         L554 710
+         Q542 728 512 728
+         Q482 728 470 710
+         L338 510
+         L338 714
+         Q338 734 318 734
+         L252 734
+         Q232 734 232 714 Z"
+      fill="url(#blueMain)"/>
+
+    <!-- D: carved right body that makes the monogram read MD. -->
+    <path
+      d="M604 734
+         L604 326
+         L710 326
+         Q811 326 870 384
+         Q930 442 930 530
+         Q930 618 870 676
+         Q811 734 710 734 Z
+         M710 626
+         Q766 626 796 600
+         Q826 574 826 530
+         Q826 486 796 460
+         Q766 434 710 434
+         L710 626 Z"
+      fill="url(#blueDeep)"/>
+
+    <!-- Blue folded paper planes across the MD, preserving the old color/design language. -->
+    <path
+      d="M282 676
+         L472 384
+         Q490 356 522 356
+         L686 356
+         Q707 356 713 371
+         Q719 386 704 405
+         L506 642
+         Q468 688 410 700
+         L286 724
+         Q262 729 254 714
+         Q248 702 282 676 Z"
+      fill="url(#blueLight)" opacity="0.98"/>
+    <path
+      d="M282 676
+         C390 610 491 548 704 405
+         L506 642
+         Q468 688 410 700
+         L286 724
+         Q262 729 254 714
+         Q248 702 282 676 Z"
+      fill="url(#crease)" opacity="0.78"/>
+
+    <!-- Center data arrow, a subtle MELE DATA cue. -->
+    <g filter="url(#smallShadow)">
+      <path
+        d="M512 574
+           Q522 574 529 586
+           L620 746
+           Q631 766 611 778
+           L526 728
+           Q512 720 498 728
+           L413 778
+           Q393 766 404 746
+           L495 586
+           Q502 574 512 574 Z"
+        fill="#ffffff" opacity="0.96"/>
+      <path
+        d="M512 612
+           L590 754
+           L512 710
+           L434 754 Z"
+        fill="url(#blueMain)"/>
+      <path d="M512 612 L512 710 L434 754 Z" fill="#2296ff"/>
+      <path d="M512 612 L590 754 L512 710 Z" fill="#062d99"/>
+    </g>
   </g>
-
-  <!-- swoosh -->
-  <path
-    d="M265 646
-       C 315 760, 475 835, 640 805
-       C 782 779, 872 704, 888 632
-       C 900 580, 858 546, 792 551
-       C 708 557, 610 596, 530 618
-       C 440 644, 345 660, 265 646 Z"
-    fill="none"
-    stroke="#ffffff"
-    stroke-width="22"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    opacity="0.95"
-  />
-
-  <!-- star -->
-  <path
-    d="M700 308
-       L714 340
-       L748 345
-       L723 367
-       L730 400
-       L700 384
-       L670 400
-       L677 367
-       L652 345
-       L686 340 Z"
-    fill="#ffffff"
-    opacity="0.98"
-  />
 </svg>
-

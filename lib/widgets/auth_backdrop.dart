@@ -113,7 +113,7 @@ class AuthBackdrop extends StatelessWidget {
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          'AxisVTU',
+                          'MELE DATA',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
@@ -238,7 +238,7 @@ class _BrandPill extends StatelessWidget {
           Image.asset('assets/brand/axisvtu-icon.png', width: 18, height: 18),
           const SizedBox(width: 8),
           Text(
-            'AxisVTU',
+            'MELE DATA',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,

@@ -217,7 +217,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'AxisVTU',
+                        'MELE DATA',
                         style: theme.textTheme.labelLarge?.copyWith(
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.35,

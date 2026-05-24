@@ -50,7 +50,7 @@ class _AboutScreenState extends State<AboutScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'About AxisVTU',
+          'About MELE DATA',
           style: TextStyle(
             color: textMain,
             fontSize: 20,
@@ -85,7 +85,7 @@ class _AboutScreenState extends State<AboutScreen> {
           
           const SizedBox(height: 24),
           Text(
-            'This will notify you if an update is available. Keeping your AxisVTU app updated ensures you get the most out of our services.',
+            'This will notify you if an update is available. Keeping your MELE DATA app updated ensures you get the most out of our services.',
             style: TextStyle(
               color: textDim,
               fontSize: 14,

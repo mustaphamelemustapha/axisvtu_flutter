@@ -45,7 +45,7 @@ class SplashScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                'AxisVTU',
+                'MELE DATA',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.4,

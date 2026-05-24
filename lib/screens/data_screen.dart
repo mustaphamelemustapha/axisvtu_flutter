@@ -742,7 +742,7 @@ class _DataScreenState extends State<DataScreen> {
         'message': uncertain
             ? 'Order submitted. Provider confirmation is delayed. Check History shortly.'
             : message,
-        'provider': 'AxisVTU',
+        'provider': 'MELE DATA',
       });
     } finally {
       PurchaseLoadingOverlay.hide();
@@ -3197,7 +3197,7 @@ class _SuccessModalState extends State<_SuccessModal> {
           const SizedBox(height: 12),
           _SuccessToggle(
             icon: Icons.bolt_outlined,
-            label: 'Axis Bolt',
+            label: 'MELE Bolt',
             value: _bolt,
             onChanged: (v) => setState(() => _bolt = v),
           ),
@@ -3380,7 +3380,7 @@ class _ShareableReceipt extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                'AxisVTU',
+                'MELE DATA',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -3445,7 +3445,7 @@ class _ShareableReceipt extends StatelessWidget {
               ),
               _ReceiptTableItem(
                 label: 'Provider',
-                value: 'AxisVTU',
+                value: 'MELE DATA',
                 bold: true,
               ),
               _ReceiptTableItem(

@@ -50,7 +50,7 @@ class ForceUpdateScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'A new version of AxisVTU is available. Please update the app to continue using our services securely.',
+                  'A new version of MELE DATA is available. Please update the app to continue using our services securely.',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Colors.grey,
                       ),

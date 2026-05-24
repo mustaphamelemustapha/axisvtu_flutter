@@ -461,7 +461,7 @@ class _WalletScreenState extends State<WalletScreen> {
       await SharePlus.instance.share(
         ShareParams(
           text: text,
-          subject: 'AxisVTU funding account details',
+          subject: 'MELE DATA funding account details',
         ),
       );
     } catch (_) {
@@ -479,7 +479,7 @@ class _WalletScreenState extends State<WalletScreen> {
     required String accountName,
   }) {
     return [
-      'Fund my AxisVTU wallet:',
+      'Fund my MELE DATA wallet:',
       '',
       'Bank: $bankName',
       'Account Number: $accountNumber',
@@ -495,7 +495,7 @@ class _WalletScreenState extends State<WalletScreen> {
     required String accountName,
   }) {
     return [
-      'Fund my AxisVTU wallet',
+      'Fund my MELE DATA wallet',
       'Bank: $bankName',
       'Account Number: $accountNumber',
       'Account Name: $accountName',
@@ -507,7 +507,7 @@ class _WalletScreenState extends State<WalletScreen> {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 360 || size.height < 760;
     final user = context.watch<SessionController>().user ?? {};
-    final name = (user['full_name'] ?? user['name'] ?? 'AxisVTU User')
+    final name = (user['full_name'] ?? user['name'] ?? 'MELE DATA User')
         .toString()
         .trim();
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -824,7 +824,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 // Format accountHolderName nicely
                 String rawName = (account['account_name'] ?? name).toString().trim();
                 final prefixPattern = RegExp(
-                  r'^(?:MMTECHGLOBE|AXISVTU)(?:\s*[-\/:]\s*|\s+)?',
+                  r'^(?:MMTECHGLOBE|MELE DATA)(?:\s*[-\/:]\s*|\s+)?',
                   caseSensitive: false,
                 );
                 String cleanName = rawName.replaceFirst(prefixPattern, '').trim();
@@ -2084,7 +2084,7 @@ class _WalletAccountActivationCardState extends State<_WalletAccountActivationCa
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'AxisVTU does NOT store or keep your BVN or NIN. This identity verification is securely routed directly to our central CBN-licensed payment partner (Monnify) to automatically generate your personalized funding accounts.',
+                    'MELE DATA does NOT store or keep your BVN or NIN. This identity verification is securely routed directly to our central CBN-licensed payment partner (Monnify) to automatically generate your personalized funding accounts.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       fontSize: 11,

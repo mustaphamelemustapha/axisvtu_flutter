@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:axisvtu_flutter/app.dart';
 
 void main() {
-  testWidgets('AxisVTU boots to login', (WidgetTester tester) async {
+  testWidgets('MELE DATA boots to login', (WidgetTester tester) async {
     await tester.pumpWidget(const AxisVTUApp());
     await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);

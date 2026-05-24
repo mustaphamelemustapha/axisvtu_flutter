@@ -1,3 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="AxisVTU logo">
-  <image href="axisvtu-logo.png" width="1024" height="1024" preserveAspectRatio="xMidYMid meet" />
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-label="MELE DATA logo">
+  <defs>
+    <linearGradient id="tile" x1="50" y1="48" x2="270" y2="272" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f2f6fc"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="64" y1="62" x2="254" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38a9ff"/>
+      <stop offset="0.5" stop-color="#1677f2"/>
+      <stop offset="1" stop-color="#062d99"/>
+    </linearGradient>
+    <filter id="shadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="14" stdDeviation="15" flood-color="#0a1d44" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="320" fill="none"/>
+
+  <g transform="translate(48 48)" filter="url(#shadow)">
+    <rect x="0" y="0" width="224" height="224" rx="58" fill="url(#tile)" stroke="#d7deeb" stroke-width="1.6"/>
+    <text
+      x="112"
+      y="143"
+      text-anchor="middle"
+      fill="url(#blue)"
+      font-family="Inter, Arial, system-ui, sans-serif"
+      font-size="86"
+      font-weight="900"
+      letter-spacing="-4"
+    >MD</text>
+    <path d="M51 156 C87 136 129 108 184 69" stroke="#45b7ff" stroke-width="18" stroke-linecap="round" opacity="0.8"/>
+    <path d="M70 174 L112 142 L154 174 L112 158 Z" fill="#0d64e8"/>
+  </g>
+
+  <g transform="translate(320 102)">
+    <text
+      x="0"
+      y="0"
+      fill="#0f172a"
+      font-family="Inter, Arial, system-ui, sans-serif"
+      font-size="82"
+      font-weight="850"
+      letter-spacing="0"
+    >MELE DATA</text>
+    <text
+      x="4"
+      y="58"
+      fill="#4b6280"
+      font-family="Inter, Arial, system-ui, sans-serif"
+      font-size="24"
+      font-weight="600"
+      letter-spacing="0"
+    >Powered by MMTECHGLOBE</text>
+  </g>
 </svg>

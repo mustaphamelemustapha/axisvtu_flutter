@@ -285,7 +285,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 360 || size.height < 760;
     final user = context.watch<SessionController>().user ?? {};
-    final name = (user['full_name'] ?? user['name'] ?? 'AxisVTU User')
+    final name = (user['full_name'] ?? user['name'] ?? 'MELE DATA User')
         .toString()
         .trim();
 

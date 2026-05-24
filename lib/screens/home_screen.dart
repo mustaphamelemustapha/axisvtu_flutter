@@ -740,7 +740,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 360 || size.height < 760;
     final user = context.watch<SessionController>().user ?? {};
-    final name = (user['full_name'] ?? user['name'] ?? 'AxisVTU User')
+    final name = (user['full_name'] ?? user['name'] ?? 'MELE DATA User')
         .toString()
         .trim();
     final role = (user['role'] ?? 'Member').toString().trim();
@@ -1191,7 +1191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               // Format account holder name nicely
                               String rawName = (activeAccount['account_name'] ?? name).toString().trim();
                               final prefixPattern = RegExp(
-                                r'^(?:MMTECHGLOBE|AXISVTU)(?:\s*[-\/:]\s*|\s+)?',
+                                r'^(?:MMTECHGLOBE|MELE DATA)(?:\s*[-\/:]\s*|\s+)?',
                                 caseSensitive: false,
                               );
                               String cleanName = rawName.replaceFirst(prefixPattern, '').trim();
@@ -1699,7 +1699,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 40),
             Center(
               child: Text(
-                'AXISVTU v1.0.7 • SECURE & TRUSTED',
+                'MELE DATA v1.0.7 • SECURE & TRUSTED',
                 style: TextStyle(
                   color: muted.withValues(alpha: 0.4),
                   fontSize: 10,
@@ -1921,7 +1921,7 @@ class _RecentActivityEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Your recent purchases and wallet activity will appear here as soon as you start using AxisVTU.',
+            'Your recent purchases and wallet activity will appear here as soon as you start using MELE DATA.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
           ),

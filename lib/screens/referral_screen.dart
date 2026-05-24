@@ -84,7 +84,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
     final rawLink = (data['referral_link'] ?? '').toString().trim();
     final link = _getReferralLink(data);
     final text = StringBuffer()
-      ..writeln('AxisVTU')
+      ..writeln('MELE DATA')
       ..writeln('Buy data, pay bills, and manage your wallet in one place.')
       ..writeln('Use my referral code: $code')
       ..writeln('');
@@ -95,7 +95,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
     await SharePlus.instance.share(
       ShareParams(
         text: text.toString().trim(),
-        subject: 'Join me on AxisVTU',
+        subject: 'Join me on MELE DATA',
       ),
     );
   }
@@ -373,7 +373,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
             )
           else if (items.isEmpty)
             _EmptyHistory(
-              message: 'No referrals yet. Share your code to start earning once your friends join AxisVTU.',
+              message: 'No referrals yet. Share your code to start earning once your friends join MELE DATA.',
             )
           else
             ...items.whereType<Map>().map((raw) {

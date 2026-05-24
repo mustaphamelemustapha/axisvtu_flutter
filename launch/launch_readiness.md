@@ -1,4 +1,4 @@
-# AxisVTU Launch Readiness
+# MELE DATA Launch Readiness
 
 ## What is complete
 - Premium fintech UI for dashboard, wallet, buy data, history, receipt, profile, and notifications.

@@ -506,7 +506,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _receiptSenderFor() {
     final user = context.read<SessionController>().user;
     final name = user?['full_name'];
-    return _firstText([name, 'AxisVTU User'], fallback: 'AxisVTU User');
+    return _firstText([name, 'MELE DATA User'], fallback: 'MELE DATA User');
   }
 
   String _receiptReferenceFor(Map<String, dynamic> tx) {

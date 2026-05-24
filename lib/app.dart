@@ -35,7 +35,7 @@ class AxisVTUApp extends StatelessWidget {
           final mode = context.watch<ThemeController>().mode;
           return MaterialApp(
             navigatorKey: PushNotificationService.navigatorKey,
-            title: 'AxisVTU',
+            title: 'MELE DATA',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),

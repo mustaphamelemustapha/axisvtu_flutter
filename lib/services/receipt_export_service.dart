@@ -14,7 +14,7 @@ class ReceiptExportService {
     required List<ReceiptField> fields,
   }) {
     final buffer = StringBuffer();
-    buffer.writeln('AxisVTU');
+    buffer.writeln('MELE DATA');
     buffer.writeln('Transaction receipt');
     buffer.writeln('');
     buffer.writeln('Status: ${status.toUpperCase()}');
@@ -32,7 +32,7 @@ class ReceiptExportService {
       buffer.writeln(value);
       buffer.writeln('');
     }
-    buffer.writeln('AxisVTU');
+    buffer.writeln('MELE DATA');
     return buffer.toString();
   }
 
@@ -43,7 +43,7 @@ class ReceiptExportService {
         if (_looksLikeRealReference(ref)) return ref;
       }
     }
-    return 'axisvtu_${DateTime.now().millisecondsSinceEpoch}';
+    return 'meledata_${DateTime.now().millisecondsSinceEpoch}';
   }
 
   static String _sanitize(String value) =>
@@ -58,7 +58,7 @@ class ReceiptExportService {
 
   static String inferReceiptImageFilename(List<ReceiptField> fields) {
     final reference = inferReference(fields);
-    return 'axisvtu_receipt_${_sanitize(reference)}.png';
+    return 'meledata_receipt_${_sanitize(reference)}.png';
   }
 
   static Future<void> downloadReceiptImage({
@@ -77,8 +77,8 @@ class ReceiptExportService {
       await SharePlus.instance.share(
         ShareParams(
           files: [file],
-          subject: 'AxisVTU receipt',
-          text: 'AxisVTU receipt image ready to save or share.',
+          subject: 'MELE DATA receipt',
+          text: 'MELE DATA receipt image ready to save or share.',
           fileNameOverrides: [filename],
         ),
       );
@@ -112,8 +112,8 @@ class ReceiptExportService {
       await SharePlus.instance.share(
         ShareParams(
           files: [file],
-          subject: 'AxisVTU receipt',
-          text: 'AxisVTU receipt image.',
+          subject: 'MELE DATA receipt',
+          text: 'MELE DATA receipt image.',
           fileNameOverrides: [filename],
         ),
       );
@@ -139,7 +139,7 @@ class ReceiptExportService {
       fields: fields,
     );
     final reference = inferReference(fields);
-    final filename = 'axisvtu_receipt_${_sanitize(reference)}.txt';
+    final filename = 'meledata_receipt_${_sanitize(reference)}.txt';
     final bytes = Uint8List.fromList(utf8.encode(text));
     final file = XFile.fromData(bytes, mimeType: 'text/plain', name: filename);
 
@@ -147,8 +147,8 @@ class ReceiptExportService {
       await SharePlus.instance.share(
         ShareParams(
           files: [file],
-          subject: 'AxisVTU receipt',
-          text: 'AxisVTU receipt file ready to save.',
+          subject: 'MELE DATA receipt',
+          text: 'MELE DATA receipt file ready to save.',
           fileNameOverrides: [filename],
         ),
       );
@@ -186,7 +186,7 @@ class ReceiptExportService {
     );
     try {
       await SharePlus.instance.share(
-        ShareParams(text: text, subject: 'AxisVTU receipt'),
+        ShareParams(text: text, subject: 'MELE DATA receipt'),
       );
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: text));
