@@ -113,7 +113,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return (tx['tx_type'] ?? 'transaction').toString().trim().toLowerCase();
   }
 
-  bool _isCredit(Map<String, dynamic> tx) => _typeOf(tx) == 'wallet_fund';
+  bool _isCredit(Map<String, dynamic> tx) => _typeOf(tx) == 'wallet_fund' || _typeOf(tx) == 'admin_credit';
 
   double _amountOf(Map<String, dynamic> tx) {
     final value = tx['amount'];
@@ -125,6 +125,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return switch (_typeOf(tx)) {
       'data' => 'Data Bundle',
       'wallet_fund' => 'Account Top-up',
+      'admin_credit' => 'Admin Credit',
+      'admin_debit' => 'Admin Debit',
       'airtime' => 'Airtime Recharge',
       'cable' => 'Cable TV',
       'electricity' => 'Electricity Token',
@@ -146,6 +148,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       final package = meta['package_code'];
       if ((package ?? '').toString().trim().isNotEmpty) {
         return package.toString();
+      }
+      final ledger = meta['ledger_description'];
+      if ((ledger ?? '').toString().trim().isNotEmpty) {
+        return ledger.toString();
       }
     }
     final network = (tx['network'] ?? '').toString().trim();
@@ -404,6 +410,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return switch (_typeOf(tx)) {
       'data' => Icons.wifi_rounded,
       'wallet_fund' => Icons.account_balance_wallet_rounded,
+      'admin_credit' => Icons.account_balance_wallet_rounded,
+      'admin_debit' => Icons.money_off_rounded,
       'airtime' => Icons.phone_iphone_rounded,
       'cable' => Icons.tv_rounded,
       'electricity' => Icons.flash_on_rounded,
@@ -530,6 +538,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       meta['external_reference'],
       meta['provider_reference'],
     ], fallback: '');
+    final ledger = meta['ledger_description']?.toString() ?? '';
 
     final fields = <ReceiptField>[
       ReceiptField(label: 'Time', value: _formatDate(tx)),
@@ -540,6 +549,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ReceiptField(label: 'Plan', value: plan),
       ReceiptField(label: 'Amount', value: _amountLabel(tx)),
       ReceiptField(label: 'Reference', value: reference),
+      if (ledger.isNotEmpty) ReceiptField(label: 'Description', value: ledger),
     ];
 
     if (providerRef.isNotEmpty) {
