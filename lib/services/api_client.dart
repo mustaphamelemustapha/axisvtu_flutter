@@ -9,7 +9,7 @@ class ApiClient {
 
   final String baseUrl;
   final String? token;
-  static const Duration _timeout = Duration(seconds: 25);
+  static const Duration _timeout = Duration(seconds: 60);
 
   void _log(String message) {
     if (kDebugMode) {

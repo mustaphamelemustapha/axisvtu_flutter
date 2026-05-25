@@ -162,8 +162,16 @@ class SessionController extends ChangeNotifier {
       if (lastUserJson != null && lastUserJson.isNotEmpty) {
         try {
           _lastUser = jsonDecode(lastUserJson) as Map<String, dynamic>;
+          
+          // Invalidate legacy cached profiles that contain "AxisVTU" or "Axis" in the name
+          final nameStr = (_lastUser?['full_name'] ?? _lastUser?['name'] ?? '').toString().toLowerCase();
+          if (nameStr.contains('axisvtu') || nameStr.contains('axis vtu') || nameStr.trim() == 'axis') {
+            _lastUser = null;
+            await prefs.remove(_lastUserJsonKey);
+          }
+          
           // Establish temporary offline profile fallback to prevent empty state UI on boot
-          if (_user == null) {
+          if (_user == null && _lastUser != null) {
             _user = _lastUser;
           }
         } catch (_) {}

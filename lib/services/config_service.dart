@@ -7,7 +7,7 @@ class ConfigService {
   static Future<Map<String, dynamic>> fetchAppConfig() async {
     try {
       final url = Uri.parse('${AppConfig.baseUrl}/auth/app-config');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      final response = await http.get(url).timeout(const Duration(seconds: 35));
       
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
