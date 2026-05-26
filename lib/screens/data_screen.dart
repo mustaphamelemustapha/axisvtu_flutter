@@ -2626,7 +2626,9 @@ class _ElitePlanTile extends StatelessWidget {
     final price = _planPriceValueFormatted(plan);
     final validity = plan['validity']?.toString() ?? '30d';
 
-    final bool promoActive = plan['promo_active'] ?? false;
+    final bool promoActive = plan['promo_active'] == true ||
+        plan['promo_active'] == 1 ||
+        plan['promo_active']?.toString().toLowerCase() == 'true';
     final String? promoLabel = plan['promo_label']?.toString();
     final String? cashbackLabel = plan['cashback_label']?.toString();
     
