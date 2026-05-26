@@ -2626,6 +2626,15 @@ class _ElitePlanTile extends StatelessWidget {
     final price = _planPriceValueFormatted(plan);
     final validity = plan['validity']?.toString() ?? '30d';
 
+    final bool promoActive = plan['promo_active'] ?? false;
+    final String? promoLabel = plan['promo_label']?.toString();
+    final String? cashbackLabel = plan['cashback_label']?.toString();
+    
+    double? promoOldPrice;
+    if (plan['promo_old_price'] != null) {
+      promoOldPrice = double.tryParse(plan['promo_old_price'].toString());
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -2649,55 +2658,111 @@ class _ElitePlanTile extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // 1. Capacity / Name
+            Text(
+              capacity,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            // 2. Price row (strikethrough previous price)
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _NetworkIcon(network: network, size: 20),
+                Text(
+                  '₦$price',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: selected ? primary : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                if (promoActive && promoOldPrice != null) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '₦${_formatMoneyValue(promoOldPrice)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            // 3. Validity & Promo discount labels
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              alignment: WrapAlignment.center,
+              children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: selected ? primary : Colors.grey.withValues(alpha: 0.1),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     validity,
                     style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: selected ? Colors.white : Colors.grey[600],
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                     ),
                   ),
                 ),
+                if (promoActive && promoLabel != null && promoLabel.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.emerald.withValues(alpha: 0.5)),
+                      color: Colors.emerald.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      promoLabel,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.emerald,
+                      ),
+                    ),
+                  ),
               ],
             ),
-            const Spacer(),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                capacity,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Theme.of(context).colorScheme.onSurface,
+            // 4. Cashback solid pill
+            if (cashbackLabel != null && cashbackLabel.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: cashbackLabel.toLowerCase().contains('new')
+                      ? Colors.orange
+                      : Colors.emerald,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  cashbackLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: cashbackLabel.toLowerCase().contains('new')
+                        ? Colors.black85
+                        : Colors.white,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                '₦$price',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: primary,
-                ),
-              ),
-            ),
+            ],
           ],
         ),
       ),
