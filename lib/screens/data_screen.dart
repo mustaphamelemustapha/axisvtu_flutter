@@ -2740,29 +2740,6 @@ class _ElitePlanTile extends StatelessWidget {
                   ),
               ],
             ),
-            // 4. Cashback solid pill
-            if (cashbackLabel != null && cashbackLabel.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: cashbackLabel.toLowerCase().contains('new')
-                      ? Colors.orange
-                      : Colors.emerald,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  cashbackLabel,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: cashbackLabel.toLowerCase().contains('new')
-                        ? Colors.black85
-                        : Colors.white,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
