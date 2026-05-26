@@ -2723,12 +2723,12 @@ class _ElitePlanTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (promoActive && promoLabel != null && promoLabel.isNotEmpty)
+                 if (promoActive && promoLabel != null && promoLabel.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.emerald.withValues(alpha: 0.5)),
-                      color: Colors.emerald.withValues(alpha: 0.05),
+                      border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
+                      color: const Color(0xFF10B981).withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -2736,7 +2736,7 @@ class _ElitePlanTile extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
-                        color: Colors.emerald,
+                        color: Color(0xFF10B981),
                       ),
                     ),
                   ),
