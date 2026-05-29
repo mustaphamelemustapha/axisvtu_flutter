@@ -1185,7 +1185,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
                               final activeIndex = _activeAccountIndex.clamp(0, accounts.length - 1);
                               final activeAccount = accounts[activeIndex];
-                              final bank = (activeAccount['bank_name'] ?? 'Bank').toString().toUpperCase();
+                              final rawBank = (activeAccount['bank_name'] ?? 'Bank').toString().trim();
+                              final bank = rawBank.toLowerCase().contains('titan') || rawBank.toLowerCase().contains('paystack')
+                                  ? 'TITAN TRUST BANK'
+                                  : rawBank.toLowerCase().contains('moniepoint')
+                                      ? 'MONIEPOINT MFB'
+                                      : rawBank.toLowerCase().contains('wema')
+                                          ? 'WEMA BANK'
+                                          : rawBank.toLowerCase().contains('sterling')
+                                              ? 'STERLING BANK'
+                                              : rawBank.toLowerCase().contains('palmpay')
+                                                  ? 'PALMPAY'
+                                                  : rawBank.toUpperCase();
                               final number = activeAccount['account_number'] ?? '';
                               
                               // Format account holder name nicely
@@ -1203,6 +1214,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               final isMoniepoint = bank.toLowerCase().contains('moniepoint');
                               final isWema = bank.toLowerCase().contains('wema');
                               final isSterling = bank.toLowerCase().contains('sterling');
+                              final isPaystack = bank.toLowerCase().contains('paystack') || bank.toLowerCase().contains('titan');
+                              final isPalmpay = bank.toLowerCase().contains('palmpay');
 
                               final cardGradient = isMoniepoint
                                   ? const LinearGradient(
@@ -1222,14 +1235,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
                                             )
-                                          : LinearGradient(
-                                              colors: [
-                                                Colors.white.withValues(alpha: 0.02),
-                                                Colors.white.withValues(alpha: 0.04),
-                                              ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            );
+                                          : isPaystack
+                                              ? const LinearGradient(
+                                                  colors: [Color(0xFF031A18), Color(0xFF0A3C37), Color(0xFF105F56)],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                )
+                                              : isPalmpay
+                                                  ? const LinearGradient(
+                                                      colors: [Color(0xFF0A0F30), Color(0xFF1F124A), Color(0xFF361875)],
+                                                      begin: Alignment.topLeft,
+                                                      end: Alignment.bottomRight,
+                                                    )
+                                                  : LinearGradient(
+                                                      colors: [
+                                                        Colors.white.withValues(alpha: 0.02),
+                                                        Colors.white.withValues(alpha: 0.04),
+                                                      ],
+                                                      begin: Alignment.topLeft,
+                                                      end: Alignment.bottomRight,
+                                                    );
 
                               final cardBorderColor = isMoniepoint
                                   ? Colors.blue.withValues(alpha: 0.3)
@@ -1237,7 +1262,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? Colors.purple.withValues(alpha: 0.3)
                                       : isSterling
                                           ? Colors.red.withValues(alpha: 0.3)
-                                          : Colors.white.withValues(alpha: 0.05);
+                                          : isPaystack
+                                              ? Colors.teal.withValues(alpha: 0.3)
+                                              : isPalmpay
+                                                  ? Colors.deepPurple.withValues(alpha: 0.3)
+                                                  : Colors.white.withValues(alpha: 0.05);
 
                               final badgeBg = isMoniepoint
                                   ? Colors.blue.withValues(alpha: 0.15)
@@ -1245,7 +1274,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? Colors.purple.withValues(alpha: 0.15)
                                       : isSterling
                                           ? Colors.red.withValues(alpha: 0.15)
-                                          : Colors.white.withValues(alpha: 0.08);
+                                          : isPaystack
+                                              ? Colors.teal.withValues(alpha: 0.15)
+                                              : isPalmpay
+                                                  ? Colors.purple.withValues(alpha: 0.15)
+                                                  : Colors.white.withValues(alpha: 0.08);
 
                               final badgeText = isMoniepoint
                                   ? Colors.blue.shade300
@@ -1253,7 +1286,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? Colors.purple.shade300
                                       : isSterling
                                           ? Colors.red.shade300
-                                          : Colors.white.withValues(alpha: 0.5);
+                                          : isPaystack
+                                              ? Colors.teal.shade300
+                                              : isPalmpay
+                                                  ? Colors.purple.shade300
+                                                  : Colors.white.withValues(alpha: 0.5);
 
                               final routeName = isMoniepoint
                                   ? 'MONIEPOINT SECURE ROUTE'
@@ -1261,7 +1298,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? 'WEMA BANK AUTOMATED'
                                       : isSterling
                                           ? 'STERLING DEDICATED'
-                                          : 'AUTOMATED PAYMENTS';
+                                          : isPaystack
+                                              ? 'PAYSTACK TITAN ROUTE'
+                                              : isPalmpay
+                                                  ? 'PALMPAY SECURE ROUTE'
+                                                  : 'AUTOMATED PAYMENTS';
 
                               final hasMonie = accounts.any((acc) => (acc['bank_name'] ?? '').toString().toLowerCase().contains('moniepoint'));
 
@@ -1346,18 +1387,34 @@ class _HomeScreenState extends State<HomeScreen> {
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             Expanded(
-                                              child: FittedBox(
-                                                fit: BoxFit.scaleDown,
-                                                alignment: Alignment.centerLeft,
-                                                child: Text(
-                                                  bank,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.w900,
-                                                    letterSpacing: -0.2,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    'BANK NAME',
+                                                    style: TextStyle(
+                                                      color: Colors.white.withValues(alpha: 0.5),
+                                                      fontSize: 9,
+                                                      fontWeight: FontWeight.w900,
+                                                      letterSpacing: 1.0,
+                                                    ),
                                                   ),
-                                                ),
+                                                  const SizedBox(height: 2),
+                                                  FittedBox(
+                                                    fit: BoxFit.scaleDown,
+                                                    alignment: Alignment.centerLeft,
+                                                    child: Text(
+                                                      bank,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 24,
+                                                        fontWeight: FontWeight.w900,
+                                                        letterSpacing: -0.2,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                             Container(
@@ -1386,7 +1443,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                             child: Text(
                                               accountName,
                                               style: TextStyle(
-                                                color: isMoniepoint ? Colors.blue.shade300 : (isWema ? Colors.purple.shade300 : (isSterling ? Colors.red.shade300 : Colors.blue.withAlpha(230))),
+                                                color: isMoniepoint
+                                                    ? Colors.blue.shade300
+                                                    : (isWema
+                                                        ? Colors.purple.shade300
+                                                        : (isSterling
+                                                            ? Colors.red.shade300
+                                                            : (isPaystack
+                                                                ? Colors.teal.shade300
+                                                                : (isPalmpay
+                                                                    ? Colors.purple.shade300
+                                                                    : Colors.blue.withAlpha(230))))),
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w800,
                                                 letterSpacing: 0.1,

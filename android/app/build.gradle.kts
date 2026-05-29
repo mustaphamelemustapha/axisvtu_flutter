@@ -35,8 +35,8 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.mmtech.axisvtu"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // We explicitly set minSdk to 23 (Android 6.0) to support older devices.
+        // Flutter 3.41's default is 24, but 23 is the minimum supported version.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

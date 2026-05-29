@@ -814,9 +814,20 @@ class _WalletScreenState extends State<WalletScreen> {
                 final activeIndex = _activeAccountIndex.clamp(0, accounts.length - 1);
                 final account = accounts[activeIndex];
                 final isPlaceholder = account['isPlaceholder'] == true;
-                final bankName = (account['bank_name'] ?? 'Paystack-Titan')
+                final rawBank = (account['bank_name'] ?? 'Paystack-Titan')
                     .toString()
                     .trim();
+                final bankName = rawBank.toLowerCase().contains('titan') || rawBank.toLowerCase().contains('paystack')
+                    ? 'Titan Trust Bank'
+                    : rawBank.toLowerCase().contains('moniepoint')
+                        ? 'Moniepoint MFB'
+                        : rawBank.toLowerCase().contains('wema')
+                            ? 'Wema Bank'
+                            : rawBank.toLowerCase().contains('sterling')
+                                ? 'Sterling Bank'
+                                : rawBank.toLowerCase().contains('palmpay')
+                                    ? 'PalmPay'
+                                    : rawBank;
                 final accountNumber = (account['account_number'] ?? '')
                     .toString()
                     .trim();
@@ -1461,27 +1472,104 @@ class _BankCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final compact = MediaQuery.sizeOf(context).height < 760;
     final displayNumber = _formatAccountNumber(accountNumber);
-    return Container(
-      padding: EdgeInsets.all(compact ? 12 : 16),
-      decoration: BoxDecoration(
-        gradient: isDark
+
+    final isMoniepoint = bankName.toLowerCase().contains('moniepoint');
+    final isWema = bankName.toLowerCase().contains('wema');
+    final isSterling = bankName.toLowerCase().contains('sterling');
+    final isPaystack = bankName.toLowerCase().contains('paystack') || bankName.toLowerCase().contains('titan');
+    final isPalmpay = bankName.toLowerCase().contains('palmpay');
+    final isBranded = isMoniepoint || isWema || isSterling || isPaystack || isPalmpay;
+    final useWhiteText = isBranded || isDark;
+
+    final cardGradient = isMoniepoint
+        ? const LinearGradient(
+            colors: [Color(0xFF070F24), Color(0xFF0F1E4A), Color(0xFF142966)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : isWema
             ? const LinearGradient(
-                colors: [Color(0xFF101A2A), Color(0xFF162338)],
+                colors: [Color(0xFF1F0825), Color(0xFF3B0C46), Color(0xFF5D1268)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
-            : const LinearGradient(
-                colors: [Color(0xFFF7FAFF), Color(0xFFEEF4FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+            : isSterling
+                ? const LinearGradient(
+                    colors: [Color(0xFF1F090B), Color(0xFF4C0E11), Color(0xFF8B1E22)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : isPaystack
+                    ? const LinearGradient(
+                        colors: [Color(0xFF031A18), Color(0xFF0A3C37), Color(0xFF105F56)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : isPalmpay
+                        ? const LinearGradient(
+                            colors: [Color(0xFF0A0F30), Color(0xFF1F124A), Color(0xFF361875)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : isDark
+                            ? const LinearGradient(
+                                colors: [Color(0xFF101A2A), Color(0xFF162338)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : const LinearGradient(
+                                colors: [Color(0xFFF7FAFF), Color(0xFFEEF4FF)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              );
+
+    final cardBorderColor = isMoniepoint
+        ? Colors.blue.withValues(alpha: 0.3)
+        : isWema
+            ? Colors.purple.withValues(alpha: 0.3)
+            : isSterling
+                ? Colors.red.withValues(alpha: 0.3)
+                : isPaystack
+                    ? Colors.teal.withValues(alpha: 0.3)
+                    : isPalmpay
+                        ? Colors.deepPurple.withValues(alpha: 0.3)
+                        : Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.10 : 0.08);
+
+    final shadowColor = isMoniepoint
+        ? Colors.blue
+        : isWema
+            ? Colors.purple
+            : isSterling
+                ? Colors.red
+                : isPaystack
+                    ? Colors.teal
+                    : isPalmpay
+                        ? Colors.deepPurple
+                        : Theme.of(context).colorScheme.primary;
+
+    final accentColor = isMoniepoint
+        ? Colors.blue.shade300
+        : isWema
+            ? Colors.purple.shade300
+            : isSterling
+                ? Colors.red.shade300
+                : isPaystack
+                    ? Colors.teal.shade300
+                    : isPalmpay
+                        ? Colors.purple.shade300
+                        : Theme.of(context).colorScheme.primary;
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 12 : 16),
+      decoration: BoxDecoration(
+        gradient: cardGradient,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.10 : 0.08,),
+          color: cardBorderColor,
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.24 : 0.16),
+            color: shadowColor.withValues(alpha: isDark ? 0.24 : 0.16),
             blurRadius: 32,
             spreadRadius: 2,
             offset: const Offset(0, 12),
@@ -1513,16 +1601,36 @@ class _BankCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  bankName.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: isDark ? Colors.white : Colors.black,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'BANK NAME',
+                      style: TextStyle(
+                        color: useWhiteText
+                            ? Colors.white.withValues(alpha: 0.5)
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 9,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
-                        fontSize: 26,
+                        letterSpacing: 1.0,
                       ),
+                    ),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        bankName.toUpperCase(),
+                        style: TextStyle(
+                          color: useWhiteText ? Colors.white : Colors.black,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.2,
+                          fontSize: 25,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
@@ -1554,7 +1662,7 @@ class _BankCard extends StatelessWidget {
               child: Text(
                 'PENDING',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: isDark ? Colors.white.withValues(alpha: 0.35) : Colors.black26,
+                      color: useWhiteText ? Colors.white.withValues(alpha: 0.35) : Colors.black26,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 6.0,
                       height: 1.1,
@@ -1568,7 +1676,7 @@ class _BankCard extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 1,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: isDark ? Colors.white70 : Colors.black87,
+                    color: useWhiteText ? Colors.white70 : Colors.black87,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     letterSpacing: 0.1,
@@ -1590,7 +1698,7 @@ class _BankCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white70 : Colors.black87,
+                  color: useWhiteText ? Colors.white70 : Colors.black87,
                   height: 1.45,
                 ),
               ),
@@ -1610,7 +1718,7 @@ class _BankCard extends StatelessWidget {
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: isDark ? Colors.white : Colors.black87,
+                                color: useWhiteText ? Colors.white : Colors.black87,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: compact ? 2.8 : 4.4,
                                 fontFeatures: const [FontFeature.tabularFigures()],
@@ -1624,16 +1732,10 @@ class _BankCard extends StatelessWidget {
                   SizedBox(width: compact ? 6 : 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: isDark ? 0.14 : 0.10),
+                      color: accentColor.withValues(alpha: useWhiteText ? 0.14 : 0.10),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: isDark ? 0.12 : 0.08),
+                        color: accentColor.withValues(alpha: useWhiteText ? 0.12 : 0.08),
                       ),
                     ),
                     child: IconButton(
@@ -1646,7 +1748,7 @@ class _BankCard extends StatelessWidget {
                         width: compact ? 34 : 40,
                         height: compact ? 34 : 40,
                       ),
-                      color: Theme.of(context).colorScheme.primary,
+                      color: accentColor,
                     ),
                   ),
                 ],
@@ -1659,7 +1761,7 @@ class _BankCard extends StatelessWidget {
               maxLines: compact ? 1 : 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: isDark ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                    color: useWhiteText ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     letterSpacing: 0.1,
@@ -1673,7 +1775,7 @@ class _BankCard extends StatelessWidget {
                   icon: const Icon(Icons.share_rounded, size: 16),
                   label: Text(compact ? 'Share' : 'Share details'),
                   style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: accentColor,
                     padding: EdgeInsets.symmetric(
                       horizontal: compact ? 12 : 14,
                       vertical: compact ? 6 : 8,
@@ -1690,10 +1792,12 @@ class _BankCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.58),
+                    color: useWhiteText
+                        ? Colors.white.withValues(alpha: 0.58)
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.58),
                     height: 1.25,
                   ),
             ),
