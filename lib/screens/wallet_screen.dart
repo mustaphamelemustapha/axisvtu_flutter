@@ -818,7 +818,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     .toString()
                     .trim();
                 final bankName = rawBank.toLowerCase().contains('titan') || rawBank.toLowerCase().contains('paystack')
-                    ? 'Titan Trust Bank'
+                    ? 'Paystack Titan'
                     : rawBank.toLowerCase().contains('moniepoint')
                         ? 'Moniepoint MFB'
                         : rawBank.toLowerCase().contains('wema')

@@ -1187,7 +1187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               final activeAccount = accounts[activeIndex];
                               final rawBank = (activeAccount['bank_name'] ?? 'Bank').toString().trim();
                               final bank = rawBank.toLowerCase().contains('titan') || rawBank.toLowerCase().contains('paystack')
-                                  ? 'TITAN TRUST BANK'
+                                  ? 'PAYSTACK TITAN'
                                   : rawBank.toLowerCase().contains('moniepoint')
                                       ? 'MONIEPOINT MFB'
                                       : rawBank.toLowerCase().contains('wema')
