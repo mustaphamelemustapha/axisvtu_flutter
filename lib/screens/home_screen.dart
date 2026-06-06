@@ -1862,7 +1862,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (referralCode.isNotEmpty) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(20),
@@ -1871,78 +1871,159 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   boxShadow: AxisShadows.softGlow,
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.stars_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Text(
-                            'Referral Code: ',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
-                            ),
-                          ),
-                          Flexible(
-                            child: SelectableText(
-                              referralCode,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w900,
-                                color: Theme.of(context).colorScheme.primary,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () async {
-                        await Clipboard.setData(ClipboardData(text: referralCode));
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Referral code copied!'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.stars_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 18,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
+                        const SizedBox(width: 8),
+                        Text(
+                          'Referral Program',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'REFERRAL LINK',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              SelectableText(
+                                'https://meledata.ng/register?ref=$referralCode',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () async {
+                            await Clipboard.setData(ClipboardData(text: 'https://meledata.ng/register?ref=$referralCode'));
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Referral link copied!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
                               Icons.copy_rounded,
                               size: 14,
                               color: Theme.of(context).colorScheme.primary,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Copy',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Divider(
+                      height: 1,
+                      color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.08 : 0.05),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'REFERRAL CODE',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              SelectableText(
+                                referralCode,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () async {
+                            await Clipboard.setData(ClipboardData(text: referralCode));
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Referral code copied!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.copy_rounded,
+                                  size: 14,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Copy Code',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
