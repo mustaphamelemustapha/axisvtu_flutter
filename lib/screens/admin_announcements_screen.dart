@@ -159,6 +159,20 @@ class _AdminAnnouncementsScreenState extends State<AdminAnnouncementsScreen> {
     );
   }
 
+  void _openEditAnnouncementSheet(Map<String, dynamic> announcement) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _CreateAnnouncementSheet(
+        announcement: announcement,
+        onSuccess: () {
+          _loadAnnouncements();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -328,6 +342,13 @@ class _AdminAnnouncementsScreenState extends State<AdminAnnouncementsScreen> {
                                       ),
                                     ),
                                     const Spacer(),
+                                    IconButton(
+                                      icon: Icon(Icons.edit_rounded, color: textDim, size: 20),
+                                      onPressed: () => _openEditAnnouncementSheet(item),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                    const SizedBox(width: 8),
                                     isUpdating
                                         ? const SizedBox(
                                             width: 24,
@@ -436,9 +457,13 @@ class _AdminAnnouncementsScreenState extends State<AdminAnnouncementsScreen> {
 }
 
 class _CreateAnnouncementSheet extends StatefulWidget {
-  const _CreateAnnouncementSheet({required this.onSuccess});
+  const _CreateAnnouncementSheet({
+    required this.onSuccess,
+    this.announcement,
+  });
 
   final VoidCallback onSuccess;
+  final Map<String, dynamic>? announcement;
 
   @override
   State<_CreateAnnouncementSheet> createState() => _CreateAnnouncementSheetState();
@@ -453,6 +478,23 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
   DateTime? _startsAt;
   DateTime? _endsAt;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.announcement != null) {
+      _titleCtrl.text = widget.announcement!['title']?.toString() ?? '';
+      _messageCtrl.text = widget.announcement!['message']?.toString() ?? '';
+      _level = widget.announcement!['level']?.toString() ?? 'info';
+      _isActive = widget.announcement!['is_active'] == true;
+      if (widget.announcement!['starts_at'] != null) {
+        _startsAt = DateTime.tryParse(widget.announcement!['starts_at'].toString())?.toLocal();
+      }
+      if (widget.announcement!['ends_at'] != null) {
+        _endsAt = DateTime.tryParse(widget.announcement!['ends_at'].toString())?.toLocal();
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -526,22 +568,37 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
       if (token == null) throw Exception('Session expired');
 
       final adminService = AdminService(token: token);
-      await adminService.createAnnouncement(
-        title: _titleCtrl.text.trim(),
-        message: _messageCtrl.text.trim(),
-        level: _level,
-        isActive: _isActive,
-        startsAt: _startsAt,
-        endsAt: _endsAt,
-      );
+      if (widget.announcement != null) {
+        final id = widget.announcement!['id'] as int;
+        await adminService.updateAnnouncement(
+          id,
+          title: _titleCtrl.text.trim(),
+          message: _messageCtrl.text.trim(),
+          level: _level,
+          isActive: _isActive,
+          startsAt: _startsAt,
+          endsAt: _endsAt,
+        );
+      } else {
+        await adminService.createAnnouncement(
+          title: _titleCtrl.text.trim(),
+          message: _messageCtrl.text.trim(),
+          level: _level,
+          isActive: _isActive,
+          startsAt: _startsAt,
+          endsAt: _endsAt,
+        );
+      }
 
       if (mounted) {
         HapticFeedback.mediumImpact();
         widget.onSuccess();
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Announcement broadcasted successfully'),
+          SnackBar(
+            content: Text(widget.announcement != null
+                ? 'Announcement updated successfully'
+                : 'Announcement broadcasted successfully'),
           ),
         );
       }
@@ -599,7 +656,7 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
                 Row(
                   children: [
                     Text(
-                      'New Announcement',
+                      widget.announcement != null ? 'Edit Announcement' : 'New Announcement',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.5,
@@ -792,7 +849,9 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
                 ),
                 const SizedBox(height: 24),
                 PrimaryButton(
-                  label: _submitting ? 'Broadcasting...' : 'Broadcast Announcement',
+                  label: _submitting
+                      ? (widget.announcement != null ? 'Updating...' : 'Broadcasting...')
+                      : (widget.announcement != null ? 'Update Announcement' : 'Broadcast Announcement'),
                   loading: _submitting,
                   icon: Icons.campaign_rounded,
                   onPressed: _submitting ? null : _submit,
