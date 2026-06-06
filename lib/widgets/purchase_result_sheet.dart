@@ -166,31 +166,33 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                       child: Column(
                         children: [
                           Container(
-                            width: 48, height: 48,
-                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                            child: ClipOval(
-                              child: Padding(
-                                padding: const EdgeInsets.all(6),
-                                child: Image.asset(
-                                  'assets/brand/meledata-logo.png',
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (c, e, s) => Icon(
-                                    _isSuccess ? Icons.local_florist : Icons.error_outline_rounded, 
-                                    color: _isSuccess ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
-                                    size: 24
-                                  ),
-                                ),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.1),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                )
+                              ],
+                            ),
+                            child: Image.asset(
+                              'assets/brand/meledata-logo.png',
+                              height: 32,
+                              fit: BoxFit.contain,
+                              errorBuilder: (c, e, s) => Icon(
+                                _isSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded, 
+                                color: _isSuccess ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
+                                size: 32
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'MELE DATA',
-                            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-                          ),
+                          const SizedBox(height: 16),
                           const Text(
                             'Transaction Receipt',
-                            style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                           ),
                         ],
                       ),
