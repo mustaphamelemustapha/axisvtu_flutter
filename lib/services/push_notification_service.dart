@@ -49,42 +49,40 @@ class PushNotificationService {
         sound: true,
       );
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        // Get the token
-        final fcmToken = await messaging.getToken();
-        
-        if (fcmToken != null && session.isAuthenticated) {
-          await syncTokenWithBackend(fcmToken, session.token!);
-        }
-
-        // Listen for token refreshes
-        messaging.onTokenRefresh.listen((newToken) async {
-          final currentPrefs = await SharedPreferences.getInstance();
-          final currentEnabled = currentPrefs.getBool(_pushNotificationsKey) ?? true;
-          if (session.isAuthenticated && currentEnabled) {
-            syncTokenWithBackend(newToken, session.token!);
-          }
-        });
-
-        // Handle foreground messages
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-          debugPrint('Got a message whilst in the foreground!');
-          debugPrint('Message data: ${message.data}');
-          if (message.notification != null) {
-            debugPrint('Message also contained a notification: ${message.notification}');
-            final context = navigatorKey.currentContext;
-            if (context != null && context.mounted) {
-              final title = message.notification?.title ?? 'MELE DATA';
-              final body = message.notification?.body ?? '';
-              InteractiveNotificationBanner.show(
-                context,
-                title: title,
-                message: body,
-              );
-            }
-          }
-        });
+      // Get the token
+      final fcmToken = await messaging.getToken();
+      
+      if (fcmToken != null && session.isAuthenticated) {
+        await syncTokenWithBackend(fcmToken, session.token!);
       }
+
+      // Listen for token refreshes
+      messaging.onTokenRefresh.listen((newToken) async {
+        final currentPrefs = await SharedPreferences.getInstance();
+        final currentEnabled = currentPrefs.getBool(_pushNotificationsKey) ?? true;
+        if (session.isAuthenticated && currentEnabled) {
+          syncTokenWithBackend(newToken, session.token!);
+        }
+      });
+
+      // Handle foreground messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('Got a message whilst in the foreground!');
+        debugPrint('Message data: ${message.data}');
+        if (message.notification != null) {
+          debugPrint('Message also contained a notification: ${message.notification}');
+          final context = navigatorKey.currentContext;
+          if (context != null && context.mounted) {
+            final title = message.notification?.title ?? 'MELE DATA';
+            final body = message.notification?.body ?? '';
+            InteractiveNotificationBanner.show(
+              context,
+              title: title,
+              message: body,
+            );
+          }
+        }
+      });
     } catch (e) {
       debugPrint("Failed to initialize Firebase Messaging: $e");
     }
