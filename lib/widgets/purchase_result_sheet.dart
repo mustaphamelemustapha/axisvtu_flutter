@@ -178,13 +178,13 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                               ],
                             ),
                             child: Image.asset(
-                              'assets/brand/meledata-logo.png',
-                              height: 32,
+                              'assets/brand/meledata-receipt-logo.jpg',
+                              height: 52,
                               fit: BoxFit.contain,
                               errorBuilder: (c, e, s) => Icon(
                                 _isSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded, 
                                 color: _isSuccess ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
-                                size: 32
+                                size: 52
                               ),
                             ),
                           ),
