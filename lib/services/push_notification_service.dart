@@ -15,9 +15,9 @@ class PushNotificationService {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   static Future<void> initialize(SessionController session) async {
-    // Only support Android push notifications for now, as requested
-    if (!Platform.isAndroid) {
-      debugPrint("[PushNotification] Disabled for non-Android platforms.");
+    // Support Android and iOS push notifications
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      debugPrint("[PushNotification] Disabled for unsupported platforms.");
       return;
     }
 

@@ -15,11 +15,11 @@ void main() async {
     systemNavigationBarColor: Colors.transparent,
   ));
 
-  if (Platform.isAndroid) {
+  if (Platform.isAndroid || Platform.isIOS) {
     try {
       await Firebase.initializeApp();
     } catch (e) {
-      debugPrint("Failed to initialize Firebase on Android: $e");
+      debugPrint("Failed to initialize Firebase: $e");
     }
   }
   runApp(const AxisVTUApp());
