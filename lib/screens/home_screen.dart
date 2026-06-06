@@ -825,22 +825,68 @@ class _HomeScreenState extends State<HomeScreen> {
     if (message.isEmpty || _dismissedAnnouncementIds.contains(id)) {
       return const SizedBox.shrink();
     }
+
+    final level = (announcement['level'] ?? 'info').toString().toLowerCase();
+
+    // Default color maps for 'info'
+    List<Color> gradientColors = const [
+      Color(0xFF60A5FA), // Blue 400
+      Color(0xFF3B82F6), // Blue 500
+    ];
+    Color textPrimaryColor = const Color(0xFF1E3A8A); // Blue 900
+    Color textSecondaryColor = const Color(0xFF1E40AF); // Blue 800
+    IconData iconData = Icons.info_outline_rounded;
+    Color iconColor = const Color(0xFF1E3A8A);
+    Color closeBtnBg = const Color(0xFF1E3A8A).withOpacity(0.08);
+    Color shadowColor = const Color(0xFF3B82F6).withOpacity(0.18);
+
+    if (level == 'success') {
+      gradientColors = const [
+        Color(0xFF34D399), // Emerald 400
+        Color(0xFF10B981), // Emerald 500
+      ];
+      textPrimaryColor = const Color(0xFF064E3B); // Emerald 950
+      textSecondaryColor = const Color(0xFF065F46); // Emerald 900
+      iconData = Icons.check_circle_outline_rounded;
+      iconColor = const Color(0xFF064E3B);
+      closeBtnBg = const Color(0xFF064E3B).withOpacity(0.08);
+      shadowColor = const Color(0xFF10B981).withOpacity(0.18);
+    } else if (level == 'warning') {
+      gradientColors = const [
+        Color(0xFFFBBF24), // Amber 400
+        Color(0xFFF59E0B), // Amber 500
+      ];
+      textPrimaryColor = const Color(0xFF451A03); // Amber 950
+      textSecondaryColor = const Color(0xFF78350F); // Amber 900
+      iconData = Icons.warning_amber_rounded;
+      iconColor = const Color(0xFF451A03);
+      closeBtnBg = const Color(0xFF451A03).withOpacity(0.08);
+      shadowColor = const Color(0xFFF59E0B).withOpacity(0.18);
+    } else if (level == 'critical') {
+      gradientColors = const [
+        Color(0xFFF87171), // Red 400
+        Color(0xFFEF4444), // Red 500
+      ];
+      textPrimaryColor = const Color(0xFF7F1D1D); // Red 950
+      textSecondaryColor = const Color(0xFF991B1B); // Red 900
+      iconData = Icons.gpp_bad_outlined;
+      iconColor = const Color(0xFF7F1D1D);
+      closeBtnBg = const Color(0xFF7F1D1D).withOpacity(0.08);
+      shadowColor = const Color(0xFFEF4444).withOpacity(0.18);
+    }
     
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFFFBBF24), // Amber 400
-            Color(0xFFF59E0B), // Amber 500
-          ],
+        gradient: LinearGradient(
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
+            color: shadowColor,
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -851,9 +897,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(
-              Icons.info_outline_rounded,
-              color: Color(0xFF451A03), // Amber 950
+            Icon(
+              iconData,
+              color: iconColor,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -865,8 +911,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (title.isNotEmpty && title != 'Announcement')
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: Color(0xFF451A03),
+                      style: TextStyle(
+                        color: textPrimaryColor,
                         fontWeight: FontWeight.w900,
                         fontSize: 14,
                         letterSpacing: -0.2,
@@ -875,8 +921,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (title.isNotEmpty && title != 'Announcement') const SizedBox(height: 4),
                   Text(
                     message,
-                    style: const TextStyle(
-                      color: Color(0xFF78350F), // Amber 900
+                    style: TextStyle(
+                      color: textSecondaryColor,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                       height: 1.4,
@@ -892,11 +938,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF451A03).withValues(alpha: 0.08),
+                  color: closeBtnBg,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.close_rounded,
-                  color: Color(0xFF451A03),
+                  color: iconColor,
                   size: 16,
                 ),
               ),
