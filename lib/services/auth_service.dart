@@ -73,4 +73,8 @@ class AuthService {
   Future<Map<String, dynamic>> deleteMe() {
     return _client.delete('/auth/delete-me');
   }
+
+  Future<Map<String, dynamic>> acknowledgeAgentUpgrade() async {
+    return _client.post('/auth/me/acknowledge-agent-upgrade', {});
+  }
 }

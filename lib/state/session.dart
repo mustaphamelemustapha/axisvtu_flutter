@@ -570,6 +570,25 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> acknowledgeAgentUpgrade() async {
+    if (_token == null) return;
+    try {
+      await AuthService(token: _token).acknowledgeAgentUpgrade();
+      if (_user != null) {
+        final updated = Map<String, dynamic>.from(_user!);
+        updated['agent_upgrade_seen'] = true;
+        _user = updated;
+        _lastUser = updated;
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_lastUserJsonKey, jsonEncode(updated));
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[Session] Acknowledge agent upgrade failed: $e');
+    }
+  }
+
   void _setLoading(bool value) {
     _loading = value;
     notifyListeners();

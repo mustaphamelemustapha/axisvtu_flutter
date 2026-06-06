@@ -57,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _activeToken = '';
   String _activeDashboardKey = '';
   bool _hideBalance = false;
+  bool _showingUpgradeDialog = false;
   int? _activeBalanceTick;
   Timer? _refreshTimer;
 
@@ -196,6 +197,17 @@ class _HomeScreenState extends State<HomeScreen> {
       
       _activeToken = token;
     }
+
+    final user = session.user ?? {};
+    final role = (user['role'] ?? 'Member').toString().trim().toLowerCase();
+    final upgradeSeen = user['agent_upgrade_seen'] ?? true;
+
+    if (role == 'reseller' && !upgradeSeen && !_showingUpgradeDialog) {
+      _showingUpgradeDialog = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showAgentUpgradeDialog(user);
+      });
+    }
   }
 
   Future<void> _loadBalancePreference() async {
@@ -204,6 +216,173 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _hideBalance = prefs.getBool(_hideBalanceKey) ?? false;
     });
+  }
+
+  Future<void> _acknowledgeUpgrade() async {
+    try {
+      await context.read<SessionController>().acknowledgeAgentUpgrade();
+    } catch (_) {}
+  }
+
+  void _showAgentUpgradeDialog(Map<String, dynamic> user) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+        final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+        
+        return PopScope(
+          canPop: false, // Hard lock dismissal
+          child: Dialog(
+            backgroundColor: cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            elevation: 24,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.workspace_premium_rounded,
+                        color: Colors.green,
+                        size: 48,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Text(
+                      'Congratulations! 🎉',
+                      style: TextStyle(
+                        color: textPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      'On hitting 50GB+ sales, your account has been upgraded to an Agent account.',
+                      style: TextStyle(
+                        color: isDark ? Colors.white70 : Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Agent Benefits in MELE DATA:',
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _benefitItem(
+                    icon: Icons.sell_rounded,
+                    title: 'Cheaper Pricing Rates',
+                    description: 'Enjoy cheaper pricing rates than normal users (e.g. if a normal user gets data bundle for ₦450, you get it at the rate of ₦400). That’s a ₦50 difference!',
+                    isDark: isDark,
+                  ),
+                  const SizedBox(height: 12),
+                  _benefitItem(
+                    icon: Icons.group_add_rounded,
+                    title: 'Register an Agent',
+                    description: 'Onboard POS agents who sell mobile data. Once an agent becomes active (sells 50GB+), you earn ₦2,000 per agent. There’s no limit, earn as much as you want.',
+                    isDark: isDark,
+                  ),
+                  const SizedBox(height: 12),
+                  _benefitItem(
+                    icon: Icons.share_rounded,
+                    title: 'Referrals',
+                    description: 'Invite someone to join MELE DATA using your referral code. Every time they buy data, you earn a commission automatically.',
+                    isDark: isDark,
+                  ),
+                  const SizedBox(height: 12),
+                  _benefitItem(
+                    icon: Icons.local_offer_rounded,
+                    title: 'Offers',
+                    description: 'Hit milestones and unlock special rewards. Once you claim an offer, the reward reflects instantly in your earnings balance.',
+                    isDark: isDark,
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: PrimaryButton(
+                      label: "Let's Go!",
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await _acknowledgeUpgrade();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _benefitItem({
+    required IconData icon,
+    required String title,
+    required String description,
+    required bool isDark,
+  }) {
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
+    
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Colors.blueAccent, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: TextStyle(
+                  color: textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _launchSupport() async {
