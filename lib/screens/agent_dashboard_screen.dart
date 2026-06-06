@@ -619,7 +619,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                     ),
                   ),
                   child: Text(
-                    campaign.isQualified ? 'Claim' : 'Locked',
+                    campaign.isQualified ? 'Unlock' : 'Locked',
                     style: TextStyle(
                       color: campaign.isQualified ? Colors.white : textSecondary,
                       fontSize: 12,
