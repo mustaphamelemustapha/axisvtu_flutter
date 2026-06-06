@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,8 +8,10 @@ import '../models/app_notification.dart';
 import '../services/notifications_service.dart';
 import '../services/transactions_service.dart';
 import '../state/session.dart';
+import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/notification_row.dart';
+import '../widgets/purchase_result_sheet.dart';
 
 enum _NotificationFilter { all, unread, transactions, wallet, security }
 
@@ -139,10 +142,576 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     _showDetailSheet(item);
   }
 
+  String _statusOf(Map<String, dynamic> tx) {
+    return (tx['status'] ?? 'pending').toString().trim().toLowerCase();
+  }
+
+  String _typeOf(Map<String, dynamic> tx) {
+    return (tx['tx_type'] ?? 'transaction').toString().trim().toLowerCase();
+  }
+
+  bool _isCredit(Map<String, dynamic> tx) => _typeOf(tx) == 'wallet_fund' || _typeOf(tx) == 'admin_credit';
+
+  double _amountOf(Map<String, dynamic> tx) {
+    final value = tx['amount'];
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  String _titleFor(Map<String, dynamic> tx) {
+    return switch (_typeOf(tx)) {
+      'data' => 'Data Bundle',
+      'wallet_fund' => 'Account Top-up',
+      'admin_credit' => 'Admin Credit',
+      'admin_debit' => 'Admin Debit',
+      'airtime' => 'Airtime Recharge',
+      'cable' => 'Cable TV',
+      'electricity' => 'Electricity Token',
+      'exam' => 'Exam PIN',
+      _ => 'Service',
+    };
+  }
+
+  String _subtitleFor(Map<String, dynamic> tx) {
+    final meta = tx['meta'];
+    if (meta is Map) {
+      final recipient =
+          meta['recipient_phone'] ??
+          meta['phone_number'] ??
+          meta['meter_number'];
+      if ((recipient ?? '').toString().trim().isNotEmpty) {
+        return recipient.toString();
+      }
+      final package = meta['package_code'];
+      if ((package ?? '').toString().trim().isNotEmpty) {
+        return package.toString();
+      }
+      final ledger = meta['ledger_description'];
+      if ((ledger ?? '').toString().trim().isNotEmpty) {
+        return ledger.toString();
+      }
+    }
+    final network = (tx['network'] ?? '').toString().trim();
+    if (network.isNotEmpty) return network.toUpperCase();
+    
+    final failureReason = (tx['failure_reason'] ?? '').toString().trim();
+    final type = _typeOf(tx);
+    if ((type == 'admin_credit' || type == 'admin_debit') && failureReason.isNotEmpty) {
+      return failureReason;
+    }
+    
+    return (tx['reference'] ?? '').toString();
+  }
+
+  DateTime? _createdAt(Map<String, dynamic> tx) {
+    final raw = tx['created_at'];
+    if (raw is DateTime) return raw;
+    return DateTime.tryParse(raw?.toString() ?? '');
+  }
+
+  String _formatDate(Map<String, dynamic> tx) {
+    final date = _createdAt(tx);
+    if (date == null) return '—';
+    return DateFormat('d MMM, yyyy • HH:mm').format(date.toLocal());
+  }
+
+  String _amountLabel(Map<String, dynamic> tx) {
+    final amount = _amountOf(tx);
+    final sign = _isCredit(tx) ? '+' : '-';
+    return '$sign₦${amount.toStringAsFixed(2)}';
+  }
+
+  IconData _iconFor(Map<String, dynamic> tx) {
+    return switch (_typeOf(tx)) {
+      'data' => Icons.wifi_rounded,
+      'wallet_fund' => Icons.account_balance_wallet_rounded,
+      'admin_credit' => Icons.account_balance_wallet_rounded,
+      'admin_debit' => Icons.money_off_rounded,
+      'airtime' => Icons.phone_iphone_rounded,
+      'cable' => Icons.tv_rounded,
+      'electricity' => Icons.flash_on_rounded,
+      'exam' => Icons.school_rounded,
+      _ => Icons.receipt_long_rounded,
+    };
+  }
+
+  Color _statusColor(BuildContext context, String status) {
+    final s = status.toLowerCase();
+    if (s == 'success') return const Color(0xFF16A34A);
+    if (s == 'pending' || s == 'processing' || s == 'queued') {
+      return const Color(0xFFF59E0B);
+    }
+    if (s == 'refunded') return const Color(0xFF0EA5E9);
+    return Theme.of(context).colorScheme.error;
+  }
+
+  Future<void> _copyRef(String value) async {
+    if (value.trim().isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Reference copied')));
+  }
+
+  Map<String, dynamic> _metaOf(Map<String, dynamic> tx) {
+    final raw = tx['meta'];
+    if (raw is Map) {
+      return raw.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return const {};
+  }
+
+  String _firstText(Iterable<dynamic?> values, {String fallback = '—'}) {
+    for (final value in values) {
+      final text = value?.toString().trim() ?? '';
+      if (text.isNotEmpty) return text;
+    }
+    return fallback;
+  }
+
+  String _receiptRecipientFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    return _firstText([
+      meta['recipient_phone'],
+      meta['phone_number'],
+      meta['meter_number'],
+      meta['smartcard_number'],
+      tx['recipient_phone'],
+      tx['phone_number'],
+      tx['meter_number'],
+      tx['smartcard_number'],
+    ]);
+  }
+
+  String _receiptNetworkFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    return _firstText([
+      tx['network'],
+      meta['network'],
+      meta['provider'],
+      tx['provider'],
+    ]);
+  }
+
+  String _receiptPlanFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    return _firstText([
+      meta['plan'],
+      meta['plan_name'],
+      meta['bundle'],
+      meta['package_name'],
+      meta['package_code'],
+      tx['plan'],
+      tx['plan_name'],
+      tx['bundle'],
+      tx['package_code'],
+      tx['service'],
+      _titleFor(tx),
+    ]);
+  }
+
+  String _receiptSenderFor() {
+    final user = context.read<SessionController>().user;
+    final name = user?['full_name'];
+    return _firstText([name, 'MELE DATA User'], fallback: 'MELE DATA User');
+  }
+
+  String _receiptReferenceFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    return _firstText([
+      tx['reference'],
+      tx['external_reference'],
+      meta['reference'],
+      meta['external_reference'],
+      tx['id'],
+    ]);
+  }
+
+  String _receiptSubtitleFor(Map<String, dynamic> tx) {
+    final parts = <String>[];
+    final recipient = _receiptRecipientFor(tx);
+    final network = _receiptNetworkFor(tx);
+    if (recipient != '—') parts.add(recipient);
+    if (network != '—') parts.add(network.toUpperCase());
+    if (parts.isEmpty) {
+      final ref = _receiptReferenceFor(tx);
+      if (ref != '—') parts.add(ref);
+    }
+    return parts.isEmpty ? 'Transaction receipt' : parts.join(' • ');
+  }
+
+  List<ReceiptField> _receiptFieldsFor(Map<String, dynamic> tx) {
+    final meta = _metaOf(tx);
+    final sender = _receiptSenderFor();
+    final recipient = _receiptRecipientFor(tx);
+    final network = _receiptNetworkFor(tx);
+    final plan = _receiptPlanFor(tx);
+    final reference = _receiptReferenceFor(tx);
+    final providerRef = _firstText([
+      tx['external_reference'],
+      meta['external_reference'],
+      meta['provider_reference'],
+    ], fallback: '');
+    final ledger = meta['ledger_description']?.toString() ?? '';
+
+    final fields = <ReceiptField>[
+      ReceiptField(label: 'Time', value: _formatDate(tx)),
+      ReceiptField(label: 'Sender Name', value: sender),
+      if (recipient != '—') ReceiptField(label: 'Recipient', value: recipient),
+      if (network != '—')
+        ReceiptField(label: 'Network', value: network.toUpperCase()),
+      ReceiptField(label: 'Plan', value: plan),
+      ReceiptField(label: 'Amount', value: _amountLabel(tx)),
+      ReceiptField(label: 'Reference', value: reference),
+      if (ledger.isNotEmpty) ReceiptField(label: 'Description', value: ledger),
+    ];
+
+    if (providerRef.isNotEmpty) {
+      fields.add(ReceiptField(label: 'Provider Ref', value: providerRef));
+    }
+
+    return fields;
+  }
+
+  Future<void> _openTransactionReceipt(
+    Map<String, dynamic> tx, {
+    required bool autoShareOnOpen,
+  }) async {
+    final status = _statusOf(tx);
+    final title = _titleFor(tx);
+    final subtitle = _receiptSubtitleFor(tx);
+    final fields = _receiptFieldsFor(tx);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => PurchaseResultSheet(
+        status: status,
+        title: title,
+        subtitle: subtitle,
+        fields: fields,
+        autoShareOnOpen: autoShareOnOpen,
+      ),
+    );
+  }
+
+  Future<void> _closeDetailAndOpenReceipt(
+    BuildContext sheetContext,
+    Map<String, dynamic> tx, {
+    required bool autoShareOnOpen,
+  }) async {
+    Navigator.of(sheetContext).pop();
+    await Future<void>.delayed(const Duration(milliseconds: 160));
+    if (!mounted) return;
+    try {
+      await _openTransactionReceipt(tx, autoShareOnOpen: autoShareOnOpen);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open receipt right now.')),
+      );
+    }
+  }
+
+  void _openTxDetails(Map<String, dynamic> tx) {
+    final status = _statusOf(tx);
+    final color = _statusColor(context, status);
+    final isCredit = _isCredit(tx);
+    final failure = (tx['failure_reason'] ?? '').toString().trim();
+    final receiptRef = (tx['reference'] ?? '').toString().trim();
+    final created = _formatDate(tx);
+    final typeLabel = _titleFor(tx);
+    final summaryLine = _subtitleFor(tx);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.72,
+          minChildSize: 0.44,
+          maxChildSize: 0.9,
+          builder: (context, controller) {
+            return ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              child: Container(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
+                child: ListView(
+                  controller: controller,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.08),
+                        ),
+                        boxShadow: AxisShadows.softGlow,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: ClipOval(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(6),
+                                    child: Image.asset(
+                                      'assets/brand/meledata-logo.png',
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (c, e, s) => Icon(
+                                        _iconFor(tx),
+                                        color: color,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      status == 'success'
+                                          ? 'Purchase successful'
+                                          : (status == 'pending'
+                                                ? 'Processing order'
+                                                : 'Order failed'),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: -0.5,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      typeLabel,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.60),
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.08),
+                                  border: Border.all(
+                                    color: color.withValues(alpha: 0.16),
+                                  ),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  status.toUpperCase(),
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _ReceiptDetailLine(
+                            label: 'Recipient / Service',
+                            value: summaryLine,
+                          ),
+                          _ReceiptDetailLine(
+                            label: 'Amount',
+                            value: _amountLabel(tx),
+                            valueColor: isCredit
+                                ? const Color(0xFF16A34A)
+                                : Theme.of(context).colorScheme.error,
+                            strong: true,
+                          ),
+                          _ReceiptDetailLine(
+                            label: 'Date / Time',
+                            value: created,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.07),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Details',
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 8),
+                          _DetailRow(
+                            label: 'Reference',
+                            value: receiptRef,
+                            trailing: IconButton(
+                              onPressed: () => _copyRef(receiptRef),
+                              icon: const Icon(Icons.copy_rounded, size: 18),
+                            ),
+                          ),
+                          if ((tx['external_reference'] ?? '')
+                              .toString()
+                              .trim()
+                              .isNotEmpty)
+                            _DetailRow(
+                              label: 'Provider Ref',
+                              value: (tx['external_reference'] ?? '')
+                                  .toString(),
+                            ),
+                          _DetailRow(
+                            label: 'Type',
+                            value: _typeOf(tx).toUpperCase(),
+                          ),
+                          if (failure.isNotEmpty)
+                            _DetailRow(
+                              label: 'Status note',
+                              value: failure,
+                              valueColor: Theme.of(context).colorScheme.error,
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final useVertical = constraints.maxWidth < 330;
+                        if (useVertical) {
+                          return Column(
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _closeDetailAndOpenReceipt(
+                                    context,
+                                    tx,
+                                    autoShareOnOpen: false,
+                                  ),
+                                  icon: const Icon(Icons.receipt_long_rounded),
+                                  label: const Text('View Receipt'),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _closeDetailAndOpenReceipt(
+                                    context,
+                                    tx,
+                                    autoShareOnOpen: true,
+                                  ),
+                                  icon: const Icon(Icons.share_rounded),
+                                  label: const Text('Share Receipt'),
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _closeDetailAndOpenReceipt(
+                                    context,
+                                    tx,
+                                    autoShareOnOpen: false,
+                                  ),
+                                  icon: const Icon(Icons.receipt_long_rounded),
+                                  label: const Text('View Receipt'),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _closeDetailAndOpenReceipt(
+                                    context,
+                                    tx,
+                                    autoShareOnOpen: true,
+                                  ),
+                                  icon: const Icon(Icons.share_rounded),
+                                  label: const Text('Share Receipt'),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _handleTap(AppNotification item) async {
     HapticFeedback.selectionClick();
     await _markRead(item);
-    _openRoute(item);
+    if (item.payload != null &&
+        (item.kind == AppNotificationKind.transaction ||
+            item.kind == AppNotificationKind.wallet) &&
+        item.payload!.containsKey('tx_type')) {
+      _openTxDetails(item.payload!);
+    } else {
+      _openRoute(item);
+    }
   }
 
   Future<void> _showDetailSheet(AppNotification item) async {
@@ -790,3 +1359,108 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.trailing,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  value,
+                  style: TextStyle(
+                    color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiptDetailLine extends StatelessWidget {
+  const _ReceiptDetailLine({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.strong = false,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: muted, fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
