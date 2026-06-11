@@ -546,6 +546,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       meta['provider_reference'],
     ], fallback: '');
     final ledger = meta['ledger_description']?.toString() ?? '';
+    final token = (meta['token'] ?? tx['token'] ?? '').toString().trim();
 
     final fields = <ReceiptField>[
       ReceiptField(label: 'Time', value: _formatDate(tx)),
@@ -553,6 +554,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (recipient != '—') ReceiptField(label: 'Recipient', value: recipient),
       if (network != '—')
         ReceiptField(label: 'Network', value: network.toUpperCase()),
+      if (token.isNotEmpty) ReceiptField(label: 'Token', value: token),
       ReceiptField(label: 'Plan', value: plan),
       ReceiptField(label: 'Amount', value: _amountLabel(tx)),
       ReceiptField(label: 'Reference', value: reference),
