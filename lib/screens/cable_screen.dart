@@ -31,9 +31,42 @@ class CableScreen extends StatefulWidget {
 class _CableScreenState extends State<CableScreen> {
   static const _saveBeneficiaryKey = 'axis_cable_save_beneficiary_v1';
   static const _beneficiariesKey   = 'axis_cable_beneficiaries_v1';
+  static const Map<String, List<String>> _networkPrefixes = {
+    'mtn': [
+      '07025',
+      '07026',
+      '0803',
+      '0806',
+      '0703',
+      '0706',
+      '0810',
+      '0813',
+      '0814',
+      '0816',
+      '0903',
+      '0906',
+      '0913',
+      '0916',
+      '0704',
+    ],
+    'airtel': [
+      '0802',
+      '0808',
+      '0708',
+      '0812',
+      '0701',
+      '0902',
+      '0907',
+      '0901',
+      '0912',
+    ],
+    'glo': ['0805', '0807', '0705', '0815', '0811', '0905', '0915'],
+    '9mobile': ['0809', '0817', '0818', '0908', '0909'],
+  };
 
   final _smartcardCtrl = TextEditingController();
   final _phoneCtrl     = TextEditingController();
+  String _detectedNetwork = '';
 
   String _provider = 'dstv';
   List<Map<String, String>> _providers = const [
@@ -69,7 +102,7 @@ class _CableScreenState extends State<CableScreen> {
     super.initState();
     _smartcardCtrl.addListener(_invalidateRequestId);
     _smartcardCtrl.addListener(_clearVerification);
-    _phoneCtrl.addListener(_invalidateRequestId);
+    _phoneCtrl.addListener(_onPhoneChanged);
     _loadCatalog();
     _loadPreferences();
     _loadPackages();
@@ -79,7 +112,7 @@ class _CableScreenState extends State<CableScreen> {
   void dispose() {
     _smartcardCtrl.removeListener(_invalidateRequestId);
     _smartcardCtrl.removeListener(_clearVerification);
-    _phoneCtrl.removeListener(_invalidateRequestId);
+    _phoneCtrl.removeListener(_onPhoneChanged);
     _smartcardCtrl.dispose();
     _phoneCtrl.dispose();
     super.dispose();
@@ -88,6 +121,45 @@ class _CableScreenState extends State<CableScreen> {
   // ── helpers ───────────────────────────────────────────────────────────────
 
   void _invalidateRequestId() => _activeRequestId = null;
+
+  String _normalizePhone(String input) {
+    var digits = input.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('234')) {
+      digits = '0${digits.substring(3)}';
+    }
+    if (digits.length == 10 && !digits.startsWith('0')) {
+      digits = '0$digits';
+    }
+    return digits;
+  }
+
+  String? _detectNetwork(String normalizedPhone) {
+    if (normalizedPhone.length < 4) return null;
+    final prefixes = <MapEntry<String, String>>[];
+    _networkPrefixes.forEach((network, items) {
+      for (final prefix in items) {
+        prefixes.add(MapEntry(prefix, network));
+      }
+    });
+    prefixes.sort((a, b) => b.key.length.compareTo(a.key.length));
+    for (final entry in prefixes) {
+      if (normalizedPhone.startsWith(entry.key)) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  void _onPhoneChanged() {
+    _invalidateRequestId();
+    final normalized = _normalizePhone(_phoneCtrl.text);
+    final detected = _detectNetwork(normalized) ?? '';
+    if (detected != _detectedNetwork) {
+      setState(() {
+        _detectedNetwork = detected;
+      });
+    }
+  }
 
   void _clearVerification() {
     if (_verificationChecked || _verificationOk) {
@@ -259,7 +331,7 @@ class _CableScreenState extends State<CableScreen> {
         String phone = contact.phoneNumbers!.first.replaceAll(RegExp(r'\D'), '');
         if (phone.startsWith('234') && phone.length > 10) phone = '0${phone.substring(3)}';
         _phoneCtrl.text = phone;
-        _invalidateRequestId();
+        _onPhoneChanged();
       }
     } catch (e) {
       if (!mounted) return;
@@ -619,8 +691,8 @@ class _CableScreenState extends State<CableScreen> {
                 // Phone input
                 ElitePhoneInput(
                   controller: _phoneCtrl,
-                  network:    'mtn',
-                  onChanged:  (v) => _invalidateRequestId(),
+                  network:    _detectedNetwork,
+                  onChanged:  (v) => _onPhoneChanged(),
                   onContactTap: _pickContact,
                 ),
               ],
