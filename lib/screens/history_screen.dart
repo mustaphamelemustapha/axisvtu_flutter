@@ -547,6 +547,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     ], fallback: '');
     final ledger = meta['ledger_description']?.toString() ?? '';
     final token = (meta['token'] ?? tx['token'] ?? '').toString().trim();
+    final units = (meta['units'] ?? tx['units'] ?? '').toString().trim();
+    final address = (meta['address'] ?? tx['address'] ?? '').toString().trim();
 
     final fields = <ReceiptField>[
       ReceiptField(label: 'Time', value: _formatDate(tx)),
@@ -555,6 +557,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (network != '—')
         ReceiptField(label: 'Network', value: network.toUpperCase()),
       if (token.isNotEmpty) ReceiptField(label: 'Token', value: token),
+      if (units.isNotEmpty) ReceiptField(label: 'Units', value: '$units kWh'),
+      if (address.isNotEmpty) ReceiptField(label: 'Address', value: address),
       ReceiptField(label: 'Plan', value: plan),
       ReceiptField(label: 'Amount', value: _amountLabel(tx)),
       ReceiptField(label: 'Reference', value: reference),
