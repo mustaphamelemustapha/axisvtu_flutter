@@ -549,6 +549,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final token = (meta['token'] ?? tx['token'] ?? '').toString().trim();
     final units = (meta['units'] ?? tx['units'] ?? '').toString().trim();
     final address = (meta['address'] ?? tx['address'] ?? '').toString().trim();
+    final customerName = (meta['customer_name'] ?? meta['customername'] ?? tx['customer_name'] ?? tx['customername'] ?? '').toString().trim();
 
     final fields = <ReceiptField>[
       ReceiptField(label: 'Time', value: _formatDate(tx)),
@@ -556,6 +557,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (recipient != '—') ReceiptField(label: 'Recipient', value: recipient),
       if (network != '—')
         ReceiptField(label: 'Network', value: network.toUpperCase()),
+      if (customerName.isNotEmpty) ReceiptField(label: 'Customer Name', value: customerName),
       if (token.isNotEmpty) ReceiptField(label: 'Token', value: token),
       if (units.isNotEmpty) ReceiptField(label: 'Units', value: '$units kWh'),
       if (address.isNotEmpty) ReceiptField(label: 'Address', value: address),
