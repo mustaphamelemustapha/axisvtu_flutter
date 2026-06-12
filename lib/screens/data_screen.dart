@@ -787,6 +787,7 @@ class _DataScreenState extends State<DataScreen> {
         ? 'Order submitted and currently processing.'
         : 'Data order failed.';
 
+    final isSuccess = status.toLowerCase() != 'failed';
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -813,7 +814,11 @@ class _DataScreenState extends State<DataScreen> {
           ReceiptField(label: 'Reference', value: reference),
         ],
       ),
-    );
+    ).then((_) {
+      if (isSuccess && mounted) {
+        Navigator.pop(context);
+      }
+    });
   }
 
   void _selectNetwork(String value) {

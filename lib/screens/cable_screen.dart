@@ -529,6 +529,7 @@ class _CableScreenState extends State<CableScreen> {
     required List<ReceiptField> fields,
   }) {
     if (status != 'failed') context.read<SessionController>().refreshBalance();
+    final isSuccess = status.toLowerCase() != 'failed';
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -543,7 +544,11 @@ class _CableScreenState extends State<CableScreen> {
           ReceiptField(label: 'Reference', value: reference),
         ],
       ),
-    );
+    ).then((_) {
+      if (isSuccess && mounted) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+      }
+    });
   }
 
   String _resolveResultStatus(Map<String, dynamic> payload) {

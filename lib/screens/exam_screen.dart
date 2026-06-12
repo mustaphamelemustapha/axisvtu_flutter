@@ -371,6 +371,7 @@ class _ExamScreenState extends State<ExamScreen> {
     if (status != 'failed') {
       context.read<SessionController>().refreshBalance();
     }
+    final isSuccess = status.toLowerCase() != 'failed';
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -390,7 +391,11 @@ class _ExamScreenState extends State<ExamScreen> {
           ReceiptField(label: 'Reference', value: reference),
         ],
       ),
-    );
+    ).then((_) {
+      if (isSuccess && mounted) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+      }
+    });
   }
 
   String _resolveResultStatus(Map<String, dynamic> payload) {

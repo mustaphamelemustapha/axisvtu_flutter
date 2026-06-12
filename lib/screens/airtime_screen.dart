@@ -434,6 +434,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
     final phone = _normalizePhone(_phoneCtrl.text);
     final amount = _amountCtrl.text.trim();
 
+    final isSuccess = status.toLowerCase() != 'failed';
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -449,7 +450,11 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         amount: '₦$amount',
         onSave: () => _shareReceipt(ok, userName, phone, amount),
       ),
-    );
+    ).then((_) {
+      if (isSuccess && mounted) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+      }
+    });
   }
 
   void _shareReceipt(bool ok, String sender, String phone, String amount) {
@@ -861,6 +866,7 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
     final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
     final amount = _amountCtrl.text.trim();
 
+    final isSuccess = status.toLowerCase() != 'failed';
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -876,7 +882,11 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
         amount: '₦$amount',
         onSave: () => _shareReceipt(ok, userName, widget.phone, amount),
       ),
-    );
+    ).then((_) {
+      if (isSuccess && mounted) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+      }
+    });
   }
 
   void _shareReceipt(bool ok, String sender, String phone, String amount) {
