@@ -810,10 +810,6 @@ class _DataScreenState extends State<DataScreen> {
                 ? '—'
                 : '${_planCapacity(selected)} • ${_planValidity(selected)}',
           ),
-          ReceiptField(
-            label: 'Amount',
-            value: selected == null ? '₦0.00' : '₦${_planPrice(selected)}',
-          ),
           ReceiptField(label: 'Reference', value: reference),
         ],
       ),

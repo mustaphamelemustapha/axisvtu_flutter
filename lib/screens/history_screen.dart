@@ -551,6 +551,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final address = (meta['address'] ?? tx['address'] ?? '').toString().trim();
     final customerName = (meta['customer_name'] ?? meta['customername'] ?? tx['customer_name'] ?? tx['customername'] ?? '').toString().trim();
 
+    final txType = (tx['tx_type'] ?? '').toString().trim().toLowerCase();
+
     final fields = <ReceiptField>[
       ReceiptField(label: 'Time', value: _formatDate(tx)),
       ReceiptField(label: 'Sender Name', value: sender),
@@ -562,7 +564,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (units.isNotEmpty) ReceiptField(label: 'Units', value: '$units kWh'),
       if (address.isNotEmpty) ReceiptField(label: 'Address', value: address),
       ReceiptField(label: 'Plan', value: plan),
-      ReceiptField(label: 'Amount', value: _amountLabel(tx)),
+      if (txType != 'data') ReceiptField(label: 'Amount', value: _amountLabel(tx)),
       ReceiptField(label: 'Reference', value: reference),
       if (ledger.isNotEmpty) ReceiptField(label: 'Description', value: ledger),
     ];
