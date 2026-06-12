@@ -362,7 +362,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
       if (network != '—')
         ReceiptField(label: 'Network', value: network.toUpperCase()),
       ReceiptField(label: 'Plan', value: plan),
-      ReceiptField(label: 'Amount', value: _amountLabel(tx)),
+      if (_typeOf(tx) != 'data')
+        ReceiptField(label: 'Amount', value: _amountLabel(tx)),
       ReceiptField(label: 'Reference', value: reference),
       if (ledger.isNotEmpty) ReceiptField(label: 'Description', value: ledger),
     ];

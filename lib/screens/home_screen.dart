@@ -779,7 +779,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (recipient != '—') ReceiptField(label: 'Recipient', value: recipient),
       if (network != '—') ReceiptField(label: 'Network', value: network.toUpperCase()),
       if (plan != title && plan != '—') ReceiptField(label: 'Plan', value: plan),
-      ReceiptField(label: 'Amount', value: _txAmountLabel(tx).replaceAll('+', '').replaceAll('-', '')),
+      if (_txTypeOf(tx) != 'data')
+        ReceiptField(label: 'Amount', value: _txAmountLabel(tx).replaceAll('+', '').replaceAll('-', '')),
       ReceiptField(label: 'Reference', value: reference),
     ];
     
