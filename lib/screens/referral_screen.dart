@@ -8,6 +8,8 @@ import '../services/dashboard_snapshot_cache.dart';
 import '../state/session.dart';
 import '../widgets/service_shell.dart';
 import '../widgets/glass_card.dart';
+import 'package:fl_chart/fl_chart.dart';
+
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -156,6 +158,62 @@ class _ReferralScreenState extends State<ReferralScreen> {
     final rewardedReferrals = (data?['rewarded_referrals'] ?? 0).toString();
     final totalEarned = _money(data?['total_earned']);
 
+    // Monthly data aggregation for the last 6 months
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final last6 = <ReferralMonthData>[];
+    final now = DateTime.now();
+    for (int i = 5; i >= 0; i--) {
+      final d = DateTime(now.year, now.month - i, 1);
+      final label = months[d.month - 1];
+      final key = "${d.year}-${d.month.toString().padLeft(2, '0')}";
+      last6.add(ReferralMonthData(label: label, key: key));
+    }
+
+    int rewardedCount = 0;
+    int qualifiedCount = 0;
+    int pendingCount = 0;
+
+    for (final raw in items) {
+      if (raw is! Map) continue;
+      final item = raw.map((k, v) => MapEntry(k.toString(), v));
+      final status = (item['status'] ?? 'pending').toString().toLowerCase();
+
+      if (status == 'rewarded') {
+        rewardedCount++;
+      } else if (status == 'qualified') {
+        qualifiedCount++;
+      } else {
+        pendingCount++;
+      }
+
+      if (item['created_at'] != null) {
+        final cDate = DateTime.tryParse(item['created_at'].toString());
+        if (cDate != null) {
+          final key = "${cDate.year}-${cDate.month.toString().padLeft(2, '0')}";
+          final idx = last6.indexWhere((m) => m.key == key);
+          if (idx != -1) {
+            last6[idx].signups++;
+          }
+        }
+      }
+
+      if (status == 'rewarded' && item['rewarded_at'] != null) {
+        final rDate = DateTime.tryParse(item['rewarded_at'].toString());
+        if (rDate != null) {
+          final key = "${rDate.year}-${rDate.month.toString().padLeft(2, '0')}";
+          final idx = last6.indexWhere((m) => m.key == key);
+          if (idx != -1) {
+            final rewAmt = double.tryParse(item['reward_amount']?.toString() ?? '') ?? 0.0;
+            last6[idx].earnings += rewAmt;
+          }
+        }
+      }
+    }
+
+    final totalCount = rewardedCount + qualifiedCount + pendingCount;
+    final maxSignups = last6.map((m) => m.signups).fold(1, (a, b) => a > b ? a : b).toDouble();
+    final maxEarnings = last6.map((m) => m.earnings).fold(100.0, (a, b) => a > b ? a : b);
+
     return ServiceShell(
       title: 'Referrals',
       subtitle: 'Invite friends and earn when they keep buying data.',
@@ -300,6 +358,152 @@ class _ReferralScreenState extends State<ReferralScreen> {
             ),
           ),
 
+          if (!loading && items.isNotEmpty)
+            ServiceSectionCard(
+              title: 'Analytics & Insights',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'INVITE PIPELINE SPLIT',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildSplitBar(
+                    context: context,
+                    label: 'Rewarded (2% Paid)',
+                    count: rewardedCount,
+                    total: totalCount,
+                    color: const Color(0xFF10B981),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSplitBar(
+                    context: context,
+                    label: 'Qualified (First Deposit)',
+                    count: qualifiedCount,
+                    total: totalCount,
+                    color: const Color(0xFF2457F5),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSplitBar(
+                    context: context,
+                    label: 'Pending (Registered Only)',
+                    count: pendingCount,
+                    total: totalCount,
+                    color: const Color(0xFFF59E0B),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'PERFORMANCE TRENDS (6M)',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Invites / Earnings',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _legendDot(const Color(0xFF3B82F6), 'Signups (Invites)'),
+                      const SizedBox(width: 14),
+                      _legendDot(const Color(0xFF10B981), 'Earnings (₦)'),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 145,
+                    child: LineChart(
+                      LineChartData(
+                        gridData: const FlGridData(show: false),
+                        titlesData: FlTitlesData(
+                          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 22,
+                              getTitlesWidget: (val, meta) {
+                                final idx = val.toInt();
+                                if (idx >= 0 && idx < last6.length) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: Text(
+                                      last6[idx].label,
+                                      style: const TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: List.generate(
+                              last6.length,
+                              (idx) {
+                                final val = last6[idx].signups.toDouble();
+                                return FlSpot(idx.toDouble(), (val / maxSignups) * 5.0);
+                              },
+                            ),
+                            isCurved: true,
+                            color: const Color(0xFF3B82F6),
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                          LineChartBarData(
+                            spots: List.generate(
+                              last6.length,
+                              (idx) {
+                                final val = last6[idx].earnings;
+                                return FlSpot(idx.toDouble(), (val / maxEarnings) * 5.0);
+                              },
+                            ),
+                            isCurved: true,
+                            color: const Color(0xFF10B981),
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ServiceSectionCard(
             title: 'Reward Policy',
             child: Container(
@@ -401,6 +605,95 @@ class _ReferralScreenState extends State<ReferralScreen> {
       ),
     );
   }
+
+  Widget _buildSplitBar({
+    required BuildContext context,
+    required String label,
+    required int count,
+    required int total,
+    required Color color,
+  }) {
+    final pct = total > 0 ? (count / total) : 0.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pctText = total > 0 ? "${(pct * 100).round()}%" : "0%";
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            Text(
+              "$count ($pctText)",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            height: 6,
+            child: LinearProgressIndicator(
+              value: pct,
+              backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _legendDot(Color color, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ReferralMonthData {
+  final String label;
+  final String key;
+  int signups;
+  double earnings;
+
+  ReferralMonthData({
+    required this.label,
+    required this.key,
+    this.signups = 0,
+    this.earnings = 0.0,
+  });
 }
 
 class _StatPill extends StatelessWidget {

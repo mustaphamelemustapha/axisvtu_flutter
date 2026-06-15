@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/axis_tokens.dart';
+import '../services/biometric_service.dart';
+
 
 class PinEntrySheet {
   static Future<String?> show(
@@ -84,6 +86,50 @@ class _PinPadDialogState extends State<_PinPadDialog>
     vsync: this,
     duration: const Duration(milliseconds: 280),
   );
+
+  bool _showBiometricButton = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final enabled = await BiometricService.isAppLockEnabled;
+    final availability = await BiometricService.getAvailability();
+    final savedPin = await BiometricService.getPin();
+    if (enabled &&
+        availability.ready &&
+        savedPin != null &&
+        savedPin.length == widget.pinLength) {
+      if (mounted) {
+        setState(() {
+          _showBiometricButton = true;
+        });
+        // Auto-trigger biometric prompt after sheet mounts/dialog animation settles
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _authenticateWithBiometrics();
+        });
+      }
+    }
+  }
+
+  Future<void> _authenticateWithBiometrics() async {
+    if (_submitting) return;
+    final success = await BiometricService.authenticate(
+      reason: 'Verify with biometrics to continue',
+    );
+    if (success && mounted) {
+      final savedPin = await BiometricService.getPin();
+      if (savedPin != null && savedPin.length == widget.pinLength) {
+        setState(() {
+          _pin = savedPin;
+        });
+        await _confirm();
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -325,6 +371,22 @@ class _PinPadDialogState extends State<_PinPadDialog>
                       _keyButton(child: const Text('7'), onTap: () => _append('7')),
                       _keyButton(child: const Text('8'), onTap: () => _append('8')),
                       _keyButton(child: const Text('9'), onTap: () => _append('9')),
+                      _showBiometricButton
+                          ? _keyButton(
+                              child: Icon(
+                                Icons.fingerprint_rounded,
+                                size: 24,
+                                color: theme.colorScheme.primary,
+                              ),
+                              onTap: _authenticateWithBiometrics,
+                              enabled: !_submitting,
+                            )
+                          : _keyButton(
+                              child: const SizedBox.shrink(),
+                              onTap: () {},
+                              enabled: false,
+                            ),
+                      _keyButton(child: const Text('0'), onTap: () => _append('0')),
                       _keyButton(
                         child: Icon(
                           Icons.backspace_outlined,
@@ -334,19 +396,7 @@ class _PinPadDialogState extends State<_PinPadDialog>
                               : theme.colorScheme.onSurface.withValues(alpha: 0.8),
                         ),
                         onTap: _backspace,
-                        enabled: _pin.isNotEmpty,
-                      ),
-                      _keyButton(child: const Text('0'), onTap: () => _append('0')),
-                      _keyButton(
-                      child: Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 20,
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.9)
-                              : theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                        ),
-                        onTap: _submitting ? () {} : _confirm,
-                        enabled: _pin.length == widget.pinLength && !_submitting,
+                        enabled: _pin.isNotEmpty && !_submitting,
                       ),
                     ],
                   ),

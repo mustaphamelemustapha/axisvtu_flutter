@@ -115,12 +115,15 @@ class BiometricService {
     String reason = 'Please authenticate to access your account',
   }) async {
     try {
-      // ignore: deprecated_member_use
       return await _auth.authenticate(
         localizedReason: reason,
         biometricOnly: true,
+        persistAcrossBackgrounding: true,
       );
     } on PlatformException {
+      try {
+        await _auth.stopAuthentication();
+      } catch (_) {}
       return false;
     }
   }
