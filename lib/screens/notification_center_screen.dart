@@ -150,7 +150,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     return (tx['tx_type'] ?? 'transaction').toString().trim().toLowerCase();
   }
 
-  bool _isCredit(Map<String, dynamic> tx) => _typeOf(tx) == 'wallet_fund' || _typeOf(tx) == 'admin_credit';
+  bool _isCredit(Map<String, dynamic> tx) => _typeOf(tx) == 'wallet_fund' || _typeOf(tx) == 'admin_credit' || _typeOf(tx) == 'agent_reward';
 
   double _amountOf(Map<String, dynamic> tx) {
     final value = tx['amount'];
@@ -164,6 +164,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
       'wallet_fund' => 'Account Top-up',
       'admin_credit' => 'Admin Credit',
       'admin_debit' => 'Admin Debit',
+      'agent_reward' => 'Agent Reward',
       'airtime' => 'Airtime Recharge',
       'cable' => 'Cable TV',
       'electricity' => 'Electricity Token',
@@ -227,6 +228,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
       'wallet_fund' => Icons.account_balance_wallet_rounded,
       'admin_credit' => Icons.account_balance_wallet_rounded,
       'admin_debit' => Icons.money_off_rounded,
+      'agent_reward' => Icons.workspace_premium_rounded,
       'airtime' => Icons.phone_iphone_rounded,
       'cable' => Icons.tv_rounded,
       'electricity' => Icons.flash_on_rounded,
