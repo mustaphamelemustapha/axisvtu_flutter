@@ -734,24 +734,43 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
                 ),
               ),
               InkWell(
-                onTap: campaign.isQualified ? () => _claimReward(campaign) : null,
+                onTap: campaign.isClaimed
+                    ? null
+                    : (campaign.isQualified ? () => _claimReward(campaign) : null),
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: campaign.isQualified ? primaryColor : textSecondary.withValues(alpha: 0.1),
+                    color: campaign.isClaimed
+                        ? Colors.green.withValues(alpha: 0.12)
+                        : (campaign.isQualified ? primaryColor : textSecondary.withValues(alpha: 0.1)),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: campaign.isQualified ? primaryColor : borderColor,
+                      color: campaign.isClaimed
+                          ? Colors.green.withValues(alpha: 0.3)
+                          : (campaign.isQualified ? primaryColor : borderColor),
                     ),
                   ),
-                  child: Text(
-                    campaign.isQualified ? 'Unlock' : 'Locked',
-                    style: TextStyle(
-                      color: campaign.isQualified ? Colors.white : textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (campaign.isClaimed) ...[
+                        const Icon(Icons.check_circle_rounded, color: Colors.green, size: 14),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        campaign.isClaimed
+                            ? 'Claimed'
+                            : (campaign.isQualified ? 'Unlock' : 'Locked'),
+                        style: TextStyle(
+                          color: campaign.isClaimed
+                              ? Colors.green
+                              : (campaign.isQualified ? Colors.white : textSecondary),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -761,18 +780,24 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
           Row(
             children: [
               Text(
-                '${(progressPercent * 100).toInt()}%',
-                style: TextStyle(color: textPrimary, fontSize: 12, fontWeight: FontWeight.w900),
+                campaign.isClaimed ? 'Claimed' : '${(progressPercent * 100).toInt()}%',
+                style: TextStyle(
+                  color: campaign.isClaimed ? Colors.green : textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: progressPercent,
+                    value: campaign.isClaimed ? 1.0 : progressPercent,
                     backgroundColor: textSecondary.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      campaign.isQualified ? Colors.green : primaryColor,
+                      campaign.isClaimed
+                          ? Colors.green
+                          : (campaign.isQualified ? Colors.green : primaryColor),
                     ),
                     minHeight: 6,
                   ),

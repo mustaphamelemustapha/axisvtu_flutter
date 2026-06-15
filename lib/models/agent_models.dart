@@ -43,6 +43,7 @@ class RewardCampaign {
   final bool isActive;
   final double progressValue;
   final bool isQualified;
+  final bool isClaimed;
 
   RewardCampaign({
     required this.id,
@@ -54,6 +55,7 @@ class RewardCampaign {
     required this.isActive,
     required this.progressValue,
     required this.isQualified,
+    required this.isClaimed,
   });
 
   factory RewardCampaign.fromJson(Map<String, dynamic> json) {
@@ -67,6 +69,7 @@ class RewardCampaign {
       isActive: json['is_active'] ?? false,
       progressValue: (json['progress_value'] ?? 0).toDouble(),
       isQualified: json['is_qualified'] ?? false,
+      isClaimed: json['is_claimed'] ?? false,
     );
   }
 }
