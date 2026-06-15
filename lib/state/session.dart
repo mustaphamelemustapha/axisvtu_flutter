@@ -36,6 +36,8 @@ class SessionController extends ChangeNotifier {
   bool _bootstrapped = false;
   
   bool _updateRequired = false;
+  bool _optionalUpdateAvailable = false;
+  String _latestAppVersion = '1.0.0';
   String _playStoreUrl = '';
   String _appStoreUrl = '';
 
@@ -46,6 +48,8 @@ class SessionController extends ChangeNotifier {
   String? get error => _error;
   bool get isBootstrapped => _bootstrapped;
   bool get updateRequired => _updateRequired;
+  bool get optionalUpdateAvailable => _optionalUpdateAvailable;
+  String get latestAppVersion => _latestAppVersion;
   String get playStoreUrl => _playStoreUrl;
   String get appStoreUrl => _appStoreUrl;
   bool get isAuthenticated => _token != null && _token!.isNotEmpty;
@@ -207,13 +211,24 @@ class SessionController extends ChangeNotifier {
       _playStoreUrl = config['play_store_url'] ?? '';
       _appStoreUrl = config['app_store_url'] ?? '';
       
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+
       final minVersionStr = config['min_app_version'] as String?;
       if (minVersionStr != null && minVersionStr.isNotEmpty) {
-        final packageInfo = await PackageInfo.fromPlatform();
-        final currentVersion = packageInfo.version;
         final isOutdated = _isVersionOutdated(currentVersion, minVersionStr);
         if (isOutdated != _updateRequired) {
           _updateRequired = isOutdated;
+          notifyListeners();
+        }
+      }
+
+      final latestVersionStr = config['latest_app_version'] as String?;
+      if (latestVersionStr != null && latestVersionStr.isNotEmpty) {
+        _latestAppVersion = latestVersionStr;
+        final isOptionalOutdated = _isVersionOutdated(currentVersion, latestVersionStr);
+        if (isOptionalOutdated != _optionalUpdateAvailable) {
+          _optionalUpdateAvailable = isOptionalOutdated;
           notifyListeners();
         }
       }

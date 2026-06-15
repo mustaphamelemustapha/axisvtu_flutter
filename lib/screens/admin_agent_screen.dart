@@ -743,6 +743,7 @@ class _CreateCampaignSheetState extends State<_CreateCampaignSheet> {
   String _campaignType = 'volume';
   String _targetMetric = 'data_gb';
   bool _isActive = true;
+  bool _isAgentOnly = true;
   bool _submitting = false;
 
   @override
@@ -755,6 +756,7 @@ class _CreateCampaignSheetState extends State<_CreateCampaignSheet> {
       _campaignType = widget.campaign!.campaignType;
       _targetMetric = widget.campaign!.targetMetric;
       _isActive = widget.campaign!.isActive;
+      _isAgentOnly = widget.campaign!.isAgentOnly;
     }
   }
 
@@ -785,6 +787,7 @@ class _CreateCampaignSheetState extends State<_CreateCampaignSheet> {
         'target_value': double.parse(_targetValueCtrl.text.trim()),
         'reward_amount': double.parse(_rewardAmountCtrl.text.trim()),
         'is_active': _isActive,
+        'is_agent_only': _isAgentOnly,
       };
 
       if (widget.campaign != null) {
@@ -935,11 +938,20 @@ class _CreateCampaignSheetState extends State<_CreateCampaignSheet> {
                 const SizedBox(height: 12),
                 SwitchListTile.adaptive(
                   title: const Text('Campaign Active', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                  subtitle: Text('Eligible agents can track and claim rewards immediately.', style: TextStyle(color: textDim, fontSize: 12)),
+                  subtitle: Text('Eligible users can track and claim rewards immediately.', style: TextStyle(color: textDim, fontSize: 12)),
                   value: _isActive,
                   contentPadding: EdgeInsets.zero,
                   activeColor: theme.colorScheme.primary,
                   onChanged: (val) => setState(() => _isActive = val),
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  title: const Text('Agents Only', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  subtitle: Text('If enabled, only agents qualify and see the campaign. Otherwise, all users can participate.', style: TextStyle(color: textDim, fontSize: 12)),
+                  value: _isAgentOnly,
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: theme.colorScheme.primary,
+                  onChanged: (val) => setState(() => _isAgentOnly = val),
                 ),
                 const SizedBox(height: 20),
                 PrimaryButton(

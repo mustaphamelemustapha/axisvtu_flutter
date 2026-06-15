@@ -31,6 +31,8 @@ import '../services/purchase_auth_service.dart';
 import '../services/transaction_pin_service.dart';
 import 'wallet_screen.dart';
 import '../widgets/animated_balance_text.dart';
+import '../services/agent_service.dart';
+import '../models/agent_models.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onNavigateTab});
@@ -60,6 +62,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showingUpgradeDialog = false;
   int? _activeBalanceTick;
   Timer? _refreshTimer;
+  List<RewardCampaign> _activeCampaigns = [];
+  bool _dismissedUpdateBanner = false;
+  String _dismissedVersionStr = '';
 
   void _startRefreshTimer() {
     _refreshTimer?.cancel();
@@ -101,9 +106,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadDismissedAnnouncements() async {
     final prefs = await SharedPreferences.getInstance();
     final list = prefs.getStringList('dismissed_announcements') ?? [];
+    final dismissedVer = prefs.getString('dismissed_app_version') ?? '';
     if (mounted) {
       setState(() {
         _dismissedAnnouncementIds = list.toSet();
+        _dismissedVersionStr = dismissedVer;
       });
     }
   }
@@ -114,6 +121,15 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('dismissed_announcements', _dismissedAnnouncementIds.toList());
+  }
+
+  Future<void> _dismissUpdateBanner(String version) async {
+    setState(() {
+      _dismissedUpdateBanner = true;
+      _dismissedVersionStr = version;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('dismissed_app_version', version);
   }
 
   Future<void> _initialSecurityCheck() async {
@@ -489,6 +505,14 @@ class _HomeScreenState extends State<HomeScreen> {
           announcements: data,
         ),
       );
+    }).catchError((_) {});
+
+    final agentService = AgentService(token: token);
+    agentService.getActiveCampaigns().then((camps) {
+      if (!mounted || dashboardKey != _activeDashboardKey) return;
+      setState(() {
+        _activeCampaigns = camps;
+      });
     }).catchError((_) {});
   }
 
@@ -1174,6 +1198,8 @@ class _HomeScreenState extends State<HomeScreen> {
               return const SizedBox(height: 32);
             })(),
 
+            _buildOptionalUpdateBanner(context.watch<SessionController>()),
+
             // THE MASTERPIECE: Classically Premium Balance Section
             Container(
               decoration: BoxDecoration(
@@ -1806,6 +1832,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 32),
 
+            if (_activeCampaigns.isNotEmpty) ...[
+              ..._activeCampaigns.map((c) => _buildCampaignProgressCard(c)).toList(),
+              const SizedBox(height: 12),
+            ],
+
             Row(
               children: [
                 Expanded(
@@ -2175,6 +2206,367 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildOptionalUpdateBanner(SessionController session) {
+    if (!session.optionalUpdateAvailable || _dismissedUpdateBanner || _dismissedVersionStr == session.latestAppVersion) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF3B82F6).withValues(alpha: 0.12),
+            const Color(0xFF1D4ED8).withValues(alpha: 0.04),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.system_update_rounded,
+              color: Color(0xFF3B82F6),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'New Update Available',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Version ${session.latestAppVersion} has new features and performance boosts.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () async {
+              final url = Uri.parse(Theme.of(context).platform == TargetPlatform.iOS
+                  ? session.appStoreUrl
+                  : session.playStoreUrl);
+              // Avoid canLaunchUrl check, directly launch to avoid issues with standard OS intents
+              await launchUrl(url, mode: LaunchMode.externalApplication);
+            },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: const Color(0xFF3B82F6),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text(
+              'Update',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            style: const ButtonStyle(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: Icon(
+              Icons.close_rounded,
+              size: 16,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+            onPressed: () => _dismissUpdateBanner(session.latestAppVersion),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCampaignProgressCard(RewardCampaign campaign) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? Colors.white.withValues(alpha: 0.6) : Colors.grey.shade600;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    final progressPercent = (campaign.progressValue / campaign.targetValue).clamp(0.0, 1.0);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.emoji_events_rounded,
+                  color: Colors.amber,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      campaign.title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        color: textPrimary,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Target: ${campaign.targetValue.toStringAsFixed(0)} ${campaign.targetMetric.toLowerCase().contains('gb') ? 'GB' : ''}',
+                      style: TextStyle(
+                        color: textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'REWARD',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                      color: primaryColor,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '₦${campaign.rewardAmount.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      color: primaryColor,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                campaign.isClaimed 
+                    ? 'Claimed' 
+                    : '${campaign.progressValue.toStringAsFixed(1)} / ${campaign.targetValue.toStringAsFixed(0)} ${campaign.targetMetric.toLowerCase().contains('gb') ? 'GB' : ''}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: campaign.isClaimed ? Colors.green : textPrimary,
+                ),
+              ),
+              Text(
+                campaign.isClaimed ? 'Claimed' : '${(progressPercent * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: campaign.isClaimed ? Colors.green : textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: campaign.isClaimed ? 1.0 : progressPercent,
+              minHeight: 8,
+              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                campaign.isClaimed 
+                    ? Colors.green 
+                    : (campaign.isQualified ? Colors.green : primaryColor),
+              ),
+            ),
+          ),
+          if (campaign.isQualified && !campaign.isClaimed) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: FilledButton.icon(
+                onPressed: () => _claimReward(campaign),
+                icon: const Icon(Icons.stars_rounded, size: 18),
+                label: const Text('Claim Reward', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _claimReward(RewardCampaign campaign) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Claiming reward...')),
+      );
+      
+      final token = (context.read<SessionController>().token ?? '').trim();
+      if (token.isEmpty) return;
+      final agentService = AgentService(token: token);
+      final result = await agentService.claimReward(campaign.id);
+      
+      if (mounted) {
+        // Refresh dashboard
+        final dashboardKey = DashboardSnapshotCache.identityFromUser(context.read<SessionController>().user) ?? token;
+        _reloadDashboard(token, dashboardKey);
+        
+        showDialog(
+          context: context,
+          builder: (context) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.workspace_premium_rounded,
+                        color: Colors.green,
+                        size: 48,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Congratulations!',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'You have successfully claimed your reward for "${campaign.title}".',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '₦${campaign.rewardAmount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'It has been credited to your wallet.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: FilledButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error claiming reward: ${e.toString().replaceAll('Exception: ', '')}')),
+        );
+      }
+    }
   }
 }
 
