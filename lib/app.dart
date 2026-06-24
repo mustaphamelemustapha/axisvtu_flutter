@@ -82,7 +82,7 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _splashTimer = Timer(const Duration(seconds: 2), () {
+    _splashTimer = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) return;
       setState(() => _splashDone = true);
     });
