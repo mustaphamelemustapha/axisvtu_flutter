@@ -37,6 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscure = true;
   bool _obscureConfirm = true;
   String? _localError;
+  bool _showReferralField = false;
 
   @override
   void initState() {
@@ -49,6 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     if (widget.initialReferralCode != null && widget.initialReferralCode!.isNotEmpty) {
       _referralCtrl.text = widget.initialReferralCode!;
+      _showReferralField = true;
     }
   }
 
@@ -158,12 +160,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 10),
-                    _AuthInput(
-                      controller: _referralCtrl,
-                      hint: 'Referral code (optional)',
-                      icon: Icons.local_offer_outlined,
-                    ),
-                    const SizedBox(height: 10),
+                    if (_showReferralField) ...[
+                      _AuthInput(
+                        controller: _referralCtrl,
+                        hint: 'Referral code',
+                        icon: Icons.local_offer_outlined,
+                      ),
+                      const SizedBox(height: 10),
+                    ] else ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 10.0),
+                          child: TextButton.icon(
+                            onPressed: () => setState(() => _showReferralField = true),
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text('Have a referral code?'),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                     _AuthInput(
                       controller: _passwordCtrl,
                       hint: 'Create password',
