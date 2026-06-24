@@ -473,6 +473,8 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _messageCtrl = TextEditingController();
+  final _buttonLabelCtrl = TextEditingController();
+  final _buttonLinkCtrl = TextEditingController();
   String _level = 'info';
   bool _isActive = true;
   DateTime? _startsAt;
@@ -487,6 +489,8 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
       _messageCtrl.text = widget.announcement!['message']?.toString() ?? '';
       _level = widget.announcement!['level']?.toString() ?? 'info';
       _isActive = widget.announcement!['is_active'] == true;
+      _buttonLabelCtrl.text = widget.announcement!['button_label']?.toString() ?? '';
+      _buttonLinkCtrl.text = widget.announcement!['button_link']?.toString() ?? '';
       if (widget.announcement!['starts_at'] != null) {
         _startsAt = DateTime.tryParse(widget.announcement!['starts_at'].toString())?.toLocal();
       }
@@ -500,6 +504,8 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
   void dispose() {
     _titleCtrl.dispose();
     _messageCtrl.dispose();
+    _buttonLabelCtrl.dispose();
+    _buttonLinkCtrl.dispose();
     super.dispose();
   }
 
@@ -568,6 +574,8 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
       if (token == null) throw Exception('Session expired');
 
       final adminService = AdminService(token: token);
+      final buttonLabel = _buttonLabelCtrl.text.trim();
+      final buttonLink = _buttonLinkCtrl.text.trim();
       if (widget.announcement != null) {
         final id = widget.announcement!['id'] as int;
         await adminService.updateAnnouncement(
@@ -578,6 +586,8 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
           isActive: _isActive,
           startsAt: _startsAt,
           endsAt: _endsAt,
+          buttonLabel: buttonLabel.isEmpty ? null : buttonLabel,
+          buttonLink: buttonLink.isEmpty ? null : buttonLink,
         );
       } else {
         await adminService.createAnnouncement(
@@ -587,6 +597,8 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
           isActive: _isActive,
           startsAt: _startsAt,
           endsAt: _endsAt,
+          buttonLabel: buttonLabel.isEmpty ? null : buttonLabel,
+          buttonLink: buttonLink.isEmpty ? null : buttonLink,
         );
       }
 
@@ -722,6 +734,24 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
                       });
                     }
                   },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _buttonLabelCtrl,
+                  maxLength: 50,
+                  decoration: const InputDecoration(
+                    labelText: 'Button Label (Optional)',
+                    prefixIcon: Icon(Icons.label_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _buttonLinkCtrl,
+                  maxLength: 255,
+                  decoration: const InputDecoration(
+                    labelText: 'Button Link (Optional)',
+                    prefixIcon: Icon(Icons.link_rounded),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 SwitchListTile.adaptive(

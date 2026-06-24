@@ -56,6 +56,8 @@ class AdminService {
     required bool isActive,
     DateTime? startsAt,
     DateTime? endsAt,
+    String? buttonLabel,
+    String? buttonLink,
   }) async {
     final body = <String, dynamic>{
       'title': title,
@@ -64,6 +66,8 @@ class AdminService {
       'is_active': isActive,
       'starts_at': startsAt?.toUtc().toIso8601String(),
       'ends_at': endsAt?.toUtc().toIso8601String(),
+      'button_label': buttonLabel,
+      'button_link': buttonLink,
     };
     return _client.post('/notifications/broadcast/admin', body);
   }
@@ -77,6 +81,8 @@ class AdminService {
     bool? isActive,
     DateTime? startsAt,
     DateTime? endsAt,
+    String? buttonLabel,
+    String? buttonLink,
   }) async {
     final body = <String, dynamic>{};
     if (title != null) body['title'] = title;
@@ -85,6 +91,8 @@ class AdminService {
     if (isActive != null) body['is_active'] = isActive;
     if (startsAt != null) body['starts_at'] = startsAt.toUtc().toIso8601String();
     if (endsAt != null) body['ends_at'] = endsAt.toUtc().toIso8601String();
+    if (buttonLabel != null) body['button_label'] = buttonLabel;
+    if (buttonLink != null) body['button_link'] = buttonLink;
     return _client.patch('/notifications/broadcast/admin/$id', body);
   }
 

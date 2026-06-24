@@ -869,6 +869,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return const SizedBox.shrink();
     }
 
+    final buttonLabel = announcement['button_label']?.toString() ?? '';
+    final buttonLink = announcement['button_link']?.toString() ?? '';
+    final hasButton = buttonLabel.isNotEmpty && buttonLink.isNotEmpty;
+
     final level = (announcement['level'] ?? 'info').toString().toLowerCase();
 
     // Default color maps for 'info'
@@ -938,14 +942,16 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
-              iconData,
-              color: iconColor,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
+            if (!hasButton) ...[
+              Icon(
+                iconData,
+                color: iconColor,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -974,6 +980,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+            if (hasButton) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: () async {
+                  final uri = Uri.tryParse(buttonLink);
+                  if (uri != null) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: textPrimaryColor.withOpacity(0.15),
+                  foregroundColor: textPrimaryColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  buttonLabel,
+                  style: TextStyle(
+                    color: textPrimaryColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () => _dismissAnnouncement(id),
