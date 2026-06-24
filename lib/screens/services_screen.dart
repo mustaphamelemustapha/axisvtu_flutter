@@ -7,7 +7,7 @@ import 'cable_screen.dart';
 import 'exam_screen.dart';
 import 'referral_screen.dart';
 import 'wallet_screen.dart';
-import '../theme/axis_tokens.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});
@@ -274,6 +274,18 @@ class _SupportCard extends StatelessWidget {
   const _SupportCard({required this.isDark});
   final bool isDark;
 
+  Future<void> _launchSupport(BuildContext context) async {
+    final phone = '+2348141114647';
+    final url = Uri.parse('https://wa.me/${phone.replaceAll('+', '')}');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch WhatsApp')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -314,6 +326,35 @@ class _SupportCard extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
               height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: () => _launchSupport(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2457F5),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2457F5).withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'Chat on WhatsApp',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
             ),
           ),
         ],

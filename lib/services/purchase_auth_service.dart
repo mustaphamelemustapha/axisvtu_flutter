@@ -116,18 +116,22 @@ class PurchaseAuthService {
     required String preferredMethod,
     Future<TransactionPinStatus?>? statusFuture,
   }) async {
-    // 1. Check if PIN is even set (using the background future if available)
-    if (statusFuture != null) {
-      final status = await statusFuture;
-      if (status != null && !status.isSet) {
-        return _setupFlow(context: context, service: service, reason: reason, pinLength: status.pinLength);
-      }
-    }
-
-    // 2. Check for Biometric Unlock
+    // 1. Check for Biometric Unlock configuration
     final bioEnabled = await BiometricService.isAppLockEnabled;
     final savedPin = await BiometricService.getPin();
     final availability = await BiometricService.getAvailability();
+
+    final canUseBiometric = bioEnabled && availability.ready && savedPin != null && savedPin.length == pinLength;
+
+    // Only block on checking if the PIN is set if we cannot use biometrics
+    if (!canUseBiometric && statusFuture != null) {
+      final status = await statusFuture;
+      if (status != null && !status.isSet) {
+        if (context.mounted) {
+          return _setupFlow(context: context, service: service, reason: reason, pinLength: status.pinLength);
+        }
+      }
+    }
 
     if (bioEnabled && availability.ready && context.mounted) {
       bool useBiometric = false;
