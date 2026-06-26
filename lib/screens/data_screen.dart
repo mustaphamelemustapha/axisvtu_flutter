@@ -809,7 +809,7 @@ class _DataScreenState extends State<DataScreen> {
             label: 'Plan',
             value: selected == null
                 ? '—'
-                : '${_planCapacity(selected)} • ${_planValidity(selected)}',
+                : '${selected['name'] ?? selected['plan_name'] ?? _planDisplayTitle(selected, _network)} (${_planValidity(selected)})',
           ),
           ReceiptField(label: 'Reference', value: reference),
         ],
