@@ -3221,28 +3221,23 @@ class _ServiceCardState extends State<_ServiceCard> {
           borderRadius: BorderRadius.circular(22),
           child: Container(
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF161F2C) : Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.08 : 0.05),
-              ),
-              boxShadow: _pressed ? [] : AxisShadows.softGlow,
+              color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: _pressed ? [] : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                )
+              ],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: compact ? 38 : 42,
-                  height: compact ? 38 : 42,
-                  decoration: BoxDecoration(
-                    color: widget.item.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    widget.item.icon,
-                    size: compact ? 20 : 22,
-                    color: widget.item.accent,
-                  ),
+                Icon(
+                  widget.item.icon,
+                  size: compact ? 26 : 30,
+                  color: widget.item.accent,
                 ),
                 const SizedBox(height: 12),
                 FittedBox(

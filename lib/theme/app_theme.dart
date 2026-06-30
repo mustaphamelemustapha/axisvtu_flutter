@@ -44,7 +44,7 @@ class AppTheme {
           shadow: Colors.black,
         );
 
-    final baseText = GoogleFonts.interTextTheme().apply(
+    final baseText = GoogleFonts.poppinsTextTheme().apply(
       bodyColor: scheme.onSurface,
       displayColor: scheme.onSurface,
     );
@@ -137,7 +137,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      fontFamily: GoogleFonts.inter().fontFamily,
+      fontFamily: GoogleFonts.poppins().fontFamily,
       visualDensity: VisualDensity.standard,
       scaffoldBackgroundColor: isDark ? _darkBg : _lightBg,
       textTheme: textTheme,
@@ -163,12 +163,14 @@ class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: isDark ? _darkSurface : _lightSurfaceElevated,
+        color: isDark ? _darkSurface : Colors.white,
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
+        elevation: isDark ? 0 : 2,
+        shadowColor: Colors.black.withOpacity(0.05),
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AxisRadii.xl),
+          borderRadius: BorderRadius.circular(24),
+          side: isDark ? const BorderSide(color: Color(0xFF333333)) : BorderSide.none,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -247,10 +249,8 @@ class AppTheme {
             : const Color(0xFFF0F5FF),
         labelStyle: textTheme.labelLarge,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-          side: BorderSide(color: scheme.outline.withValues(alpha: isDark ? 0.35 : 0.9)),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        side: BorderSide(color: scheme.outline.withValues(alpha: isDark ? 0.35 : 0.9)),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: isDark
@@ -275,27 +275,27 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AxisRadii.xxl),
+            top: Radius.circular(32),
           ),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-        height: 72,
-        labelTextStyle: WidgetStateProperty.all(
-          textTheme.labelMedium?.copyWith(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        indicatorColor: scheme.primary.withValues(alpha: isDark ? 0.18 : 0.14),
+        elevation: 0,
+        indicatorColor: Colors.transparent,
+        backgroundColor: isDark ? _darkSurface : Colors.white,
+        surfaceTintColor: Colors.transparent,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final isSelected = states.contains(WidgetState.selected);
+          return textTheme.labelMedium?.copyWith(
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+          );
+        }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
-          final selected = states.contains(WidgetState.selected);
+          final isSelected = states.contains(WidgetState.selected);
           return IconThemeData(
             size: 24,
-            color: selected
-                ? scheme.primary
-                : scheme.onSurface.withValues(alpha: 0.58),
+            color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
           );
         }),
       ),

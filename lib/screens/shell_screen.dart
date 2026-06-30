@@ -34,12 +34,14 @@ class _ShellScreenState extends State<ShellScreen> {
       body: IndexedStack(index: _index, children: screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
-              width: 1,
-            ),
-          ),
+          color: Theme.of(context).colorScheme.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            )
+          ],
         ),
         child: NavigationBar(
           selectedIndex: _index,
