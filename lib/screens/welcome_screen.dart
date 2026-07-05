@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -185,8 +186,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             child: ConcentricCirclesBg(
-          child: Column(
-            children: [
+              child: Column(
+                children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
@@ -505,8 +506,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ],
                 ),
               ),
-            ),
+            ],
           ),
+        ),
+      ),
           
           // Absolute Top Auto-Dismiss Error Toast
           AnimatedPositioned(
