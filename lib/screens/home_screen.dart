@@ -1339,186 +1339,108 @@ class _HomeScreenState extends State<HomeScreen> {
 
             _buildOptionalUpdateBanner(context.watch<SessionController>()),
             
-            // THE MASTERPIECE: Floating Balance Section (Virtual Card)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-                    const Color(0xFF1E1B4B), // Deep elegant purple
+            // THE MASTERPIECE: Floating Balance Section
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 10),
+                Text(
+                  'Total Balance',
+                  style: TextStyle(
+                    color: heroSoftText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      '₦',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: heroText,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _hideBalance ? '••••' : NumberFormat('#,##0.00').format(balance),
+                      style: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.5,
+                        color: heroText,
+                        height: 1.0,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: _toggleBalanceVisibility,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                          size: 18,
+                          color: heroSoftText,
+                        ),
+                      ),
+                    ),
                   ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'TOTAL BALANCE',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _toggleBalanceVisibility,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
-                        child: Text(
-                          '₦',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          _hideBalance ? '••••' : NumberFormat('#,##0.00').format(balance),
-                          style: const TextStyle(
-                            fontSize: 44,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1.5,
-                            color: Colors.white,
-                            height: 1.1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  
-                  // Integrated Action Buttons inside the card
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              backgroundColor: Colors.transparent,
-                              isScrollControlled: true,
-                              barrierColor: Colors.black.withValues(alpha: 0.6),
-                              elevation: 0,
-                              builder: (context) => FractionallySizedBox(
-                                heightFactor: 0.92,
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                                  child: WalletScreen(onNavigateTab: widget.onNavigateTab),
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                )
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_circle_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Fund Wallet',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            widget.onNavigateTab?.call(2);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.2),
+                const SizedBox(height: 32),
+                
+                // Action Pills
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: _buildActionPill(
+                        context,
+                        icon: Icons.add_rounded,
+                        label: 'Fund Wallet',
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            barrierColor: Colors.black.withValues(alpha: 0.6),
+                            elevation: 0,
+                            builder: (context) => FractionallySizedBox(
+                              heightFactor: 0.92,
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                                child: WalletScreen(onNavigateTab: widget.onNavigateTab),
                               ),
                             ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.history_rounded, size: 20, color: Colors.white),
-                                SizedBox(width: 8),
-                                Text(
-                                  'History',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                          );
+                        },
+                        primary: true,
+                        isDark: isDark,
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildActionPill(
+                        context,
+                        icon: Icons.history_rounded,
+                        label: 'History',
+                        onTap: () {
+                          widget.onNavigateTab?.call(2);
+                        },
+                        primary: false,
+                        isDark: isDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 32),
             
