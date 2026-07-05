@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../config.dart';
 import 'api_client.dart';
 
@@ -58,6 +59,10 @@ class AuthService {
       body['phone_number'] = phoneNumber.trim();
     }
     return _client.patch('/auth/me', body);
+  }
+
+  Future<Map<String, dynamic>> uploadProfileImage(File image) async {
+    return _client.postMultipart('/auth/profile/image', file: image, fileField: 'image');
   }
 
   Future<Map<String, dynamic>> changePassword({

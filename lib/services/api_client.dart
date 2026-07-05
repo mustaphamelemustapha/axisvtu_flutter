@@ -210,6 +210,49 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> postMultipart(
+    String path, {
+    required File file,
+    required String fileField,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    _log('API POST MULTIPART: $uri');
+    try {
+      final request = http.MultipartRequest('POST', uri);
+      request.headers.addAll(_headers(json: false));
+      request.files.add(await http.MultipartFile.fromPath(fileField, file.path));
+
+      final streamedResponse = await request.send().timeout(_timeout);
+      final resp = await http.Response.fromStream(streamedResponse);
+      
+      _log('API RESP [$path]: ${resp.statusCode}');
+      return _decode(resp, path);
+    } on TimeoutException catch (e) {
+      _log('API ERR [$path]: Timeout - $e');
+      throw ApiException(
+        408,
+        'Request timed out. The server is taking too long to respond.',
+      );
+    } on SocketException catch (e) {
+      _log('API ERR [$path]: SocketException - $e');
+      throw ApiException(
+        503,
+        'Unable to connect. Check your internet connection and try again.',
+      );
+    } on http.ClientException catch (e) {
+      _log('API ERR [$path]: ClientException - $e');
+      throw ApiException(
+        503,
+        'Unable to reach server right now. Please try again shortly.',
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      _log('API ERR [$path]: Unexpected - $e');
+      throw ApiException(500, 'Unexpected error. Please try again.');
+    }
+  }
+
   Map<String, dynamic> _decode(http.Response resp, String path) {
     if (resp.body.isNotEmpty && resp.statusCode >= 400) {
       _log('API BODY [$path]: ${resp.body}');

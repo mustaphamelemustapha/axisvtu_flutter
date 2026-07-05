@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -583,6 +584,30 @@ class SessionController extends ChangeNotifier {
   void updateUser(Map<String, dynamic> user) {
     _user = user;
     notifyListeners();
+  }
+
+  Future<void> uploadProfileImage(File image) async {
+    if (_token == null) return;
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final updatedUser = await AuthService(token: _token).uploadProfileImage(image);
+      _user = updatedUser;
+      _lastUser = updatedUser;
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_lastUserJsonKey, jsonEncode(updatedUser));
+      
+      _loading = false;
+      notifyListeners();
+    } catch (e) {
+      _loading = false;
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> acknowledgeAgentUpgrade() async {

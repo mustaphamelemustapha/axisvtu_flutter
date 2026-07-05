@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/auth_service.dart';
 import '../state/session.dart';
 import '../widgets/concentric_circles_bg.dart';
@@ -15,8 +17,10 @@ class PersonalInfoScreen extends StatefulWidget {
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   bool _updatingProfile = false;
+  bool _uploadingImage = false;
   late TextEditingController _fullNameCtrl;
   late TextEditingController _emailCtrl;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -75,6 +79,37 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     }
   }
 
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (pickedFile == null) return;
+
+      setState(() => _uploadingImage = true);
+
+      final session = context.read<SessionController>();
+      await session.uploadProfileImage(File(pickedFile.path));
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile image updated!')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload image: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _uploadingImage = false);
+      }
+    }
+  }
+
   String _initialsFromName(String name) {
     if (name.isEmpty) return 'U';
     final parts = name.trim().split(' ');
@@ -89,6 +124,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final session = context.watch<SessionController>();
     final user = session.user ?? {};
     final name = (user['full_name'] ?? user['name'] ?? '').toString();
+    final imageUrl = user['profile_image_url']?.toString();
     final initials = _initialsFromName(name);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
@@ -139,37 +175,51 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     GlassCard(
                       padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Center(
-                        child: Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 46,
-                              backgroundColor: primaryColor.withValues(alpha: 0.1),
-                              child: Text(
-                                initials,
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  color: primaryColor,
+                        child: GestureDetector(
+                          onTap: _uploadingImage ? null : _pickAndUploadImage,
+                          child: Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 46,
+                                backgroundColor: primaryColor.withValues(alpha: 0.1),
+                                backgroundImage: imageUrl != null && imageUrl.isNotEmpty
+                                    ? NetworkImage(imageUrl)
+                                    : null,
+                                child: imageUrl == null || imageUrl.isEmpty
+                                    ? Text(
+                                        initials,
+                                        style: TextStyle(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w900,
+                                          color: primaryColor,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              if (_uploadingImage)
+                                const Positioned.fill(
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF97316), // Orange from screenshot
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFF97316), // Orange from screenshot
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt_rounded,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
