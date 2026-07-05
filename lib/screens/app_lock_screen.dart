@@ -189,7 +189,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                         ],
                       ),
                       child: Center(
-                        child: _isAuthenticating
+                        child: _checkingBiometrics
                             ? SizedBox(
                                 width: 32,
                                 height: 32,
@@ -206,7 +206,7 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                       ),
                     ),
                     const SizedBox(height: 16),
-                    if (_isAuthenticating)
+                    if (_checkingBiometrics)
                       Text(
                         'Verifying Biometrics...',
                         style: TextStyle(
