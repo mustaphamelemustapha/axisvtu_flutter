@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../widgets/concentric_circles_bg.dart';
+
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
 
@@ -35,35 +37,53 @@ class _AboutScreenState extends State<AboutScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
-    final surface = isDark ? const Color(0xFF0F172A) : Colors.white;
-    final cardBg = isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : const Color(0xFFF1F5F9);
     final textMain = isDark ? Colors.white : const Color(0xFF0F172A);
     final textDim = isDark ? Colors.white70 : const Color(0xFF64748B);
+    final cardBg = isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : Colors.white;
 
     return Scaffold(
-      backgroundColor: surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textMain, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'About MELE DATA',
-          style: TextStyle(
-            color: textMain,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-        centerTitle: false,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        children: [
-          const SizedBox(height: 10),
+      body: ConcentricCirclesBg(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom App Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white10 : Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.chevron_left_rounded, size: 24),
+                      ),
+                    ),
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'About MELE DATA',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 40), // Balance the back button
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  children: [
+                    const SizedBox(height: 10),
           
           // Version Info Cards
           _InfoCard(
@@ -155,6 +175,11 @@ class _AboutScreenState extends State<AboutScreen> {
           
           const SizedBox(height: 40),
         ],
+      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
