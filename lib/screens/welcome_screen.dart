@@ -403,102 +403,107 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Floating Bottom Actions
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Left Side: Biometrics (if available and login)
-                        if (_isLogin && _biometricAvailable)
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            height: 52,
-                            width: 52,
-                            decoration: BoxDecoration(
-                              color: theme.cardTheme.color,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.1),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                )
-                              ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+              // Floating Bottom Actions (Moved outside ListView to always stay above keyboard)
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Left Side: Biometrics (if available and login)
+                      if (_isLogin && _biometricAvailable)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          height: 52,
+                          width: 52,
+                          decoration: BoxDecoration(
+                            color: theme.cardTheme.color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.1),
                             ),
-                            child: IconButton(
-                              icon: _biometricLoading 
-                                  ? const SizedBox(
-                                      width: 20, height: 20, 
-                                      child: CircularProgressIndicator(strokeWidth: 2)
-                                    )
-                                  : Icon(Icons.fingerprint_rounded, color: theme.colorScheme.primary),
-                              onPressed: _biometricLoading ? null : _loginWithBiometrics,
-                            ),
-                          )
-                        else
-                          const SizedBox(width: 52), // Placeholder to keep spacing
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: IconButton(
+                            icon: _biometricLoading 
+                                ? const SizedBox(
+                                    width: 20, height: 20, 
+                                    child: CircularProgressIndicator(strokeWidth: 2)
+                                  )
+                                : Icon(Icons.fingerprint_rounded, color: theme.colorScheme.primary),
+                            onPressed: _biometricLoading ? null : _loginWithBiometrics,
+                          ),
+                        )
+                      else
+                        const SizedBox(width: 52), // Placeholder to keep spacing
 
-                        // Right Side: Submit Button
-                        GestureDetector(
-                          onTap: isLoading ? null : _submit,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            height: 52,
-                            padding: const EdgeInsets.symmetric(horizontal: 28),
-                            decoration: BoxDecoration(
-                              gradient: isLoading
-                                  ? LinearGradient(colors: [theme.colorScheme.primary.withValues(alpha: 0.5), theme.colorScheme.primary.withValues(alpha: 0.5)])
-                                  : LinearGradient(
-                                      colors: [theme.colorScheme.primary, theme.colorScheme.primary.withRed(100)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                              borderRadius: BorderRadius.circular(26),
-                              boxShadow: [
-                                if (!isLoading)
-                                  BoxShadow(
-                                    color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
-                                  )
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isLoading)
-                                  const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                else
-                                  Text(
-                                    _isLogin ? 'Sign In' : 'Sign Up',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15,
-                                    ),
+                      // Right Side: Submit Button
+                      GestureDetector(
+                        onTap: isLoading ? null : _submit,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          height: 52,
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                          decoration: BoxDecoration(
+                            gradient: isLoading
+                                ? LinearGradient(colors: [theme.colorScheme.primary.withValues(alpha: 0.5), theme.colorScheme.primary.withValues(alpha: 0.5)])
+                                : LinearGradient(
+                                    colors: [theme.colorScheme.primary, theme.colorScheme.primary.withRed(100)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                   ),
-                                if (!isLoading) ...[
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
-                                ],
+                            borderRadius: BorderRadius.circular(26),
+                            boxShadow: [
+                              if (!isLoading)
+                                BoxShadow(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                )
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isLoading)
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              else
+                                Text(
+                                  _isLogin ? 'Sign In' : 'Sign Up',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              if (!isLoading) ...[
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
                               ],
-                            ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 40),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
