@@ -9,13 +9,13 @@ class ConcentricCirclesBg extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
     
-    // Using the brand's primary color with very low opacity to create the soft circles
-    final circleColor = primary.withValues(alpha: isDark ? 0.05 : 0.03);
+    // Increased visibility of circles
+    final circleColor = primary.withValues(alpha: isDark ? 0.08 : 0.04);
     
-    // Background color: Soft gradient based on brand colors
+    // Brightened background colors for dark mode to improve contrast
     final bgColors = isDark 
-        ? [const Color(0xFF0A0F1A), const Color(0xFF0D1726)]
-        : [primary.withValues(alpha: 0.05), primary.withValues(alpha: 0.02), Colors.white];
+        ? [const Color(0xFF101726), const Color(0xFF151F32)]
+        : [primary.withValues(alpha: 0.06), primary.withValues(alpha: 0.02), Colors.white];
 
     return Container(
       decoration: BoxDecoration(

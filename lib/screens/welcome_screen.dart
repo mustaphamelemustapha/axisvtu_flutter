@@ -6,7 +6,6 @@ import '../state/session.dart';
 import '../widgets/auth_route.dart';
 import '../widgets/concentric_circles_bg.dart';
 import '../widgets/auth_segmented_control.dart';
-import '../widgets/primary_button.dart';
 import '../widgets/theme_toggle_button.dart';
 import '../services/biometric_service.dart';
 import 'forgot_password_screen.dart';
@@ -35,11 +34,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   final _regEmailCtrl = TextEditingController();
   final _regPhoneCtrl = TextEditingController();
   final _regPassCtrl = TextEditingController();
-  final _regConfirmPassCtrl = TextEditingController();
+  final _regReferralCtrl = TextEditingController();
   
   bool _obscureLogin = true;
   bool _obscureReg = true;
-  bool _obscureRegConfirm = true;
+  bool _showReferralField = false;
   bool _loading = false;
   String? _localError;
   bool _biometricAvailable = false;
@@ -66,7 +65,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     _regEmailCtrl.dispose();
     _regPhoneCtrl.dispose();
     _regPassCtrl.dispose();
-    _regConfirmPassCtrl.dispose();
+    _regReferralCtrl.dispose();
     super.dispose();
   }
 
@@ -140,7 +139,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       final email = _regEmailCtrl.text.trim();
       final phone = _regPhoneCtrl.text.trim();
       final password = _regPassCtrl.text;
-      final confirmPassword = _regConfirmPassCtrl.text;
+      final referralCode = _regReferralCtrl.text.trim();
 
       if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
         setState(() {
@@ -156,14 +155,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         });
         return;
       }
-      if (password != confirmPassword) {
-        setState(() {
-          _localError = 'Passwords do not match.';
-          _loading = false;
-        });
-        return;
-      }
-      ok = await session.register(name, email, phone, password);
+      ok = await session.register(
+        name, 
+        email, 
+        phone, 
+        password,
+        referralCode: referralCode.isEmpty ? null : referralCode,
+      );
     }
 
     if (!mounted) return;
@@ -192,63 +190,63 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [ThemeToggleButton(size: 40)],
+                  children: const [ThemeToggleButton(size: 34)],
                 ),
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   children: [
                     // Logo
                     Center(
                       child: Container(
-                        width: 72,
-                        height: 72,
+                        width: 56,
+                        height: 56,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
                         padding: const EdgeInsets.all(4),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(40),
+                          borderRadius: BorderRadius.circular(30),
                           child: Image.asset('assets/brand/meledata-icon.png'),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     
                     // Title
                     Text(
                       _isLogin ? 'Welcome Back' : 'Create Account',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       _isLogin ? 'Sign in to continue' : 'Join us to get started',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
                     // Segmented Control
                     AuthSegmentedControl(
@@ -260,25 +258,26 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // Card with inputs
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
                       child: Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF151C2C) : Colors.white,
-                          borderRadius: BorderRadius.circular(24),
+                          // Brighter card background in dark mode
+                          color: isDark ? const Color(0xFF1E2638) : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.1 : 0.05),
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                              blurRadius: 30,
-                              offset: const Offset(0, 10),
+                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
@@ -292,7 +291,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 hint: 'example@mail.com',
                                 keyboardType: TextInputType.emailAddress,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               _Label('Password'),
                               _Input(
                                 controller: _loginPassCtrl,
@@ -301,12 +300,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 suffix: IconButton(
                                   icon: Icon(
                                     _obscureLogin ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                    size: 18,
                                     color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                                   ),
                                   onPressed: () => setState(() => _obscureLogin = !_obscureLogin),
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 8),
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: TextButton(
@@ -327,7 +327,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   ),
                                   child: const Text(
                                     'Forgot Password?',
-                                    style: TextStyle(fontWeight: FontWeight.w700),
+                                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                                   ),
                                 ),
                               ),
@@ -338,21 +338,21 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 hint: 'John Doe',
                                 keyboardType: TextInputType.name,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               _Label('Email Address'),
                               _Input(
                                 controller: _regEmailCtrl,
                                 hint: 'example@mail.com',
                                 keyboardType: TextInputType.emailAddress,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               _Label('Phone Number'),
                               _Input(
                                 controller: _regPhoneCtrl,
                                 hint: '080...',
                                 keyboardType: TextInputType.phone,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               _Label('Password'),
                               _Input(
                                 controller: _regPassCtrl,
@@ -361,45 +361,71 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 suffix: IconButton(
                                   icon: Icon(
                                     _obscureReg ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                    size: 18,
                                     color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                                   ),
                                   onPressed: () => setState(() => _obscureReg = !_obscureReg),
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              _Label('Confirm Password'),
-                              _Input(
-                                controller: _regConfirmPassCtrl,
-                                hint: 'Re-enter Password',
-                                obscureText: _obscureRegConfirm,
-                                suffix: IconButton(
-                                  icon: Icon(
-                                    _obscureRegConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              
+                              // Premium Referral Dropdown
+                              if (!_showReferralField)
+                                Center(
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _showReferralField = true),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.local_offer_rounded, size: 14, color: theme.colorScheme.primary),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Have a referral code?',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w800,
+                                              color: theme.colorScheme.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                  onPressed: () => setState(() => _obscureRegConfirm = !_obscureRegConfirm),
+                                )
+                              else ...[
+                                _Label('Referral Code (Optional)'),
+                                _Input(
+                                  controller: _regReferralCtrl,
+                                  hint: 'e.g. AXIS-1234',
+                                  keyboardType: TextInputType.text,
                                 ),
-                              ),
+                              ],
                             ],
                             
                             if (authError != null) ...[
                               const SizedBox(height: 16),
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color: theme.colorScheme.error.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.info_outline_rounded, color: theme.colorScheme.error, size: 20),
-                                    const SizedBox(width: 10),
+                                    Icon(Icons.info_outline_rounded, color: theme.colorScheme.error, size: 16),
+                                    const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         authError,
                                         style: TextStyle(
                                           color: theme.colorScheme.error,
-                                          fontSize: 13,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -414,22 +440,93 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Submit Button
-                    PrimaryButton(
-                      label: isLoading ? 'Please wait...' : 'Continue',
-                      loading: isLoading,
-                      onPressed: isLoading ? null : _submit,
-                    ),
+                    // Floating Bottom Actions
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Left Side: Biometrics (if available and login)
+                        if (_isLogin && _biometricAvailable)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 52,
+                            width: 52,
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF26334A) : Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
+                            ),
+                            child: IconButton(
+                              icon: _biometricLoading 
+                                  ? const SizedBox(
+                                      width: 20, height: 20, 
+                                      child: CircularProgressIndicator(strokeWidth: 2)
+                                    )
+                                  : Icon(Icons.fingerprint_rounded, color: theme.colorScheme.primary),
+                              onPressed: _biometricLoading ? null : _loginWithBiometrics,
+                            ),
+                          )
+                        else
+                          const SizedBox(width: 52), // Placeholder to keep spacing
 
-                    if (_isLogin && _biometricAvailable) ...[
-                      const SizedBox(height: 16),
-                      PrimaryButton(
-                        label: _biometricLoading ? 'Authenticating...' : 'Sign In with Biometrics',
-                        icon: Icons.fingerprint_rounded,
-                        isPremium: false,
-                        onPressed: _biometricLoading ? null : _loginWithBiometrics,
-                      ),
-                    ],
+                        // Right Side: Submit Button
+                        GestureDetector(
+                          onTap: isLoading ? null : _submit,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 52,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            decoration: BoxDecoration(
+                              color: isLoading ? theme.colorScheme.primary.withValues(alpha: 0.5) : theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(26),
+                              boxShadow: [
+                                if (!isLoading)
+                                  BoxShadow(
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  )
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isLoading)
+                                  const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    _isLogin ? 'Sign In' : 'Sign Up',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                if (!isLoading) ...[
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
 
                     const SizedBox(height: 40),
                   ],
@@ -450,11 +547,11 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 4),
+      padding: const EdgeInsets.only(bottom: 6, left: 2),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
         ),
@@ -487,27 +584,29 @@ class _Input extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
-      style: const TextStyle(fontWeight: FontWeight.w600),
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
           fontWeight: FontWeight.w500,
+          fontSize: 14,
         ),
         suffixIcon: suffix,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         filled: true,
-        fillColor: isDark ? const Color(0xFF0D131F) : const Color(0xFFF8FAFC),
+        // Brighter inputs in dark mode
+        fillColor: isDark ? const Color(0xFF1B2336) : const Color(0xFFF8FAFC),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
         ),
       ),
