@@ -30,7 +30,7 @@ import 'referral_screen.dart';
 import '../services/purchase_auth_service.dart';
 import '../services/transaction_pin_service.dart';
 import 'wallet_screen.dart';
-import '../widgets/animated_balance_text.dart';
+import '../widgets/concentric_circles_bg.dart';
 import '../services/agent_service.dart';
 import '../models/agent_models.dart';
 
@@ -1156,28 +1156,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
 
-    return SafeArea(
+    return ConcentricCirclesBg(
       child: Stack(
         children: [
-          // Top Subtle Gradient Glow
-          Positioned(
-            top: -100,
-            left: -100,
-            right: -100,
-            child: Container(
-              height: 500,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.2 : 0.08),
-                    Colors.transparent,
-                  ],
-                  radius: 0.6,
-                ),
-              ),
-            ),
-          ),
           Positioned.fill(
             child: RefreshIndicator(
               onRefresh: _refresh,
@@ -1191,9 +1172,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.only(left: 6, right: 16, top: 6, bottom: 6),
-                  decoration: BoxDecoration(
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.only(left: 6, right: 16, top: 6, bottom: 6),
+                    decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1E293B) : Colors.white,
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
@@ -1231,8 +1213,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
@@ -1246,15 +1229,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w900,
-                                  color: heroText,
-                                  letterSpacing: -0.3,
+                              Flexible(
+                                child: Text(
+                                  name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900,
+                                    color: heroText,
+                                    letterSpacing: -0.3,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -1278,9 +1263,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
+            const SizedBox(width: 12),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1401,7 +1389,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icons.add_rounded,
                         label: 'Fund Wallet',
                         onTap: () {
-                          // Scroll down or visually indicate funding below
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            barrierColor: Colors.black.withValues(alpha: 0.6),
+                            elevation: 0,
+                            builder: (context) => FractionallySizedBox(
+                              heightFactor: 0.92,
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                                child: WalletScreen(onNavigateTab: widget.onNavigateTab),
+                              ),
+                            ),
+                          );
                         },
                         primary: true,
                         isDark: isDark,
@@ -1414,8 +1415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icons.history_rounded,
                         label: 'History',
                         onTap: () {
-                          // Navigate to history or switch tab
-                          // TODO: implement
+                          widget.onNavigateTab?.call(2);
                         },
                         primary: false,
                         isDark: isDark,
@@ -1715,12 +1715,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                               decoration: BoxDecoration(
                                                 color: isSel
                                                     ? (isM ? Colors.blue.withValues(alpha: 0.15) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15))
-                                                    : Colors.white.withValues(alpha: 0.03),
+                                                    : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
                                                 borderRadius: BorderRadius.circular(10),
                                                 border: Border.all(
                                                   color: isSel
                                                       ? (isM ? Colors.blue.withValues(alpha: 0.4) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.4))
-                                                      : Colors.white.withValues(alpha: 0.05),
+                                                      : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
                                                 ),
                                               ),
                                               child: Row(
@@ -1737,7 +1737,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                       fontWeight: FontWeight.w900,
                                                       color: isSel
                                                           ? (isM ? Colors.blue.shade300 : Theme.of(context).colorScheme.primary)
-                                                          : Colors.white.withValues(alpha: 0.5),
+                                                          : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
                                                     ),
                                                   ),
                                                 ],
