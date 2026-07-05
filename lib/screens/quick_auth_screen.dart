@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../state/session.dart';
 import '../widgets/concentric_circles_bg.dart';
 import '../services/biometric_service.dart';
-import '../widgets/pincode_keyboard.dart';
 import 'welcome_screen.dart';
 import 'support_screen.dart';
 import 'shell_screen.dart';
