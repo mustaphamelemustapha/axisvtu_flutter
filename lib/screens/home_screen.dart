@@ -1254,30 +1254,49 @@ class _HomeScreenState extends State<HomeScreen> {
             // THE MASTERPIECE: Classically Premium Balance Section
             Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(32),
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
                     blurRadius: 30,
                     offset: const Offset(0, 15),
                   ),
                 ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(32),
                 child: Stack(
                   children: [
                     // Subtle premium texture/gradient
                     Positioned(
-                      top: -50,
-                      right: -50,
+                      top: -40,
+                      right: -40,
                       child: Container(
-                        width: 150,
-                        height: 150,
+                        width: 200,
+                        height: 200,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.blue.withValues(alpha: 0.05),
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: -80,
+                      left: -20,
+                      child: Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.08),
                         ),
                       ),
                     ),
@@ -3221,23 +3240,33 @@ class _ServiceCardState extends State<_ServiceCard> {
           borderRadius: BorderRadius.circular(22),
           child: Container(
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+              color: Theme.of(context).cardTheme.color,
               borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.05),
+              ),
               boxShadow: _pressed ? [] : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 )
               ],
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  widget.item.icon,
-                  size: compact ? 26 : 30,
-                  color: widget.item.accent,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: widget.item.accent.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    widget.item.icon,
+                    size: compact ? 24 : 28,
+                    color: widget.item.accent,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 FittedBox(
