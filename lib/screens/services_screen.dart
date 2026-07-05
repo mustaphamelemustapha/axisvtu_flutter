@@ -7,6 +7,7 @@ import 'cable_screen.dart';
 import 'exam_screen.dart';
 import 'referral_screen.dart';
 import 'wallet_screen.dart';
+import 'senior_men_board_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/concentric_circles_bg.dart';
 class ServicesScreen extends StatelessWidget {
@@ -68,6 +69,12 @@ class ServicesScreen extends StatelessWidget {
                       icon: Icons.school_rounded,
                       accent: const Color(0xFFEF4444),
                       onTap: () => _openScreen(context, const ExamScreen()),
+                    ),
+                    _ServiceItem(
+                      label: 'Senior Men',
+                      icon: Icons.emoji_events_rounded,
+                      accent: const Color(0xFFEA580C),
+                      onTap: () => _openScreen(context, const SeniorMenBoardScreen()),
                     ),
                   ],
                 ),

@@ -87,71 +87,87 @@ class _SeniorMenBoardScreenState extends State<SeniorMenBoardScreen> {
       );
     }
     
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.5),
+    return Flexible(
+      flex: rank == 1 ? 4 : 3,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Stack(
+            alignment: Alignment.topRight,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+                child: _buildAvatar(user['profile_image_url'], user['username'], radius: rank == 1 ? 32 : 26),
+              ),
+              if (rank == 1)
+                const Positioned(
+                  top: -8,
+                  right: -8,
+                  child: Icon(Icons.workspace_premium_rounded, color: Color(0xFFFACC15), size: 28),
+                ),
+            ],
           ),
-          child: _buildAvatar(user['profile_image_url'], user['username'], radius: rank == 1 ? 32 : 26),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: 90,
-          child: Text(
-            '@${user['username']}',
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              '@${user['username']}',
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Stack(
-          alignment: Alignment.topCenter,
-          children: [
-            Container(
-              width: 100,
-              height: height,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    color.withValues(alpha: 0.8),
-                    color,
-                  ],
+          const SizedBox(height: 8),
+          Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              Container(
+                width: double.infinity,
+                height: height,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      color.withValues(alpha: 0.8),
+                      color,
+                    ],
+                  ),
                 ),
-              ),
-              child: Center(
-                child: Text(
-                  '$rank',
-                  style: const TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                child: Center(
+                  child: Text(
+                    '$rank',
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
-            ),
-            // Top oval to simulate 3D cylinder
-            Container(
-              width: 100,
-              height: 20,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.6),
-                borderRadius: const BorderRadius.all(Radius.elliptical(50, 10)),
+              // Top oval to simulate 3D cylinder
+              Container(
+                width: double.infinity,
+                height: 20,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.6),
+                  borderRadius: const BorderRadius.all(Radius.elliptical(50, 10)),
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 

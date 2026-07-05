@@ -23,6 +23,7 @@ import 'quick_auth_screen.dart';
 import 'welcome_screen.dart';
 import 'about_screen.dart';
 import 'referral_screen.dart';
+import 'senior_men_board_screen.dart';
 import 'admin_announcements_screen.dart';
 import 'agent_dashboard_screen.dart';
 import 'admin_agent_screen.dart';
@@ -1609,6 +1610,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onTap: () => Navigator.push(
                     context, 
                     MaterialPageRoute(builder: (context) => const PersonalInfoScreen()),
+                  ),
+                ),
+                _ProfileTile(
+                  label: 'Senior Men Board',
+                  icon: Icons.emoji_events_rounded,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SeniorMenBoardScreen()),
                   ),
                 ),
                 _ProfileTile(
