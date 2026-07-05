@@ -260,6 +260,52 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ),
                     const SizedBox(height: 20),
 
+                    // Top Error Banner
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      child: authError == null ? const SizedBox.shrink() : Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.colorScheme.error.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline_rounded, color: theme.colorScheme.error, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  authError,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.error,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: Icon(Icons.close_rounded, color: theme.colorScheme.error.withValues(alpha: 0.6), size: 18),
+                                onPressed: () {
+                                  setState(() => _localError = null);
+                                  // Can't easily clear session error here without extra logic, 
+                                  // but setting a local state is usually enough if _localError was the source.
+                                },
+                              )
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
                     // Card with inputs
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
@@ -408,33 +454,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   keyboardType: TextInputType.text,
                                 ),
                               ],
-                            ],
-                            
-                            if (authError != null) ...[
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.error.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.info_outline_rounded, color: theme.colorScheme.error, size: 16),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        authError,
-                                        style: TextStyle(
-                                          color: theme.colorScheme.error,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ],
                           ],
                         ),
