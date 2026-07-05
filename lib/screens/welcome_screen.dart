@@ -8,6 +8,7 @@ import '../widgets/auth_route.dart';
 import '../widgets/concentric_circles_bg.dart';
 import '../widgets/auth_segmented_control.dart';
 import '../widgets/theme_toggle_button.dart';
+import '../widgets/glass_card.dart';
 import '../services/biometric_service.dart';
 import 'forgot_password_screen.dart';
 import 'shell_screen.dart';
@@ -203,22 +204,27 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     // Logo
                     Center(
                       child: Container(
-                        width: 56,
-                        height: 56,
+                        width: 72,
+                        height: 72,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                              blurRadius: 30,
+                              spreadRadius: 5,
+                            ),
+                            BoxShadow(
                               color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 16,
-                              offset: const Offset(0, 8),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(6),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(36),
                           child: Image.asset('assets/brand/meledata-icon.png'),
                         ),
                       ),
@@ -263,25 +269,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 500),
-                        curve: Curves.easeInOut,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          // Directly rely on theme's card color so the new bright dark mode applies
-                          color: theme.cardTheme.color,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.05),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-                              blurRadius: 24,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -336,7 +325,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               _Label('Full Name'),
                               _Input(
                                 controller: _regNameCtrl,
-                                hint: 'John Doe',
+                                hint: 'Mustapha Mele',
                                 keyboardType: TextInputType.name,
                               ),
                               const SizedBox(height: 12),
@@ -350,7 +339,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               _Label('Phone Number'),
                               _Input(
                                 controller: _regPhoneCtrl,
-                                hint: '080...',
+                                hint: '08012344555',
                                 keyboardType: TextInputType.phone,
                               ),
                               const SizedBox(height: 12),
@@ -457,16 +446,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             height: 52,
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
                             decoration: BoxDecoration(
-                              color: isLoading ? theme.colorScheme.primary.withValues(alpha: 0.5) : theme.colorScheme.primary,
+                              gradient: isLoading
+                                  ? LinearGradient(colors: [theme.colorScheme.primary.withValues(alpha: 0.5), theme.colorScheme.primary.withValues(alpha: 0.5)])
+                                  : LinearGradient(
+                                      colors: [theme.colorScheme.primary, theme.colorScheme.primary.withRed(100)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
                               borderRadius: BorderRadius.circular(26),
                               boxShadow: [
                                 if (!isLoading)
                                   BoxShadow(
-                                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8),
                                   )
                               ],
                             ),
@@ -513,8 +508,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           
           // Absolute Top Auto-Dismiss Error Toast
           AnimatedPositioned(
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOutCubic,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.elasticOut,
             top: _toastMessage != null ? MediaQuery.of(context).padding.top + 16 : -150,
             left: 20,
             right: 20,
@@ -523,16 +518,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF3F1921) : const Color(0xFFFEF2F2),
+                  color: isDark ? const Color(0xFF3F1921).withValues(alpha: 0.9) : const Color(0xFFFEF2F2).withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: theme.colorScheme.error.withValues(alpha: isDark ? 0.4 : 0.2),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.error.withValues(alpha: 0.15),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
+                      color: theme.colorScheme.error.withValues(alpha: 0.2),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
@@ -552,7 +547,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         _toastMessage ?? '',
                         style: TextStyle(
                           color: isDark ? const Color(0xFFFDA4AF) : const Color(0xFF991B1B),
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                           height: 1.4,
                         ),
@@ -576,13 +571,14 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6, left: 2),
+      padding: const EdgeInsets.only(bottom: 8, left: 4),
       child: Text(
-        text,
+        text.toUpperCase(),
         style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );
@@ -622,21 +618,20 @@ class _Input extends StatelessWidget {
           fontSize: 14,
         ),
         suffixIcon: suffix,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         filled: true,
-        // Rely on theme for input background to automatically match dark mode changes
-        fillColor: theme.inputDecorationTheme.fillColor,
+        fillColor: isDark ? Colors.white.withValues(alpha: 0.03) : theme.colorScheme.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.05)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.05)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
         ),
       ),
     );
