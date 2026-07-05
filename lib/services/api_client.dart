@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 class ApiClient {
   ApiClient({required this.baseUrl, this.token});
@@ -220,7 +221,18 @@ class ApiClient {
     try {
       final request = http.MultipartRequest('POST', uri);
       request.headers.addAll(_headers(json: false));
-      request.files.add(await http.MultipartFile.fromPath(fileField, file.path));
+      
+      // Determine extension from file or default to jpg
+      final ext = file.path.split('.').last.toLowerCase();
+      final subtype = (ext == 'png') ? 'png' : ((ext == 'gif') ? 'gif' : 'jpeg');
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          fileField, 
+          file.path,
+          contentType: MediaType('image', subtype),
+        )
+      );
 
       final streamedResponse = await request.send().timeout(_timeout);
       final resp = await http.Response.fromStream(streamedResponse);
