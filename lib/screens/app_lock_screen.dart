@@ -163,73 +163,81 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
             children: [
               const SizedBox(height: 24),
 
-            // Premium Animated Face ID Scanner Frame at the Top
+            // Premium Animated Scanner/Lock Icon
             if (_hasBiometrics) ...[
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 90,
-                      height: 90,
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: 84,
+                      height: 84,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
                         border: Border.all(
-                          color: const Color(0xFF22C55E).withValues(alpha: 0.3),
-                          width: 2,
+                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                          width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF22C55E).withValues(alpha: 0.1),
-                            blurRadius: 20,
-                            spreadRadius: 2,
+                            color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                            blurRadius: 24,
+                            spreadRadius: 4,
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.face_retouching_natural_rounded,
-                          size: 48,
-                          color: Color(0xFF22C55E),
-                        ),
+                      child: Center(
+                        child: _isAuthenticating
+                            ? SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              )
+                            : Icon(
+                                Icons.lock_person_rounded,
+                                size: 38,
+                                color: theme.colorScheme.primary,
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Trying Face/Touch ID...',
-                          style: TextStyle(
-                            color: isDark ? Colors.white70 : SlateColors.shade700,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    if (_isAuthenticating)
+                      Text(
+                        'Verifying Biometrics...',
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
                         ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: isDark ? Colors.white70 : SlateColors.shade700,
-                          ),
+                      )
+                    else
+                      Text(
+                        'Face/Touch ID Enabled',
+                        style: TextStyle(
+                          color: isDark ? Colors.white54 : SlateColors.shade500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
-                      ],
-                    ),
+                      ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
             ],
 
             // Main Lock Title
             Text(
-              'Use Biometric or Enter Passcode',
+              'Unlock Mele Data',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
-                fontSize: 20,
-                letterSpacing: -0.4,
+                fontSize: 22,
+                letterSpacing: -0.5,
                 color: isDark ? Colors.white : SlateColors.shade900,
               ),
               textAlign: TextAlign.center,
@@ -238,12 +246,19 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
             
             // Subtitle or Error Message
             if (_errorMessage != null)
-              Text(
-                _errorMessage!,
-                style: const TextStyle(
-                  color: Colors.redAccent,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(
+                    color: theme.colorScheme.error,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               )
             else
@@ -251,12 +266,10 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
                 'Enter your 4-digit PIN code to continue',
                 style: TextStyle(
                   color: isDark ? SlateColors.shade400 : SlateColors.shade500,
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-            
-            const SizedBox(height: 16),
 
             // PIN Indicator Dots with Shake Animation
             AnimatedBuilder(
