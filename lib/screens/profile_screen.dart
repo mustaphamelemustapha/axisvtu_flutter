@@ -855,6 +855,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final role = (user['role'] ?? '').toString().trim().toLowerCase();
     final joined = _joinedLabel(user['created_at']);
     final initials = _initialsFromName(name);
+    final profileImageUrl = user['profile_image_url'] as String?;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     // Header Colors
@@ -877,14 +878,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CircleAvatar(
                       radius: 32,
                       backgroundColor: Theme.of(context).colorScheme.primary,
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
+                      backgroundImage: profileImageUrl != null && profileImageUrl.isNotEmpty
+                          ? NetworkImage(profileImageUrl)
+                          : null,
+                      child: profileImageUrl != null && profileImageUrl.isNotEmpty
+                          ? null
+                          : Text(
+                              initials,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(

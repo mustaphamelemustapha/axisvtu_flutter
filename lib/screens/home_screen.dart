@@ -1093,6 +1093,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .trim();
     final role = (user['role'] ?? 'Member').toString().trim();
     final referralCode = (user['referral_code'] ?? '').toString().trim();
+    final profileImageUrl = user['profile_image_url'] as String?;
     final initials = name
         .split(' ')
         .where((part) => part.isNotEmpty)
@@ -1194,14 +1195,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 38,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(
+                          image: profileImageUrl != null && profileImageUrl.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(profileImageUrl),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          gradient: profileImageUrl != null && profileImageUrl.isNotEmpty ? null : LinearGradient(
                             colors: [
                               Theme.of(context).colorScheme.primary,
                               Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                             ],
                           ),
                         ),
-                        child: Center(
+                        child: profileImageUrl != null && profileImageUrl.isNotEmpty ? null : Center(
                           child: Text(
                             initials,
                             style: const TextStyle(
