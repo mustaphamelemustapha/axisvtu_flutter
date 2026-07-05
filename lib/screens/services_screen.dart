@@ -8,7 +8,7 @@ import 'exam_screen.dart';
 import 'referral_screen.dart';
 import 'wallet_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
-
+import '../widgets/concentric_circles_bg.dart';
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});
 
@@ -16,107 +16,70 @@ class ServicesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Services Hub',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5, fontSize: 24),
-        ),
-        centerTitle: false,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+    return ConcentricCirclesBg(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(
-            title: 'Account Verification',
-            subtitle: 'Link KYC to generate dedicated bank accounts',
-            isDark: isDark,
-          ),
-          _ServiceGrid(
-            items: [
-              _ServiceItem(
-                label: 'Wallet',
-                subtitle: 'Activate accounts & fund wallet',
-                icon: Icons.account_balance_wallet_rounded,
-                accent: const Color(0xFF2457F5),
-                onTap: () => _openScreen(context, const WalletScreen()),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+            child: Text(
+              'Services Hub',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1.0,
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 32),
-          _SectionHeader(
-            title: 'Mobile Services',
-            subtitle: 'Data bundles and airtime top-up',
-            isDark: isDark,
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              physics: const BouncingScrollPhysics(),
+              children: [
+                const SizedBox(height: 8),
+                _ServiceGrid(
+                  items: [
+                    _ServiceItem(
+                      label: 'Buy Data',
+                      icon: Icons.wifi_rounded,
+                      accent: const Color(0xFF2457F5),
+                      onTap: () => _openScreen(context, const DataScreen()),
+                    ),
+                    _ServiceItem(
+                      label: 'Airtime',
+                      icon: Icons.phone_iphone_rounded,
+                      accent: const Color(0xFF10B8A6),
+                      onTap: () => _openScreen(context, const AirtimeScreen()),
+                    ),
+                    _ServiceItem(
+                      label: 'Electricity',
+                      icon: Icons.bolt_rounded,
+                      accent: const Color(0xFFF59E0B),
+                      onTap: () => _openScreen(context, const ElectricityScreen()),
+                    ),
+                    _ServiceItem(
+                      label: 'Cable TV',
+                      icon: Icons.live_tv_rounded,
+                      accent: const Color(0xFF8B5CF6),
+                      onTap: () => _openScreen(context, const CableScreen()),
+                    ),
+                    _ServiceItem(
+                      label: 'Exam PINs',
+                      icon: Icons.school_rounded,
+                      accent: const Color(0xFFEF4444),
+                      onTap: () => _openScreen(context, const ExamScreen()),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                _ReferralBanner(
+                  onTap: () => _openScreen(context, const ReferralScreen()),
+                ),
+                const SizedBox(height: 32),
+                _SupportCard(isDark: isDark),
+              ],
+            ),
           ),
-          _ServiceGrid(
-            items: [
-              _ServiceItem(
-                label: 'Buy Data',
-                subtitle: 'MTN, Glo, Airtel, 9mobile',
-                icon: Icons.wifi_rounded,
-                accent: const Color(0xFF2457F5),
-                onTap: () => _openScreen(context, const DataScreen()),
-              ),
-              _ServiceItem(
-                label: 'Airtime',
-                subtitle: 'Instant mobile recharge',
-                icon: Icons.phone_iphone_rounded,
-                accent: const Color(0xFF10B8A6),
-                onTap: () => _openScreen(context, const AirtimeScreen()),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          _SectionHeader(
-            title: 'Utility Subscriptions',
-            subtitle: 'Electricity and Cable TV services',
-            isDark: isDark,
-          ),
-          _ServiceGrid(
-            items: [
-              _ServiceItem(
-                label: 'Electricity',
-                subtitle: 'Prepaid meter tokens',
-                icon: Icons.bolt_rounded,
-                accent: const Color(0xFFF59E0B),
-                onTap: () => _openScreen(context, const ElectricityScreen()),
-              ),
-              _ServiceItem(
-                label: 'Cable TV',
-                subtitle: 'DSTV, GOTV, Startimes',
-                icon: Icons.live_tv_rounded,
-                accent: const Color(0xFF8B5CF6),
-                onTap: () => _openScreen(context, const CableScreen()),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          _SectionHeader(
-            title: 'Educational & Rewards',
-            subtitle: 'Exam results and rewards',
-            isDark: isDark,
-          ),
-          _ServiceGrid(
-            items: [
-              _ServiceItem(
-                label: 'Exam PINs',
-                subtitle: 'WAEC, NECO, JAMB',
-                icon: Icons.school_rounded,
-                accent: const Color(0xFFEF4444),
-                onTap: () => _openScreen(context, const ExamScreen()),
-              ),
-              _ServiceItem(
-                label: 'Referrals',
-                subtitle: 'Invite & earn rewards',
-                icon: Icons.card_giftcard_rounded,
-                accent: const Color(0xFFEC4899),
-                onTap: () => _openScreen(context, const ReferralScreen()),
-              ),
-            ],
-          ),
-          const SizedBox(height: 40),
-          _SupportCard(isDark: isDark),
         ],
       ),
     );
@@ -132,41 +95,6 @@ class ServicesScreen extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.subtitle, required this.isDark});
-  final String title;
-  final String subtitle;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16, left: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _ServiceGrid extends StatelessWidget {
   const _ServiceGrid({required this.items});
@@ -179,10 +107,10 @@ class _ServiceGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
         mainAxisSpacing: 16,
-        mainAxisExtent: 154,
+        childAspectRatio: 0.85,
       ),
       itemBuilder: (context, index) => _ServiceCard(item: items[index]),
     );
@@ -191,14 +119,12 @@ class _ServiceGrid extends StatelessWidget {
 
 class _ServiceItem {
   final String label;
-  final String subtitle;
   final IconData icon;
   final Color accent;
   final VoidCallback onTap;
 
   _ServiceItem({
     required this.label,
-    required this.subtitle,
     required this.icon,
     required this.accent,
     required this.onTap,
@@ -215,54 +141,102 @@ class _ServiceCard extends StatelessWidget {
     return GestureDetector(
       onTap: item.onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
-            width: 1.5,
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.05),
           ),
           boxShadow: [
             BoxShadow(
-              color: isDark ? const Color(0xFF08101F) : const Color(0xFFCBD5E1).withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: item.accent.withValues(alpha: isDark ? 0.15 : 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(item.icon, color: item.accent, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              item.label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReferralBanner extends StatelessWidget {
+  const _ReferralBanner({required this.onTap});
+  final VoidCallback onTap;
+  
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFEC4899), Color(0xFFBE185D)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFEC4899).withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: item.accent.withValues(alpha: isDark ? 0.15 : 0.1),
-                borderRadius: BorderRadius.circular(18),
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
               ),
-              child: Icon(item.icon, color: item.accent, size: 24),
+              child: const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 28),
             ),
-            const Spacer(),
-            Text(
-              item.label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
-                letterSpacing: -0.3,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              item.subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                height: 1.2,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Invite & Earn',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Get rewarded for every friend you invite.',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ],
               ),
             ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
           ],
         ),
       ),

@@ -938,7 +938,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final muted = Theme.of(
       context,
     ).colorScheme.onSurface.withValues(alpha: 0.64);
-    return SafeArea(
+    return ConcentricCirclesBg(
       child: RefreshIndicator(
         onRefresh: _reload,
         child: ListView(
@@ -1090,16 +1090,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       height: 56,
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                          width: 1.5,
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.05),
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
@@ -1147,8 +1146,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         boxShadow: [
                           BoxShadow(
                             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
@@ -1262,23 +1261,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                 return Column(
                   children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isDark 
-                            ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                            : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(32),
-                        border: Border.all(
-                          color: isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : const Color(0xFFE2E8F0),
-                          width: 1.5,
-                        ),
-                      ),
+                    GlassCard(
+                      padding: const EdgeInsets.all(24),
                       child: Column(
                         children: [
                           Row(
@@ -1782,15 +1766,15 @@ class _HistoryTxCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : Colors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.05),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
