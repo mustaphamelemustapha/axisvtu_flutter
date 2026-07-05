@@ -27,6 +27,7 @@ import 'data_screen.dart';
 import 'electricity_screen.dart';
 import 'exam_screen.dart';
 import 'referral_screen.dart';
+import 'senior_men_board_screen.dart';
 import '../services/purchase_auth_service.dart';
 import '../services/transaction_pin_service.dart';
 import 'wallet_screen.dart';
@@ -1153,6 +1154,13 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.card_giftcard_rounded,
         accent: const Color(0xFFEC4899),
         onTap: () => _openScreen(const ReferralScreen()),
+      ),
+      _HomeService(
+        label: 'Senior Men',
+        subtitle: 'Top Spenders',
+        icon: Icons.emoji_events_rounded,
+        accent: const Color(0xFFEA580C), // Orange color
+        onTap: () => _openScreen(const SeniorMenBoardScreen()),
       ),
     ];
 
