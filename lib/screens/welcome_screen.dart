@@ -40,9 +40,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   bool _obscureReg = true;
   bool _showReferralField = false;
   bool _loading = false;
-  String? _localError;
+  String? _toastMessage;
+  Timer? _toastTimer;
   bool _biometricAvailable = false;
   bool _biometricLoading = false;
+
+  void _showToast(String message) {
+    _toastTimer?.cancel();
+    setState(() => _toastMessage = message);
+    _toastTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _toastMessage = null);
+    });
+  }
 
   @override
   void initState() {
@@ -66,6 +75,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     _regPhoneCtrl.dispose();
     _regPassCtrl.dispose();
     _regReferralCtrl.dispose();
+    _toastTimer?.cancel();
     super.dispose();
   }
 
@@ -89,15 +99,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Future<void> _loginWithBiometrics() async {
     setState(() {
       _biometricLoading = true;
-      _localError = null;
     });
     final success = await BiometricService.authenticate(reason: 'Sign in to MELE DATA');
     if (!mounted) return;
     if (!success) {
-      setState(() {
-        _biometricLoading = false;
-        _localError = 'Biometric authentication failed. Try your password.';
-      });
+      setState(() => _biometricLoading = false);
+      _showToast('Biometric authentication failed. Try your password.');
       return;
     }
     final session = context.read<SessionController>();
@@ -106,10 +113,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (ok) {
       Navigator.of(context).pushReplacementNamed(ShellScreen.route);
     } else {
-      setState(() {
-        _biometricLoading = false;
-        _localError = session.error ?? 'Authentication failed.';
-      });
+      setState(() => _biometricLoading = false);
+      _showToast(session.error ?? 'Authentication failed.');
     }
   }
 
@@ -117,7 +122,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     FocusScope.of(context).unfocus();
     setState(() {
       _loading = true;
-      _localError = null;
+      _toastMessage = null;
     });
 
     final session = context.read<SessionController>();
@@ -127,10 +132,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       final identifier = _loginIdCtrl.text.trim();
       final password = _loginPassCtrl.text;
       if (identifier.isEmpty || password.isEmpty) {
-        setState(() {
-          _localError = 'Enter your email or phone number and password.';
-          _loading = false;
-        });
+        setState(() => _loading = false);
+        _showToast('Enter your email or phone number and password.');
         return;
       }
       ok = await session.login(identifier, password);
@@ -142,17 +145,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       final referralCode = _regReferralCtrl.text.trim();
 
       if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
-        setState(() {
-          _localError = 'All fields are required.';
-          _loading = false;
-        });
+        setState(() => _loading = false);
+        _showToast('All fields are required.');
         return;
       }
       if (password.length < 6) {
-        setState(() {
-          _localError = 'Password must be at least 6 characters.';
-          _loading = false;
-        });
+        setState(() => _loading = false);
+        _showToast('Password must be at least 6 characters.');
         return;
       }
       ok = await session.register(
@@ -169,10 +168,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       Navigator.of(context).pushReplacementNamed(ShellScreen.route);
       return;
     }
-    setState(() {
-      _localError = session.error ?? 'Request failed. Try again.';
-      _loading = false;
-    });
+    setState(() => _loading = false);
+    _showToast(session.error ?? 'Request failed. Try again.');
   }
 
   @override
@@ -180,13 +177,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final session = context.watch<SessionController>();
-    final authError = _localError ?? session.error;
     final isLoading = session.isLoading || _loading;
 
     return Scaffold(
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: ConcentricCirclesBg(
+      body: Stack(
+        children: [
+          GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: ConcentricCirclesBg(
           child: Column(
             children: [
               Padding(
@@ -254,57 +252,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       onChanged: (val) {
                         setState(() {
                           _isLogin = val;
-                          _localError = null;
+                          _toastMessage = null;
                         });
                       },
                     ),
                     const SizedBox(height: 20),
-
-                    // Top Error Banner
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOutCubic,
-                      child: authError == null ? const SizedBox.shrink() : Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.error.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: theme.colorScheme.error.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.error_outline_rounded, color: theme.colorScheme.error, size: 20),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  authError,
-                                  style: TextStyle(
-                                    color: theme.colorScheme.error,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: Icon(Icons.close_rounded, color: theme.colorScheme.error.withValues(alpha: 0.6), size: 18),
-                                onPressed: () {
-                                  setState(() => _localError = null);
-                                  // Can't easily clear session error here without extra logic, 
-                                  // but setting a local state is usually enough if _localError was the source.
-                                },
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
 
                     // Card with inputs
                     AnimatedSize(
@@ -553,9 +505,62 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+          
+          // Absolute Top Auto-Dismiss Error Toast
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutCubic,
+            top: _toastMessage != null ? MediaQuery.of(context).padding.top + 16 : -150,
+            left: 20,
+            right: 20,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF3F1921) : const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: theme.colorScheme.error.withValues(alpha: isDark ? 0.4 : 0.2),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.error.withValues(alpha: 0.15),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.error.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.error_outline_rounded, color: theme.colorScheme.error, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _toastMessage ?? '',
+                        style: TextStyle(
+                          color: isDark ? const Color(0xFFFDA4AF) : const Color(0xFF991B1B),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
