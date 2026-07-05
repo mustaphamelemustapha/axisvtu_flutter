@@ -267,11 +267,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          // Brighter card background in dark mode
-                          color: isDark ? const Color(0xFF1E2638) : Colors.white,
+                          // Directly rely on theme's card color so the new bright dark mode applies
+                          color: theme.cardTheme.color,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.1 : 0.05),
+                            color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.05),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -451,10 +451,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             height: 52,
                             width: 52,
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF26334A) : Colors.white,
+                              color: theme.cardTheme.color,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                                color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.1),
                               ),
                               boxShadow: [
                                 BoxShadow(
@@ -595,8 +595,8 @@ class _Input extends StatelessWidget {
         suffixIcon: suffix,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         filled: true,
-        // Brighter inputs in dark mode
-        fillColor: isDark ? const Color(0xFF1B2336) : const Color(0xFFF8FAFC),
+        // Rely on theme for input background to automatically match dark mode changes
+        fillColor: theme.inputDecorationTheme.fillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.1)),

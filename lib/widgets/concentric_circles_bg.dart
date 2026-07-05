@@ -6,16 +6,18 @@ class ConcentricCirclesBg extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
     
     // Increased visibility of circles
     final circleColor = primary.withValues(alpha: isDark ? 0.08 : 0.04);
     
-    // Brightened background colors for dark mode to improve contrast
-    final bgColors = isDark 
-        ? [const Color(0xFF101726), const Color(0xFF151F32)]
-        : [primary.withValues(alpha: 0.06), primary.withValues(alpha: 0.02), Colors.white];
+    // Use the theme's background color directly to ensure it matches the lightened dark mode perfectly
+    final bgColors = [
+      theme.colorScheme.surface,
+      theme.scaffoldBackgroundColor,
+    ];
 
     return Container(
       decoration: BoxDecoration(

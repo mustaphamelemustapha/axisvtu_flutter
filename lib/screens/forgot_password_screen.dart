@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/password_service.dart';
-import '../widgets/auth_backdrop.dart';
-import '../widgets/auth_chrome.dart';
-import '../widgets/primary_button.dart';
+import '../widgets/concentric_circles_bg.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key, required this.identifier});
@@ -75,167 +73,156 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     await _sendReset();
   }
 
-  Widget _buildRequestCard(BuildContext context, Color onSurface, Color muted) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildRequestCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF10182B) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.05),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.1),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 24,
-            offset: const Offset(0, 14),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Forgot Password',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: onSurface,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6, left: 2),
+            child: Text(
+              'Email Address',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            'We’ll send a secure reset link to your email.',
-            style: TextStyle(color: muted),
-          ),
-          const SizedBox(height: 12),
           TextField(
             controller: _emailCtrl,
             keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             decoration: InputDecoration(
               hintText: 'you@email.com',
-              prefixIcon: const Icon(Icons.email_outlined),
+              hintStyle: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               filled: true,
-              fillColor: isDark ? const Color(0xFF151E31) : const Color(0xFFF7FAFF),
+              fillColor: theme.inputDecorationTheme.fillColor,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-                ),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            'We’ll email a link so you can reset your password in your browser.',
-            style: TextStyle(color: muted),
-          ),
-          const SizedBox(height: 14),
-          PrimaryButton(
-            label: _loading ? 'Sending link...' : 'Send Reset Link',
-            loading: _loading,
-            icon: Icons.send_rounded,
-            onPressed: _loading ? null : _sendReset,
-          ),
-          const SizedBox(height: 10),
-          if (_error != null)
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+          if (_error != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: theme.colorScheme.error, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildSuccessCard(BuildContext context, Color onSurface, Color muted) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildSuccessCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF10182B) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.05),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.1),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 24,
-            offset: const Offset(0, 14),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Center(
-            child: Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.mark_email_read_rounded,
-                color: Color(0xFF3B82F6),
-                size: 34,
-              ),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.mark_email_read_rounded,
+              color: primary,
+              size: 34,
             ),
           ),
           const SizedBox(height: 16),
-          Center(
-            child: Text(
-              'Reset link sent',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: onSurface,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              'We’ve sent a password reset link to ${_emailCtrl.text.trim().isEmpty ? 'your email' : _emailCtrl.text.trim()}.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: muted, height: 1.45),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: Text(
-              'Open your inbox and follow the link to create a new password.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: muted, height: 1.45),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: PrimaryButton(
-              label: _loading ? 'Resending...' : 'Resend Link',
-              loading: _loading,
-              icon: Icons.refresh_rounded,
-              onPressed: _loading ? null : _resend,
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Back to Login'),
+          Text(
+            'Reset link sent',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'If the email does not arrive, check spam or try again in a minute.',
-            style: TextStyle(color: muted, fontSize: 13, height: 1.35),
+            'We’ve sent a password reset link to ${_emailCtrl.text.trim().isEmpty ? 'your email' : _emailCtrl.text.trim()}.\nOpen your inbox and follow the link.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7), 
+              height: 1.45,
+              fontSize: 13,
+            ),
           ),
         ],
       ),
@@ -244,70 +231,145 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    final muted = onSurface.withValues(alpha: 0.66);
-
+    final theme = Theme.of(context);
+    
     return Scaffold(
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
-        child: AuthBackdrop(
-          showBrandText: false,
+        child: ConcentricCirclesBg(
           child: Column(
-              children: [
-                AuthTopBar(
-                  onBack: () => Navigator.of(context).pop(),
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                    ),
+                    const SizedBox.shrink(),
+                  ],
                 ),
-                AuthHeroBlock(
-                  title: 'Reset by email',
-                  subtitle: 'We’ll send a secure link to your inbox.',
-                  logoSize: 74,
-                  titleSize: 24,
-                  tight: true,
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                    child: _sent
-                        ? _buildSuccessCard(context, onSurface, muted)
-                        : _buildRequestCard(context, onSurface, muted),
-                  ),
-                ),
-              ],
               ),
-        ),
-      ),
-    );
-  }
-}
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  children: [
+                    // Icon Header
+                    Center(
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Icon(Icons.lock_reset_rounded, color: theme.colorScheme.primary, size: 28),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Title
+                    const Text(
+                      'Reset Password',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'We’ll send a secure link to your inbox.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
 
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon, required this.onTap});
+                    // Card
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      child: _sent ? _buildSuccessCard(context) : _buildRequestCard(context),
+                    ),
+                    const SizedBox(height: 24),
 
-  final IconData icon;
-  final VoidCallback onTap;
+                    // Floating Bottom Actions
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // Right Side: Submit / Resend Button
+                        GestureDetector(
+                          onTap: _loading ? null : (_sent ? _resend : _sendReset),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 52,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            decoration: BoxDecoration(
+                              color: _loading ? theme.colorScheme.primary.withValues(alpha: 0.5) : theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(26),
+                              boxShadow: [
+                                if (!_loading)
+                                  BoxShadow(
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  )
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_loading)
+                                  const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    _sent ? 'Resend Link' : 'Send Link',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                if (!_loading) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(_sent ? Icons.refresh_rounded : Icons.send_rounded, color: Colors.white, size: 18),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
 
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Ink(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF151F34)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withValues(alpha: 0.24),
-            ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ],
           ),
-          child: Icon(icon, size: 18),
         ),
       ),
     );

@@ -9,10 +9,10 @@ class AppTheme {
   static const _seed = Color(0xFF2457F5);
   static const _secondary = Color(0xFF14B8A6);
   static const _lightBg = Color(0xFFF8FAFC);
-  static const _darkBg = Color(0xFF0F172A);
-  static const _darkSurface = Color(0xFF152033);
+  static const _darkBg = Color(0xFF1E293B); // Slate 800
+  static const _darkSurface = Color(0xFF28364D);
   static const _lightSurfaceElevated = Colors.white;
-  static const _darkSurfaceSoft = Color(0xFF1E293B);
+  static const _darkSurfaceSoft = Color(0xFF334155); // Slate 700
 
   static ThemeData light() => _build(Brightness.light);
 
