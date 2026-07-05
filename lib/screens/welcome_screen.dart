@@ -264,7 +264,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
-                      child: Container(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeInOut,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           // Directly rely on theme's card color so the new bright dark mode applies

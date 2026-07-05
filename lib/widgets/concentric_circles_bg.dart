@@ -19,7 +19,9 @@ class ConcentricCirclesBg extends StatelessWidget {
       theme.scaffoldBackgroundColor,
     ];
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -61,7 +63,9 @@ class _CirclesPattern extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
       width: 400,
       height: 400,
       decoration: BoxDecoration(
@@ -69,7 +73,9 @@ class _CirclesPattern extends StatelessWidget {
         border: Border.all(color: color, width: 40),
       ),
       child: Center(
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
           width: 280,
           height: 280,
           decoration: BoxDecoration(
@@ -77,7 +83,9 @@ class _CirclesPattern extends StatelessWidget {
             border: Border.all(color: color, width: 40),
           ),
           child: Center(
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
               width: 160,
               height: 160,
               decoration: BoxDecoration(
