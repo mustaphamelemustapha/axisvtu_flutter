@@ -42,6 +42,7 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
   bool _downloading = false;
   bool _sharing = false;
   bool _autoShareTriggered = false;
+  bool _hideAmountForCapture = false;
 
   bool get _busy => _downloading || _sharing;
   bool get _isSuccess {
@@ -72,13 +73,24 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
     }
   }
 
-  Future<Uint8List?> _captureReceiptImage() async {
-    await Future.delayed(const Duration(milliseconds: 100));
+  Future<Uint8List?> _captureReceiptImage({bool hideAmount = false}) async {
+    if (hideAmount) {
+      setState(() => _hideAmountForCapture = true);
+      await Future.delayed(const Duration(milliseconds: 50));
+    } else {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    
     final renderObject = _receiptCaptureKey.currentContext?.findRenderObject();
-    if (renderObject is! RenderRepaintBoundary) return null;
+    if (renderObject is! RenderRepaintBoundary) {
+      if (hideAmount && mounted) setState(() => _hideAmountForCapture = false);
+      return null;
+    }
 
     final image = await renderObject.toImage(pixelRatio: 3);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    
+    if (hideAmount && mounted) setState(() => _hideAmountForCapture = false);
     return data?.buffer.asUint8List();
   }
 
@@ -106,13 +118,14 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
     HapticFeedback.mediumImpact();
     setState(() => _sharing = true);
     try {
-      final imageBytes = await _captureReceiptImage();
+      final imageBytes = await _captureReceiptImage(hideAmount: true);
       if (!mounted) return;
       if (imageBytes != null) {
+        final shareFields = widget.fields.where((f) => f.label.toLowerCase() != 'amount').toList();
         await ReceiptExportService.shareReceiptImage(
           context: context,
           imageBytes: imageBytes,
-          fields: widget.fields,
+          fields: shareFields,
         );
       }
     } finally {
@@ -232,7 +245,9 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          ...widget.fields.map((f) => _ReceiptTableItem(label: f.label, value: f.value, bold: f.label == 'Amount')),
+                          ...widget.fields
+                              .where((f) => !_hideAmountForCapture || f.label.toLowerCase() != 'amount')
+                              .map((f) => _ReceiptTableItem(label: f.label, value: f.value, bold: f.label == 'Amount')),
                           const SizedBox(height: 24),
                           const Divider(height: 1),
                           const SizedBox(height: 24),

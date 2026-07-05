@@ -9,8 +9,8 @@ import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../state/session.dart';
 import '../state/theme_controller.dart';
-import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
+import '../widgets/concentric_circles_bg.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/pin_entry_sheet.dart';
 import '../widgets/primary_button.dart';
@@ -1465,6 +1465,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Widget _buildFormGroup(BuildContext context, List<Widget?> children) {
+    final validChildren = children.whereType<Widget>().toList();
+    if (validChildren.isEmpty) return const SizedBox.shrink();
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: GlassCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            for (int i = 0; i < validChildren.length; i++) ...[
+              if (i > 0)
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 68,
+                  endIndent: 0,
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.1 : 0.05),
+                ),
+              validChildren[i],
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -1484,237 +1513,151 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final heroSoftText = isDark ? Colors.white70 : const Color(0xFF64748B);
 
     return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-          children: [
-            // Header Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: cardBg,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: heroText.withValues(alpha: 0.05)),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
+      body: ConcentricCirclesBg(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            children: [
+              // Header Card
+              GlassCard(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            name,
-                            style: TextStyle(
-                              color: heroText,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              name,
+                              style: TextStyle(
+                                color: heroText,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              joined,
-                              style: TextStyle(
-                                color: heroSoftText,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            if (role == 'reseller' || role == 'agent') ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                joined,
+                                style: TextStyle(
+                                  color: heroSoftText,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                child: const Text(
-                                  'AGENT',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFFD97706),
-                                    letterSpacing: 0.5,
+                              ),
+                              if (role == 'reseller' || role == 'agent') ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                                  ),
+                                  child: const Text(
+                                    'AGENT',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFFD97706),
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ],
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 32),
+              
+              _buildFormGroup(context, [
+                if (session.isAdmin)
+                  _ProfileTile(label: 'Manage Announcements', icon: Icons.campaign_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminAnnouncementsScreen()))),
+                if (session.isAdmin)
+                  _ProfileTile(label: 'Manage Agents', icon: Icons.support_agent_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminAgentScreen()))),
+                if (role == 'reseller' || role == 'agent')
+                  _ProfileTile(label: 'Agent Dashboard', icon: Icons.analytics_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgentDashboardScreen()))),
+              ]),
 
-            // Settings List
-            if (session.isAdmin)
-              _ProfileTile(
-                label: 'Manage Announcements',
-                icon: Icons.campaign_rounded,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AdminAnnouncementsScreen(),
+              _buildFormGroup(context, [
+                _ProfileTile(label: 'Account', icon: Icons.person_outline_rounded, onTap: _openEditProfileSheet),
+                _ProfileTile(
+                  label: 'Notifications',
+                  icon: Icons.notifications_none_rounded,
+                  trailing: Switch.adaptive(value: _pushNotifications, onChanged: (value) => _togglePushPreference(value), activeColor: Theme.of(context).colorScheme.primary),
+                  onTap: () => _togglePushPreference(!_pushNotifications),
+                ),
+                _ProfileTile(label: 'Security', icon: Icons.security_rounded, onTap: _openChangePasswordSheet),
+                _ProfileTile(label: 'Change PIN', icon: Icons.vpn_key_outlined, onTap: _openTransactionPinSheet),
+                _ProfileTile(
+                  label: 'Biometrics',
+                  icon: Icons.fingerprint_rounded,
+                  trailing: Switch.adaptive(value: _biometricEnabled, onChanged: _biometricBusy ? null : (_) => _toggleBiometric(), activeColor: Theme.of(context).colorScheme.primary),
+                  onTap: _toggleBiometric,
+                ),
+              ]),
+
+              _buildFormGroup(context, [
+                _ProfileTile(label: 'About', icon: Icons.info_outline_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutScreen()))),
+                _ProfileTile(label: 'Help', icon: Icons.help_outline_rounded, onTap: _contactSupport),
+              ]),
+
+              _buildFormGroup(context, [
+                _ProfileTile(label: 'Delete Account', icon: Icons.delete_outline_rounded, iconColor: Colors.redAccent.withValues(alpha: 0.7), textColor: Colors.redAccent.withValues(alpha: 0.7), onTap: _showDeleteAccountSheet),
+                _ProfileTile(
+                  label: 'Sign Out',
+                  icon: Icons.logout_rounded,
+                  iconColor: Colors.redAccent,
+                  textColor: Colors.redAccent,
+                  onTap: () async {
+                    await session.logout();
+                    if (!context.mounted) return;
+                    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(QuickAuthScreen.route, (_) => false);
+                  },
+                ),
+              ]),
+
+              const Padding(
+                padding: EdgeInsets.only(left: 8, bottom: 12),
+                child: Text(
+                  'Social Media',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
                   ),
                 ),
-                backgroundColor: tileBg,
               ),
-            if (session.isAdmin)
-              _ProfileTile(
-                label: 'Manage Agents',
-                icon: Icons.support_agent_rounded,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AdminAgentScreen(),
-                  ),
-                ),
-                backgroundColor: tileBg,
-              ),
-            if (role == 'reseller' || role == 'agent')
-              _ProfileTile(
-                label: 'Agent Dashboard',
-                icon: Icons.analytics_rounded,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AgentDashboardScreen(),
-                  ),
-                ),
-                backgroundColor: tileBg,
-              ),
-            _ProfileTile(
-              label: 'Account',
-              icon: Icons.person_outline_rounded,
-              onTap: _openEditProfileSheet,
-              backgroundColor: tileBg,
-            ),
-            _ProfileTile(
-              label: 'Notifications',
-              icon: Icons.notifications_none_rounded,
-              trailing: Switch.adaptive(
-                value: _pushNotifications,
-                onChanged: (value) => _togglePushPreference(value),
-                activeColor: Theme.of(context).colorScheme.primary,
-              ),
-              onTap: () => _togglePushPreference(!_pushNotifications),
-              backgroundColor: tileBg,
-            ),
-            _ProfileTile(
-              label: 'Security',
-              icon: Icons.security_rounded,
-              onTap: _openChangePasswordSheet,
-              backgroundColor: tileBg,
-            ),
-            _ProfileTile(
-              label: 'Change PIN',
-              icon: Icons.vpn_key_outlined,
-              onTap: _openTransactionPinSheet,
-              backgroundColor: tileBg,
-            ),
-            _ProfileTile(
-              label: 'Biometrics',
-              icon: Icons.fingerprint_rounded,
-              trailing: Switch.adaptive(
-                value: _biometricEnabled,
-                onChanged: _biometricBusy ? null : (_) => _toggleBiometric(),
-                activeColor: Theme.of(context).colorScheme.primary,
-              ),
-              onTap: _toggleBiometric,
-              backgroundColor: tileBg,
-            ),
-            _ProfileTile(
-              label: 'About',
-              icon: Icons.info_outline_rounded,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AboutScreen()),
-              ),
-              backgroundColor: tileBg,
-            ),
-            _ProfileTile(
-              label: 'Help',
-              icon: Icons.help_outline_rounded,
-              onTap: _contactSupport,
-              backgroundColor: tileBg,
-            ),
-            _ProfileTile(
-              label: 'Delete Account',
-              icon: Icons.delete_outline_rounded,
-              iconColor: Colors.redAccent.withValues(alpha: 0.7),
-              textColor: Colors.redAccent.withValues(alpha: 0.7),
-              onTap: _showDeleteAccountSheet,
-              backgroundColor: tileBg,
-            ),
-            _ProfileTile(
-              label: 'Sign Out',
-              icon: Icons.logout_rounded,
-              iconColor: Colors.redAccent,
-              textColor: Colors.redAccent,
-              onTap: () async {
-                await session.logout();
-                if (!context.mounted) return;
-                Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-                  QuickAuthScreen.route,
-                  (_) => false,
-                );
-              },
-              backgroundColor: tileBg,
-            ),
-
-
-            const SizedBox(height: 32),
-            // Social Media Section
-            const Text(
-              'Social Media',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _SocialTile(
-              label: 'WhatsApp Channel',
-              icon: Icons.chat_bubble_outline_rounded,
-              onTap: () => launchUrl(Uri.parse('https://whatsapp.com/channel/0029VbCanujEawdvqLAYu83T')),
-              backgroundColor: tileBg,
-            ),
-            _SocialTile(
-              label: 'Instagram',
-              icon: Icons.camera_alt_outlined,
-              onTap: () => launchUrl(Uri.parse('https://www.instagram.com/meledata.ng?igsh=enNtb255MXpuemJ3&utm_source=qr')),
-              backgroundColor: tileBg,
-            ),
-            _SocialTile(
-              label: 'TikTok',
-              icon: Icons.video_library_outlined,
-              onTap: () => launchUrl(Uri.parse('https://www.tiktok.com/@meledata_ng')),
-              backgroundColor: tileBg,
-            ),
-            const SizedBox(height: 40),
-          ],
+              _buildFormGroup(context, [
+                _ProfileTile(label: 'WhatsApp Channel', icon: Icons.chat_bubble_outline_rounded, trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.grey), onTap: () => launchUrl(Uri.parse('https://whatsapp.com/channel/0029VbCanujEawdvqLAYu83T'))),
+                _ProfileTile(label: 'Instagram', icon: Icons.camera_alt_outlined, trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.grey), onTap: () => launchUrl(Uri.parse('https://www.instagram.com/meledata.ng?igsh=enNtb255MXpuemJ3&utm_source=qr'))),
+                _ProfileTile(label: 'TikTok', icon: Icons.video_library_outlined, trailing: const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.grey), onTap: () => launchUrl(Uri.parse('https://www.tiktok.com/@meledata_ng'))),
+              ]),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
@@ -1743,27 +1686,28 @@ class _ProfileTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = Theme.of(context).colorScheme.primary;
     final contentColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: backgroundColor ?? (isDark ? const Color(0xFF1E293B).withValues(alpha: 0.3) : const Color(0xFFF8FAFC)),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: contentColor.withValues(alpha: 0.03)),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 22,
-                color: iconColor ?? (isDark ? Colors.white70 : const Color(0xFF64748B)),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: iconColor?.withValues(alpha: 0.1) ?? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: iconColor ?? Theme.of(context).colorScheme.primary,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -1773,9 +1717,10 @@ class _ProfileTile extends StatelessWidget {
                   child: Text(
                     label,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: textColor ?? contentColor,
+                      letterSpacing: -0.2,
                     ),
                   ),
                 ),
@@ -1786,67 +1731,6 @@ class _ProfileTile extends StatelessWidget {
                     size: 20,
                     color: contentColor.withValues(alpha: 0.3),
                   ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SocialTile extends StatelessWidget {
-  const _SocialTile({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.backgroundColor,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color? backgroundColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final contentColor = isDark ? Colors.white : const Color(0xFF0F172A);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: backgroundColor ?? (isDark ? const Color(0xFF1E293B).withValues(alpha: 0.3) : const Color(0xFFF8FAFC)),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: contentColor.withValues(alpha: 0.03)),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: isDark ? Colors.white70 : const Color(0xFF64748B),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: contentColor,
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.open_in_new_rounded,
-                size: 18,
-                color: contentColor.withValues(alpha: 0.3),
-              ),
             ],
           ),
         ),

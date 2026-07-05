@@ -7,7 +7,6 @@ import '../services/transactions_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
-import '../utils/colors.dart';
 import '../widgets/concentric_circles_bg.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/purchase_result_sheet.dart';
@@ -1414,37 +1413,68 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       )
                     else ...[
                       ..._groupTransactions(filtered).entries.map<Widget>((group) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(4, 12, 0, 12),
-                              child: Text(
-                                group.key.toUpperCase(),
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: muted.withValues(alpha: 0.8),
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.5,
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(8, 0, 0, 12),
+                                child: Text(
+                                  group.key.toUpperCase(),
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: muted.withValues(alpha: 0.8),
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.5,
+                                  ),
                                 ),
                               ),
-                            ),
-                            ...group.value.map<Widget>((tx) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _HistoryTxCard(
-                                icon: _iconFor(tx),
-                                title: _titleFor(tx),
-                                subtitle: _subtitleFor(tx),
-                                date: DateFormat('HH:mm').format(_createdAt(tx)?.toLocal() ?? DateTime.now()),
-                                amount: _amountLabel(tx),
-                                status: _statusOf(tx),
-                                amountColor: _isCredit(tx)
-                                    ? const Color(0xFF16A34A)
-                                    : Theme.of(context).colorScheme.error,
-                                statusColor: _statusColor(context, _statusOf(tx)),
-                                onTap: () => _openTxDetails(tx),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : Colors.white,
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.05),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 5),
+                                    ),
+                                  ],
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: Column(
+                                  children: [
+                                    for (int i = 0; i < group.value.length; i++) ...[
+                                      if (i > 0)
+                                        Divider(
+                                          height: 1,
+                                          thickness: 1,
+                                          indent: 72,
+                                          endIndent: 16,
+                                          color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.1 : 0.05),
+                                        ),
+                                      _HistoryTxTile(
+                                        icon: _iconFor(group.value[i]),
+                                        title: _titleFor(group.value[i]),
+                                        subtitle: _subtitleFor(group.value[i]),
+                                        date: DateFormat('HH:mm').format(_createdAt(group.value[i])?.toLocal() ?? DateTime.now()),
+                                        amount: _amountLabel(group.value[i]),
+                                        status: _statusOf(group.value[i]),
+                                        amountColor: _isCredit(group.value[i])
+                                            ? const Color(0xFF16A34A)
+                                            : Theme.of(context).colorScheme.onSurface,
+                                        statusColor: _statusColor(context, _statusOf(group.value[i])),
+                                        onTap: () => _openTxDetails(group.value[i]),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ),
-                            )),
-                          ],
+                            ],
+                          ),
                         );
                       }),
                     ],
@@ -1735,8 +1765,8 @@ class _HistoryNoticeCard extends StatelessWidget {
   }
 }
 
-class _HistoryTxCard extends StatelessWidget {
-  const _HistoryTxCard({
+class _HistoryTxTile extends StatelessWidget {
+  const _HistoryTxTile({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -1760,106 +1790,86 @@ class _HistoryTxCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(22),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.12 : 0.05),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: IntrinsicHeight(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
               Container(
-                width: 6,
-                color: statusColor,
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: statusColor, size: 20),
               ),
+              const SizedBox(width: 14),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-                  child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    amount,
+                    style: TextStyle(
+                      color: amountColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
+                      if (status == 'failed') ...[
+                        Icon(Icons.error_rounded, size: 12, color: Theme.of(context).colorScheme.error),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        date,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
-                        child: Icon(icon, color: statusColor, size: 24),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 15,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            amount,
-                            style: TextStyle(
-                              color: amountColor,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 17,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            date,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             ],
           ),
