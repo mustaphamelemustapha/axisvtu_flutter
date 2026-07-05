@@ -1036,6 +1036,53 @@ class _HomeScreenState extends State<HomeScreen> {
     return _homeServiceAspectRatio;
   }
 
+  Widget _buildActionPill(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap, required bool primary, required bool isDark}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: primary 
+              ? Theme.of(context).colorScheme.primary 
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: primary ? [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            )
+          ] : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: primary ? Colors.white : (isDark ? Colors.white : Colors.black87),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: primary ? Colors.white : (isDark ? Colors.white : Colors.black87),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -1110,119 +1157,155 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: _refresh,
-        displacement: 18,
-        edgeOffset: 10,
-        child: ListView(
+      child: Stack(
+        children: [
+          // Top Subtle Gradient Glow
+          Positioned(
+            top: -100,
+            left: -100,
+            right: -100,
+            child: Container(
+              height: 500,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary.withValues(alpha: isDark ? 0.2 : 0.08),
+                    Colors.transparent,
+                  ],
+                  radius: 0.6,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              displacement: 18,
+              edgeOffset: 10,
+              child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
           children: [
-            // Compact Senior-Level Header
+            // Floating Pill Header
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  padding: const EdgeInsets.only(left: 6, right: 16, top: 6, bottom: 6),
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
-                      ],
-                    ),
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
                       ),
                     ],
                   ),
-                  child: Center(
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        _greetingText(),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: heroSoftText.withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                       ),
-                      Row(
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Flexible(
-                            child: Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                color: heroText,
-                                letterSpacing: -0.4,
-                              ),
+                          Text(
+                            _greetingText(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: heroSoftText.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.verified_rounded,
-                            size: 14,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          if (role.toLowerCase() == 'reseller' || role.toLowerCase() == 'agent') ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
-                              ),
-                              child: const Text(
-                                'AGENT',
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w900,
-                                  color: Color(0xFFD97706),
-                                  letterSpacing: 0.5,
+                                  color: heroText,
+                                  letterSpacing: -0.3,
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              if (role.toLowerCase() == 'reseller' || role.toLowerCase() == 'agent')
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'AGENT',
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFFD97706),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      onPressed: _openNotificationsCenter,
-                      icon: const Icon(Icons.notifications_outlined, size: 22),
-                      style: IconButton.styleFrom(
-                        backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        onPressed: _openNotificationsCenter,
+                        icon: const Icon(Icons.notifications_outlined, size: 20),
+                        color: heroText,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    ThemeToggleButton(size: 42),
+                    ThemeToggleButton(size: 44),
                   ],
                 ),
               ],
@@ -1250,128 +1333,101 @@ class _HomeScreenState extends State<HomeScreen> {
             })(),
 
             _buildOptionalUpdateBanner(context.watch<SessionController>()),
-
-            // THE MASTERPIECE: Classically Premium Balance Section
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15),
+            
+            // THE MASTERPIECE: Floating Balance Section
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 10),
+                Text(
+                  'Total Balance',
+                  style: TextStyle(
+                    color: heroSoftText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(32),
-                child: Stack(
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Subtle premium texture/gradient
-                    Positioned(
-                      top: -40,
-                      right: -40,
+                    Text(
+                      '₦',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: heroText,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _hideBalance ? '••••' : NumberFormat('#,##0.00').format(balance),
+                      style: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.5,
+                        color: heroText,
+                        height: 1.0,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: _toggleBalanceVisibility,
                       child: Container(
-                        width: 200,
-                        height: 200,
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
                           shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
+                        child: Icon(
+                          _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                          size: 18,
+                          color: heroSoftText,
                         ),
                       ),
                     ),
-                    Positioned(
-                      bottom: -80,
-                      left: -20,
-                      child: Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                
+                // Action Pills
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: _buildActionPill(
+                        context,
+                        icon: Icons.add_rounded,
+                        label: 'Fund Wallet',
+                        onTap: () {
+                          // Scroll down or visually indicate funding below
+                        },
+                        primary: true,
+                        isDark: isDark,
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'TOTAL BALANCE',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.4),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerLeft,
-                                  child: AnimatedBalanceText(
-                                    value: balance,
-                                    hideBalance: _hideBalance,
-                                    currencySymbol: '₦',
-                                    style: const TextStyle(
-                                      fontSize: 38,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                      letterSpacing: -1,
-                                      fontFeatures: [FontFeature.tabularFigures()],
-                                    ),
-                                    decimalStyle: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white.withValues(alpha: 0.3),
-                                    ),
-                                    symbolStyle: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.blue,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              GestureDetector(
-                                onTap: _toggleBalanceVisibility,
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.08),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                    size: 20,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 32),
-                          
-                          // Ultra-Polished Account Bar
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildActionPill(
+                        context,
+                        icon: Icons.history_rounded,
+                        label: 'History',
+                        onTap: () {
+                          // Navigate to history or switch tab
+                          // TODO: implement
+                        },
+                        primary: false,
+                        isDark: isDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            
+            // Ultra-Polished Account Bar
                           FutureBuilder<Map<String, dynamic>>(
                             future: _accountsFuture,
                             initialData: _cachedAccountsData,
@@ -1385,8 +1441,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                     width: double.infinity,
                                     height: 120,
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.03),
-                                      borderRadius: BorderRadius.circular(18),
+                                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                      borderRadius: BorderRadius.circular(24),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
                                     ),
                                     child: const Center(
                                       child: SizedBox(
@@ -1401,18 +1464,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                   width: double.infinity,
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        const Color(0xFF0F172A),
-                                        const Color(0xFF0C1D3F).withValues(alpha: 0.8),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(18),
+                                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
                                     border: Border.all(
-                                      color: Colors.blue.withValues(alpha: 0.25),
+                                      color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.05),
                                     ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1444,10 +1507,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ],
                                       ),
                                       const SizedBox(height: 8),
-                                      const Text(
+                                      Text(
                                         'Get a Dedicated Moniepoint Account ⚡',
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          color: heroText,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w900,
                                         ),
@@ -1456,7 +1519,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       Text(
                                         'Enjoy 100% automated deposits for instant wallet funding. Link your BVN or NIN to generate Wema, Sterling, and Moniepoint accounts in seconds.',
                                         style: TextStyle(
-                                          color: Colors.white.withValues(alpha: 0.7),
+                                          color: heroSoftText,
                                           fontSize: 11,
                                           height: 1.4,
                                         ),
@@ -1893,13 +1956,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                             },
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+
             const SizedBox(height: 32),
 
             if (_activeCampaigns.isNotEmpty) ...[
@@ -1932,14 +1989,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.12),
-                ),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final columns = constraints.maxWidth < 430 ? 3 : 4;
@@ -2274,6 +2325,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+              ),
+            ),
+        ],
       ),
     );
   }
