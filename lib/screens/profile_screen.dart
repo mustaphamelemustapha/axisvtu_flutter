@@ -12,6 +12,7 @@ import '../state/theme_controller.dart';
 import '../theme/axis_tokens.dart';
 import '../widgets/concentric_circles_bg.dart';
 import '../widgets/glass_card.dart';
+import 'personal_info_screen.dart';
 import '../widgets/pin_entry_sheet.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/theme_toggle_button.dart';
@@ -1602,7 +1603,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ]),
 
               _buildFormGroup(context, [
-                _ProfileTile(label: 'Account', icon: Icons.person_outline_rounded, onTap: _openEditProfileSheet),
+                _ProfileTile(
+                  label: 'Personal Info', 
+                  icon: Icons.person_outline_rounded, 
+                  onTap: () => Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (context) => const PersonalInfoScreen()),
+                  ),
+                ),
                 _ProfileTile(
                   label: 'Notifications',
                   icon: Icons.notifications_none_rounded,
