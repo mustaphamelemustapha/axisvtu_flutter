@@ -115,7 +115,7 @@ class _SeniorMenBoardScreenState extends State<SeniorMenBoardScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
             child: Text(
-              '@${user['username']}',
+              '${user['username']}',
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -179,7 +179,7 @@ class _SeniorMenBoardScreenState extends State<SeniorMenBoardScreen> {
     return GlassCard(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
       child: SizedBox(
-        height: 260,
+        height: 280,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -216,7 +216,7 @@ class _SeniorMenBoardScreenState extends State<SeniorMenBoardScreen> {
                     color: Colors.black87,
                   ),
                   children: [
-                    TextSpan(text: '@${_currentUser!['username']} '),
+                    TextSpan(text: '${_currentUser!['username']} '),
                     const TextSpan(
                       text: '(You)',
                       style: TextStyle(color: Color(0xFFEA580C)),
@@ -258,7 +258,7 @@ class _SeniorMenBoardScreenState extends State<SeniorMenBoardScreen> {
         separatorBuilder: (_, __) => const Divider(height: 32, color: Colors.black12),
         itemBuilder: (context, index) {
           final user = remaining[index];
-          final rank = index + 4;
+          final rank = user['rank'] as int;
           return Row(
             children: [
               Container(
@@ -272,7 +272,7 @@ class _SeniorMenBoardScreenState extends State<SeniorMenBoardScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  '@${user['username']}',
+                  '${user['username']}',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
