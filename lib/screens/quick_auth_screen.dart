@@ -6,7 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../state/session.dart';
 import '../widgets/concentric_circles_bg.dart';
 import '../services/biometric_service.dart';
+import '../widgets/pincode_keyboard.dart';
 import 'welcome_screen.dart';
+import 'support_screen.dart';
 import 'shell_screen.dart';
 
 class QuickAuthScreen extends StatefulWidget {
@@ -164,7 +166,10 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                       ),
                       TextButton(
                         onPressed: () {
-                          launchUrl(Uri.parse('mailto:mmtechglobe@gmail.com?subject=MELE DATA%20Support%20Request'));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const SupportScreen()),
+                          );
                         },
                         child: Text(
                           'Help',
