@@ -16,7 +16,10 @@ import '../services/wallet_service.dart';
 import '../state/session.dart';
 import '../theme/app_theme.dart';
 import '../theme/axis_tokens.dart';
+import '../utils/fast_route.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/epic_purchase_summary.dart';
+import '../widgets/fund_wallet_sheet.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/primary_button.dart';
 import 'notification_center_screen.dart';
@@ -846,14 +849,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _openScreen(Widget screen) async {
     HapticFeedback.selectionClick();
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    await Navigator.of(context).push(FastRoute(page: screen));
   }
 
   Future<void> _openNotificationsCenter() async {
     HapticFeedback.selectionClick();
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => NotificationCenterScreen(
+      FastRoute(
+        page: NotificationCenterScreen(
           onNavigateTab: widget.onNavigateTab,
         ),
       ),
@@ -1406,20 +1409,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icons.add_rounded,
                         label: 'Fund Wallet',
                         onTap: () {
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            isScrollControlled: true,
-                            barrierColor: Colors.black.withValues(alpha: 0.6),
-                            elevation: 0,
-                            builder: (context) => FractionallySizedBox(
-                              heightFactor: 0.92,
-                              child: ClipRRect(
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                                child: WalletScreen(onNavigateTab: widget.onNavigateTab),
-                              ),
-                            ),
-                          );
+                          FundWalletSheet.show(context);
                         },
                         primary: true,
                         isDark: isDark,

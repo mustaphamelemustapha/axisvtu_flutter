@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/fast_route.dart';
 
 import '../services/password_service.dart';
 import '../services/transaction_pin_service.dart';
@@ -46,7 +47,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       if (!mounted) return;
       if (isPinReset) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => ResetPinScreen(token: widget.token)),
+          FastRoute(page: ResetPinScreen(token: widget.token)),
         );
         return;
       }
@@ -255,7 +256,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               label: 'Back to Login',
               icon: Icons.login_rounded,
               onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                FastRoute(page: const WelcomeScreen()),
                 (route) => false,
               ),
             ),

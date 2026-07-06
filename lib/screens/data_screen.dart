@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import '../utils/fast_route.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
@@ -1020,7 +1021,7 @@ class _DataScreenState extends State<DataScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                FastRoute(page: const HistoryScreen()),
               );
             },
           )

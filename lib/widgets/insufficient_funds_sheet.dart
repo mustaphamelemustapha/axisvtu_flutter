@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/axis_tokens.dart';
+import '../widgets/fund_wallet_sheet.dart';
 
 class InsufficientFundsSheet extends StatelessWidget {
   final double shortfall;
@@ -80,7 +82,7 @@ class InsufficientFundsSheet extends StatelessWidget {
             InkWell(
               onTap: () {
                 Navigator.pop(context);
-                Navigator.of(context).pushNamedAndRemoveUntil('/app', (route) => false);
+                FundWalletSheet.show(context);
               },
               borderRadius: BorderRadius.circular(16),
               child: Container(

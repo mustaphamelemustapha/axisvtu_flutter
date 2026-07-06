@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../utils/fast_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -167,7 +168,7 @@ class _QuickAuthScreenState extends State<QuickAuthScreen> with SingleTickerProv
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const SupportScreen()),
+                            FastRoute(page: const SupportScreen()),
                           );
                         },
                         child: Text(

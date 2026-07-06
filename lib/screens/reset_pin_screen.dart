@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/fast_route.dart';
 import 'package:flutter/services.dart';
 
 import '../services/api_client.dart';
@@ -233,7 +234,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
               label: 'Back to Login',
               icon: Icons.login_rounded,
               onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                FastRoute(page: const WelcomeScreen()),
                 (route) => false,
               ),
             ),

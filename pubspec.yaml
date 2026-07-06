@@ -89,6 +89,7 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/brand/
+    - assets/images/
     - assets/networks/mtn.svg
     - assets/networks/airtel.svg
     - assets/networks/glo.svg

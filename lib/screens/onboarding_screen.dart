@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/fast_route.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/concentric_circles_bg.dart';
@@ -38,7 +39,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     await OnboardingScreen.markSeen();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => WelcomeScreen(initialIsLogin: isLogin)),
+      FastRoute(page: WelcomeScreen(initialIsLogin: isLogin)),
     );
   }
 

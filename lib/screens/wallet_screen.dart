@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../utils/fast_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -204,7 +205,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Future<void> _openScreen(Widget screen) async {
     HapticFeedback.selectionClick();
-    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    await Navigator.of(context).push(FastRoute(page: screen));
   }
 
   Future<List<Map<String, dynamic>>> _loadRecentTransactions(String token) async {

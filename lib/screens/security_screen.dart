@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/fast_route.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -235,7 +236,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                             subtitle: 'Update your account login password',
                             onTap: () => Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+                              FastRoute(page: const ChangePasswordScreen()),
                             ),
                           ),
                           const Divider(height: 1, indent: 64, endIndent: 16),
@@ -245,7 +246,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                             subtitle: 'Update your 4-digit transaction PIN',
                             onTap: () => Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const ChangePinScreen()),
+                              FastRoute(page: const ChangePinScreen()),
                             ),
                           ),
                         ],

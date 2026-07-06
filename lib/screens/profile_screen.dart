@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/fast_route.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -951,11 +952,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               
               _buildFormGroup(context, [
                 if (session.isAdmin)
-                  _ProfileTile(label: 'Manage Announcements', icon: Icons.campaign_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminAnnouncementsScreen()))),
+                  _ProfileTile(label: 'Manage Announcements', icon: Icons.campaign_rounded, onTap: () => Navigator.push(context, FastRoute(page: const AdminAnnouncementsScreen()))),
                 if (session.isAdmin)
-                  _ProfileTile(label: 'Manage Agents', icon: Icons.support_agent_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminAgentScreen()))),
+                  _ProfileTile(label: 'Manage Agents', icon: Icons.support_agent_rounded, onTap: () => Navigator.push(context, FastRoute(page: const AdminAgentScreen()))),
                 if (role == 'reseller' || role == 'agent')
-                  _ProfileTile(label: 'Agent Dashboard', icon: Icons.analytics_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AgentDashboardScreen()))),
+                  _ProfileTile(label: 'Agent Dashboard', icon: Icons.analytics_rounded, onTap: () => Navigator.push(context, FastRoute(page: const AgentDashboardScreen()))),
               ]),
 
               _buildFormGroup(context, [
@@ -964,7 +965,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.person_outline_rounded, 
                   onTap: () => Navigator.push(
                     context, 
-                    MaterialPageRoute(builder: (context) => const PersonalInfoScreen()),
+                    FastRoute(page: const PersonalInfoScreen()),
                   ),
                 ),
                 _ProfileTile(
@@ -972,7 +973,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.emoji_events_rounded,
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SeniorMenBoardScreen()),
+                    FastRoute(page: const SeniorMenBoardScreen()),
                   ),
                 ),
                 _ProfileTile(
@@ -986,13 +987,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.security_rounded, 
                   onTap: () => Navigator.push(
                     context, 
-                    MaterialPageRoute(builder: (context) => const SecurityScreen()),
+                    FastRoute(page: const SecurityScreen()),
                   ),
                 ),
               ]),
 
               _buildFormGroup(context, [
-                _ProfileTile(label: 'About', icon: Icons.info_outline_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutScreen()))),
+                _ProfileTile(label: 'About', icon: Icons.info_outline_rounded, onTap: () => Navigator.push(context, FastRoute(page: const AboutScreen()))),
                 _ProfileTile(label: 'Help', icon: Icons.help_outline_rounded, onTap: _contactSupport),
               ]),
 

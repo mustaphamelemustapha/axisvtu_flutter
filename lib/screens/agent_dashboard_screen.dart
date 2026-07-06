@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/fast_route.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../services/agent_service.dart';
@@ -207,7 +208,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> with Single
             icon: const Icon(Icons.people_outline_rounded),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ReferralScreen()),
+              FastRoute(page: const ReferralScreen()),
             ),
             tooltip: 'Referrals',
           ),
