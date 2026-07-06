@@ -4,6 +4,8 @@ import '../services/api_client.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
 import 'cable_details_screen.dart';
+import '../widgets/mele_data_loader.dart';
+
 
 class CableProvider {
   final String id;
@@ -89,7 +91,9 @@ class _CableScreenState extends State<CableScreen> {
         .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F141E) : const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -146,7 +150,7 @@ class _CableScreenState extends State<CableScreen> {
                     ],
                   ),
                   child: _loading && _providers.length == 4 // Default length
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const Center(child: MeleDataLoader(size: 80.0))
                       : ListView.separated(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           itemCount: filtered.length,
@@ -202,6 +206,6 @@ class _CableScreenState extends State<CableScreen> {
           ],
         ),
       ),
-    );
+    ),);
   }
 }

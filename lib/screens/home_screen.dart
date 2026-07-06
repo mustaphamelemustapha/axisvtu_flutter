@@ -36,6 +36,8 @@ import 'wallet_screen.dart';
 import '../widgets/concentric_circles_bg.dart';
 import '../services/agent_service.dart';
 import '../models/agent_models.dart';
+import '../widgets/mele_data_loader.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onNavigateTab});

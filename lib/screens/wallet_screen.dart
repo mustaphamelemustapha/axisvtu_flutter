@@ -18,6 +18,8 @@ import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/animated_balance_text.dart';
+import '../widgets/mele_data_loader.dart';
+
 
 const double _walletInsightAspectRatio = 1.46;
 

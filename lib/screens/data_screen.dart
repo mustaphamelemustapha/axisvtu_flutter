@@ -23,6 +23,7 @@ import '../widgets/insufficient_funds_sheet.dart';
 import '../utils/balance_util.dart';
 import '../widgets/elite_phone_input.dart';
 import '../widgets/epic_purchase_summary.dart';
+import '../widgets/mele_data_loader.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
@@ -129,15 +130,9 @@ class _DataScreenState extends State<DataScreen> {
   void initState() {
     super.initState();
     _phoneCtrl.addListener(_onPhoneChanged);
-    if (DataService.hasCache) {
-      _plans = DataService.cachedPlans;
-      _loadingPlans = false;
-    }
-    _loadPreferences();
     _loadRecentNumbers();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadPlans(silent: DataService.hasCache);
-    });
+    _loadPreferences();
+    _loadPlans(silent: false);
   }
 
   @override
@@ -1001,7 +996,9 @@ class _DataScreenState extends State<DataScreen> {
     final hasPhone = _normalizePhone(_phoneCtrl.text).length >= 10;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -1230,7 +1227,11 @@ class _DataScreenState extends State<DataScreen> {
                     
                     const SizedBox(height: 16),
                     
-                    if (_loadingPlans && _sortedNetworkPlans.isEmpty)
+                    if (_loadingPlans && _plans.isEmpty)
+                      const Expanded(
+                        child: Center(child: MeleDataLoader(size: 80.0)),
+                      )
+                    else if (_error != null)
                       const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
                     else if (_sortedNetworkPlans.isEmpty)
                       const Center(child: Text('No plans available'))
@@ -1457,7 +1458,7 @@ class _DataScreenState extends State<DataScreen> {
 
         ],
       ),
-    );
+    ),);
   }
 
 

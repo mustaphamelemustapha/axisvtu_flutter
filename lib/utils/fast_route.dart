@@ -6,18 +6,18 @@ class FastRoute<T> extends PageRouteBuilder<T> {
   FastRoute({required this.page})
       : super(
           pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionDuration: const Duration(milliseconds: 100), // Ultra fast 100ms
-          reverseTransitionDuration: const Duration(milliseconds: 100),
+          transitionDuration: const Duration(milliseconds: 250), // Epic and smooth 250ms
+          reverseTransitionDuration: const Duration(milliseconds: 200),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            // Very snappy fade and slight slide
+            // Elegant, realistic smooth slide and fade
             return FadeTransition(
               opacity: animation.drive(CurveTween(curve: Curves.easeOut)),
               child: SlideTransition(
                 position: animation.drive(
                   Tween<Offset>(
-                    begin: const Offset(0.02, 0.0), // very subtle
+                    begin: const Offset(0.03, 0.0), // Subtle slide from the right
                     end: Offset.zero,
-                  ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                  ).chain(CurveTween(curve: Curves.fastOutSlowIn)),
                 ),
                 child: child,
               ),

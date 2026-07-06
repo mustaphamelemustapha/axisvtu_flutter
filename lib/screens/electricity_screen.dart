@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
 import 'electricity_meter_screen.dart';
+import '../widgets/mele_data_loader.dart';
+
 
 class ElectricityProvider {
   final String discoId;
@@ -172,7 +174,9 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F141E) : const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -232,7 +236,7 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
             
             Expanded(
               child: _loading 
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: MeleDataLoader(size: 80.0))
                 : ListView.builder(
                     itemCount: _filteredProviders.length,
                     itemBuilder: (context, index) {
@@ -287,6 +291,6 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
           ],
         ),
       ),
-    );
+    ),);
   }
 }
