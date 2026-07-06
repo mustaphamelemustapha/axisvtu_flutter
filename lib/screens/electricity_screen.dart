@@ -13,6 +13,8 @@ import '../state/session.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
+import '../widgets/epic_purchase_summary.dart';
+import '../widgets/epic_receipt_modal.dart';
 import '../widgets/sticky_checkout_bar.dart';
 import '../widgets/insufficient_funds_sheet.dart';
 import '../utils/balance_util.dart';
@@ -460,6 +462,16 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     }
   }
 
+  Color _getDiscoColor(String disco) {
+    switch (disco.toLowerCase()) {
+      case 'ikeja': return const Color(0xFFE53935);
+      case 'eko': return const Color(0xFF1E88E5);
+      case 'abuja': return const Color(0xFF43A047);
+      case 'kano': return const Color(0xFF8E24AA);
+      default: return Theme.of(context).primaryColor;
+    }
+  }
+
   void _showAuthChoiceSheet() {
     final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
     final meter = _meterNumberCtrl.text.trim();
@@ -474,17 +486,29 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _DualAuthSheet(
-        title: 'Electricity Summary',
-        subtitle: '${_disco.toUpperCase()} • $meter',
+      builder: (context) => EpicPurchaseSummary(
+        title: 'Confirm Electricity',
+        subtitle: 'Please review your electricity token details below',
         amount: '₦${amount.toStringAsFixed(2)}',
-        onPin: () {
+        primaryColor: _getDiscoColor(_disco),
+        headerIcon: Icons.bolt_rounded,
+        items: [
+          SummaryItem(label: 'Disco', value: _disco.toUpperCase(), icon: Icons.electric_meter_rounded),
+          SummaryItem(label: 'Meter Number', value: meter, icon: Icons.numbers_rounded),
+          SummaryItem(label: 'Meter Type', value: _meterType.toUpperCase(), icon: Icons.category_rounded),
+          SummaryItem(label: 'Phone Number', value: _phoneCtrl.text.trim(), icon: Icons.phone_android_rounded),
+        ],
+        onProceedPin: () {
           Navigator.pop(context);
-          _submit(authMethod: PurchaseAuthService.methodPin);
+          Future.delayed(const Duration(milliseconds: 350), () {
+            _submit(authMethod: PurchaseAuthService.methodPin);
+          });
         },
-        onBiometric: () {
+        onProceedBiometric: () {
           Navigator.pop(context);
-          _submit(authMethod: PurchaseAuthService.methodBiometric);
+          Future.delayed(const Duration(milliseconds: 350), () {
+            _submit(authMethod: PurchaseAuthService.methodBiometric);
+          });
         },
       ),
     );
@@ -499,25 +523,55 @@ class _ElectricityScreenState extends State<ElectricityScreen> {
     if (status != 'failed') {
       context.read<SessionController>().refreshBalance();
     }
+    final ok = status == 'success';
     final isSuccess = status.toLowerCase() != 'failed';
+    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
+    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+
+    final Map<String, String> details = {
+      'Date & Time': DateTime.now().toString().substring(0, 16),
+      'Sender': userName,
+      'Provider': 'MELE DATA',
+      'Transaction Type': 'Electricity Token',
+      'Disco': _disco.toUpperCase(),
+      'Meter Number': _meterNumberCtrl.text.trim(),
+      'Meter Type': _meterType.toUpperCase(),
+      'Reference': reference,
+    };
+
+    // Extract token if any from fields to put it in details
+    for (final field in fields) {
+      if (field.label.toLowerCase().contains('token') && field.value.isNotEmpty) {
+        details['Token'] = field.value;
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => PurchaseResultSheet(
-        status: status,
-        title: _statusTitle(
-          status: status,
-          success: 'Electricity Order Successful',
-          pending: 'Electricity Order Pending',
-          failed: 'Electricity Order Failed',
-        ),
-        subtitle: subtitle,
-        fields: [
-          ReceiptField(label: 'Time', value: _formatDate(DateTime.now())),
-          ...fields,
-          ReceiptField(label: 'Reference', value: reference),
-        ],
+      builder: (context) => EpicReceiptModal(
+        isSuccess: ok,
+        title: 'Electricity Token',
+        amount: '₦${amount.toStringAsFixed(2)}',
+        primaryColor: _getDiscoColor(_disco),
+        details: details,
+        onSave: () {
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+              child: EpicShareableReceipt(
+                ok: ok,
+                title: 'Electricity Token',
+                amount: '₦${amount.toStringAsFixed(2)}',
+                details: details,
+                primaryColor: _getDiscoColor(_disco),
+              ),
+            ),
+          );
+        },
       ),
     ).then((_) {
       if (isSuccess && mounted) {

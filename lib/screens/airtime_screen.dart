@@ -13,6 +13,8 @@ import '../state/session.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
+import '../widgets/epic_purchase_summary.dart';
+import '../widgets/epic_receipt_modal.dart';
 import '../widgets/sticky_checkout_bar.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/elite_phone_input.dart';
@@ -822,6 +824,16 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
     }
   }
 
+  Color _getNetworkColor(String network) {
+    switch (network.toLowerCase()) {
+      case 'mtn': return const Color(0xFFFFCC00);
+      case 'airtel': return const Color(0xFFFF0000);
+      case 'glo': return const Color(0xFF009933);
+      case '9mobile': return const Color(0xFF006600);
+      default: return Theme.of(context).primaryColor;
+    }
+  }
+
   void _showSummaryModal() {
     final amountText = _amountCtrl.text.replaceAll(',', '').trim();
     final amount = double.tryParse(amountText) ?? 0;
@@ -837,18 +849,28 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _PurchaseSummaryModal(
-        phone: widget.phone,
-        network: widget.network,
-        title: 'Airtime Recharge',
+      builder: (context) => EpicPurchaseSummary(
+        title: 'Confirm Airtime',
+        subtitle: 'Please review your airtime purchase details below',
         amount: '₦${amount.toStringAsFixed(2)}',
+        primaryColor: _getNetworkColor(widget.network),
+        headerIcon: Icons.phone_in_talk_rounded,
+        items: [
+          SummaryItem(label: 'Network', value: widget.network.toUpperCase(), icon: Icons.cell_tower_rounded),
+          SummaryItem(label: 'Phone Number', value: phone, icon: Icons.phone_android_rounded),
+          SummaryItem(label: 'Recharge Type', value: 'Airtime', icon: Icons.attach_money_rounded),
+        ],
         onProceedPin: () {
           Navigator.pop(context);
-          _submit(authMethod: PurchaseAuthService.methodPin);
+          Future.delayed(const Duration(milliseconds: 350), () {
+            _submit(authMethod: PurchaseAuthService.methodPin);
+          });
         },
         onProceedBiometric: () {
           Navigator.pop(context);
-          _submit(authMethod: PurchaseAuthService.methodBiometric);
+          Future.delayed(const Duration(milliseconds: 350), () {
+            _submit(authMethod: PurchaseAuthService.methodBiometric);
+          });
         },
       ),
     );
@@ -867,20 +889,43 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
     final amount = _amountCtrl.text.trim();
 
     final isSuccess = status.toLowerCase() != 'failed';
+    
+    final Map<String, String> details = {
+      'Date & Time': DateTime.now().toString().substring(0, 16),
+      'Sender': userName,
+      'Provider': 'MELE DATA',
+      'Transaction Type': 'Airtime Recharge',
+      'Network': widget.network.toUpperCase(),
+      'Phone Number': widget.phone,
+      'Amount': '₦$amount',
+    };
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _SuccessModal(
-        ok: ok,
-        time: _formatDate(DateTime.now()),
-        sender: userName,
-        provider: 'MELE DATA',
-        type: 'Airtime',
-        network: widget.network.toUpperCase(),
-        phone: widget.phone,
+      builder: (context) => EpicReceiptModal(
+        isSuccess: ok,
+        title: 'Airtime Recharge',
         amount: '₦$amount',
-        onSave: () => _shareReceipt(ok, userName, widget.phone, amount),
+        primaryColor: _getNetworkColor(widget.network),
+        details: details,
+        onSave: () {
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+              child: EpicShareableReceipt(
+                ok: ok,
+                title: 'Airtime Recharge',
+                amount: '₦$amount',
+                details: details,
+                primaryColor: _getNetworkColor(widget.network),
+              ),
+            ),
+          );
+        },
       ),
     ).then((_) {
       if (isSuccess && mounted) {

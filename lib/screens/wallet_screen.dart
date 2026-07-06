@@ -531,7 +531,7 @@ class _WalletScreenState extends State<WalletScreen> {
             compact ? 16 : 20,
             canPop ? 6 : 14,
             compact ? 16 : 20,
-            28,
+            canPop ? 80 : 110,
           ),
           children: [
             if (!canPop) ...[
@@ -925,7 +925,12 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => widget.onNavigateTab?.call(2),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                    widget.onNavigateTab?.call(2);
+                  },
                   child: const Text('View all'),
                 ),
               ],

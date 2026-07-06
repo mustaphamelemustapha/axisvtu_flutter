@@ -11,6 +11,8 @@ import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
 import '../widgets/service_shell.dart';
+import '../widgets/epic_purchase_summary.dart';
+import '../widgets/epic_receipt_modal.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/primary_button.dart';
@@ -339,25 +341,50 @@ class _ExamScreenState extends State<ExamScreen> {
     }
   }
 
+  Color _getExamColor(String exam) {
+    switch (exam.toLowerCase()) {
+      case 'waec': return const Color(0xFF003399);
+      case 'neco': return const Color(0xFF009933);
+      case 'nabteb': return const Color(0xFFFF9900);
+      default: return Theme.of(context).primaryColor;
+    }
+  }
+
   void _showAuthChoiceSheet() {
     final phone = _phoneCtrl.text.trim();
+    
+    // Calculate total amount based on the exam if possible, or show 'N/A'
+    // Since exam_screen doesn't explicitly have the price logic here (it fetches dynamically),
+    // we'll just show the quantity or fetch price if available.
+    // Wait, the original code had `amount: 'Quantity: $_quantity'`.
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _DualAuthSheet(
-        title: 'Exam PIN Summary',
-        subtitle: '${_exam.toUpperCase()} • Qty $_quantity',
-        amount: 'Quantity: $_quantity',
-        onPin: () {
+      builder: (context) => EpicPurchaseSummary(
+        title: 'Confirm Exam PIN',
+        subtitle: 'Please review your exam PIN request below',
+        amount: '$_quantity PIN(s)',
+        primaryColor: _getExamColor(_exam),
+        headerIcon: Icons.school_rounded,
+        items: [
+          SummaryItem(label: 'Exam Board', value: _exam.toUpperCase(), icon: Icons.assignment_rounded),
+          SummaryItem(label: 'Quantity', value: '$_quantity', icon: Icons.numbers_rounded),
+          if (phone.isNotEmpty) SummaryItem(label: 'Phone Number', value: phone, icon: Icons.phone_android_rounded),
+        ],
+        onProceedPin: () {
           Navigator.pop(context);
-          _submit(authMethod: PurchaseAuthService.methodPin);
+          Future.delayed(const Duration(milliseconds: 350), () {
+            _submit(authMethod: PurchaseAuthService.methodPin);
+          });
         },
-        onBiometric: () {
+        onProceedBiometric: () {
           Navigator.pop(context);
-          _submit(authMethod: PurchaseAuthService.methodBiometric);
+          Future.delayed(const Duration(milliseconds: 350), () {
+            _submit(authMethod: PurchaseAuthService.methodBiometric);
+          });
         },
-        phone: phone,
       ),
     );
   }
@@ -371,25 +398,57 @@ class _ExamScreenState extends State<ExamScreen> {
     if (status != 'failed') {
       context.read<SessionController>().refreshBalance();
     }
+    final ok = status == 'success';
     final isSuccess = status.toLowerCase() != 'failed';
+    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
+
+    final Map<String, String> details = {
+      'Date & Time': DateTime.now().toString().substring(0, 16),
+      'Sender': userName,
+      'Provider': 'MELE DATA',
+      'Transaction Type': 'Exam PIN Purchase',
+      'Exam Board': _exam.toUpperCase(),
+      'Quantity': '$_quantity',
+      'Reference': reference,
+    };
+    
+    if (_phoneCtrl.text.trim().isNotEmpty) {
+      details['Phone Number'] = _phoneCtrl.text.trim();
+    }
+
+    // Extract PINs if any from fields to put it in details
+    for (final field in fields) {
+      if (field.label.toLowerCase() == 'pins' && field.value.isNotEmpty && field.value != '—') {
+        details['PIN(s)'] = field.value;
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => PurchaseResultSheet(
-        status: status,
-        title: _statusTitle(
-          status: status,
-          success: 'Exam Order Successful',
-          pending: 'Exam Order Pending',
-          failed: 'Exam Order Failed',
-        ),
-        subtitle: subtitle,
-        fields: [
-          ReceiptField(label: 'Time', value: _formatDate(DateTime.now())),
-          ...fields,
-          ReceiptField(label: 'Reference', value: reference),
-        ],
+      builder: (context) => EpicReceiptModal(
+        isSuccess: ok,
+        title: 'Exam PIN Purchase',
+        amount: '$_quantity PIN(s)',
+        primaryColor: _getExamColor(_exam),
+        details: details,
+        onSave: () {
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+              child: EpicShareableReceipt(
+                ok: ok,
+                title: 'Exam PIN Purchase',
+                amount: '$_quantity PIN(s)',
+                details: details,
+                primaryColor: _getExamColor(_exam),
+              ),
+            ),
+          );
+        },
       ),
     ).then((_) {
       if (isSuccess && mounted) {

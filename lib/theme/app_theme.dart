@@ -9,8 +9,8 @@ class AppTheme {
   static const _seed = Color(0xFF2457F5);
   static const _secondary = Color(0xFF14B8A6);
   static const _lightBg = Color(0xFFF8FAFC);
-  static const _darkBg = Color(0xFF1E293B); // Slate 800
-  static const _darkSurface = Color(0xFF28364D);
+  static const _darkBg = Color(0xFF0F172A); // Slate 900
+  static const _darkSurface = Color(0xFF1E293B); // Slate 800
   static const _lightSurfaceElevated = Colors.white;
   static const _darkSurfaceSoft = Color(0xFF334155); // Slate 700
 
@@ -31,8 +31,8 @@ class AppTheme {
           surface: isDark ? _darkBg : _lightBg,
           onSurface: isDark ? const Color(0xFFE7EEF9) : const Color(0xFF0B1220),
           onSurfaceVariant: isDark ? const Color(0xFFB8C4D6) : const Color(0xFF475569),
-          outline: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-          outlineVariant: isDark ? const Color(0xFF152033) : const Color(0xFFF1F5F9),
+          outline: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          outlineVariant: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
           onPrimary: Colors.white,
           onSecondary: Colors.white,
           onError: Colors.white,
@@ -94,42 +94,42 @@ class AppTheme {
         titleMedium: baseText.titleMedium?.copyWith(
           fontSize: 16,
           height: 1.35,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
         titleSmall: baseText.titleSmall?.copyWith(
           fontSize: 14,
           height: 1.35,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
         bodyLarge: baseText.bodyLarge?.copyWith(
           fontSize: 16,
           height: 1.5,
-          fontWeight: FontWeight.w400,
+          fontWeight: FontWeight.w500,
         ),
         bodyMedium: baseText.bodyMedium?.copyWith(
           fontSize: 14,
           height: 1.45,
-          fontWeight: FontWeight.w400,
+          fontWeight: FontWeight.w500,
         ),
         bodySmall: baseText.bodySmall?.copyWith(
           fontSize: 12,
           height: 1.35,
-          fontWeight: FontWeight.w400,
+          fontWeight: FontWeight.w500,
         ),
         labelLarge: baseText.labelLarge?.copyWith(
           fontSize: 14,
           height: 1.3,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
         labelMedium: baseText.labelMedium?.copyWith(
           fontSize: 12,
           height: 1.25,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
         labelSmall: baseText.labelSmall?.copyWith(
           fontSize: 11,
           height: 1.25,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

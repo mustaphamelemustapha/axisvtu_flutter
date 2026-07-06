@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import '../theme/axis_tokens.dart';
 import '../services/biometric_service.dart';
 
-
 class PinEntrySheet {
   static Future<String?> show(
     BuildContext context, {
@@ -20,41 +19,34 @@ class PinEntrySheet {
     Future<String?> Function(String pin)? onSubmit,
   }) {
     final normalizedLength = pinLength == 6 ? 6 : 4;
-    return showGeneralDialog<String>(
-      context: context,
-      barrierLabel: 'PIN',
-      barrierColor: Colors.black.withValues(alpha: 0.55),
-      barrierDismissible: false,
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (context, animation, secondaryAnimation) => _PinPadDialog(
-        title: title,
-        subtitle: subtitle,
-        confirmLabel: confirmLabel,
-        pinLength: normalizedLength,
-        autoSubmit: autoSubmit,
-        onForgotPin: onForgotPin,
-        onSubmit: onSubmit,
-      ),
-      transitionBuilder: (context, animation, _, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
-        return FadeTransition(
-          opacity: curved,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.94, end: 1).animate(curved),
+    return Navigator.of(context).push<String>(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => _PinPadScreen(
+          title: title,
+          subtitle: subtitle,
+          confirmLabel: confirmLabel,
+          pinLength: normalizedLength,
+          autoSubmit: autoSubmit,
+          onForgotPin: onForgotPin,
+          onSubmit: onSubmit,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeOutCubic;
+          final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
             child: child,
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
 
-class _PinPadDialog extends StatefulWidget {
-  const _PinPadDialog({
+class _PinPadScreen extends StatefulWidget {
+  const _PinPadScreen({
     required this.title,
     required this.subtitle,
     required this.confirmLabel,
@@ -73,11 +65,10 @@ class _PinPadDialog extends StatefulWidget {
   final Future<String?> Function(String pin)? onSubmit;
 
   @override
-  State<_PinPadDialog> createState() => _PinPadDialogState();
+  State<_PinPadScreen> createState() => _PinPadScreenState();
 }
 
-class _PinPadDialogState extends State<_PinPadDialog>
-    with SingleTickerProviderStateMixin {
+class _PinPadScreenState extends State<_PinPadScreen> with SingleTickerProviderStateMixin {
   String _pin = '';
   String? _error;
   bool _submitting = false;
@@ -107,7 +98,6 @@ class _PinPadDialogState extends State<_PinPadDialog>
         setState(() {
           _showBiometricButton = true;
         });
-        // Auto-trigger biometric prompt after sheet mounts/dialog animation settles
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _authenticateWithBiometrics();
         });
@@ -140,7 +130,7 @@ class _PinPadDialogState extends State<_PinPadDialog>
 
   void _append(String digit) {
     if (_submitting || _pin.length >= widget.pinLength) return;
-    HapticFeedback.selectionClick();
+    HapticFeedback.lightImpact();
     setState(() {
       _pin = '$_pin$digit';
       _error = null;
@@ -153,7 +143,7 @@ class _PinPadDialogState extends State<_PinPadDialog>
 
   void _backspace() {
     if (_submitting || _pin.isEmpty) return;
-    HapticFeedback.selectionClick();
+    HapticFeedback.lightImpact();
     setState(() {
       _pin = _pin.substring(0, _pin.length - 1);
       _error = null;
@@ -163,7 +153,7 @@ class _PinPadDialogState extends State<_PinPadDialog>
   void _setError(String message) {
     setState(() => _error = message);
     _shakeController.forward(from: 0);
-    HapticFeedback.mediumImpact();
+    HapticFeedback.heavyImpact();
   }
 
   Future<void> _confirm() async {
@@ -190,33 +180,57 @@ class _PinPadDialogState extends State<_PinPadDialog>
         _pin = '';
       });
       _shakeController.forward(from: 0);
-      HapticFeedback.mediumImpact();
+      HapticFeedback.heavyImpact();
       return;
     }
     setState(() => _submitting = true);
     Navigator.of(context).pop(pin);
   }
 
-  Widget _pinDot(int index) {
+  Widget _buildPinBox(int index, bool isDark) {
     final filled = index < _pin.length;
+    
     return AnimatedContainer(
-      duration: AxisDurations.fast,
-      width: widget.pinLength == 6 ? 14 : 16,
-      height: widget.pinLength == 6 ? 14 : 16,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      width: widget.pinLength == 6 ? 42 : 52,
+      height: widget.pinLength == 6 ? 42 : 52,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: filled
-            ? const Color(0xFF4C8DFF)
-            : (Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1E293B)
-                : const Color(0xFFF1F5F9)),
+        color: isDark 
+            ? (filled ? const Color(0xFF1E293B) : const Color(0xFF0F172A))
+            : (filled ? Colors.white : const Color(0xFFF1F5F9)),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: filled
-              ? const Color(0xFF4C8DFF)
-              : (Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF334155)
-                  : const Color(0xFFE2E8F0)),
-          width: 1.4,
+          color: filled 
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.5) 
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+          width: filled ? 1.5 : 1,
+        ),
+        boxShadow: filled ? [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+            blurRadius: 12,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          )
+        ] : [],
+      ),
+      child: Center(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: filled ? 14 : 0,
+          height: filled ? 14 : 0,
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white : Theme.of(context).colorScheme.primary,
+            shape: BoxShape.circle,
+            boxShadow: filled ? [
+              BoxShadow(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                blurRadius: 6,
+                spreadRadius: 1,
+              )
+            ] : [],
+          ),
         ),
       ),
     );
@@ -227,20 +241,67 @@ class _PinPadDialogState extends State<_PinPadDialog>
     required VoidCallback onTap,
     bool enabled = true,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
-      width: 68,
-      height: 68,
+      width: 76,
+      height: 76,
       child: Material(
-        color: enabled
-            ? Colors.white.withValues(alpha: 0.14)
-            : Colors.white.withValues(alpha: 0.08),
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
         shape: const CircleBorder(),
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: enabled ? onTap : null,
+          splashColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+          highlightColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
           child: Center(child: child),
         ),
       ),
+    );
+  }
+
+  Widget _buildKeypad(bool isDark) {
+    final textStyle = TextStyle(
+      fontSize: 28,
+      fontWeight: FontWeight.w700,
+      color: isDark ? Colors.white : Colors.black87,
+    );
+
+    return Wrap(
+      spacing: 28,
+      runSpacing: 24,
+      alignment: WrapAlignment.center,
+      children: [
+        _keyButton(child: Text('1', style: textStyle), onTap: () => _append('1')),
+        _keyButton(child: Text('2', style: textStyle), onTap: () => _append('2')),
+        _keyButton(child: Text('3', style: textStyle), onTap: () => _append('3')),
+        _keyButton(child: Text('4', style: textStyle), onTap: () => _append('4')),
+        _keyButton(child: Text('5', style: textStyle), onTap: () => _append('5')),
+        _keyButton(child: Text('6', style: textStyle), onTap: () => _append('6')),
+        _keyButton(child: Text('7', style: textStyle), onTap: () => _append('7')),
+        _keyButton(child: Text('8', style: textStyle), onTap: () => _append('8')),
+        _keyButton(child: Text('9', style: textStyle), onTap: () => _append('9')),
+        _showBiometricButton
+            ? _keyButton(
+                child: Icon(
+                  Icons.fingerprint_rounded,
+                  size: 32,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+                onTap: _authenticateWithBiometrics,
+                enabled: !_submitting,
+              )
+            : SizedBox(width: 76, height: 76),
+        _keyButton(child: Text('0', style: textStyle), onTap: () => _append('0')),
+        _keyButton(
+          child: Icon(
+            Icons.backspace_rounded,
+            size: 26,
+            color: isDark ? Colors.white70 : const Color(0xFF64748B),
+          ),
+          onTap: _backspace,
+          enabled: _pin.isNotEmpty && !_submitting,
+        ),
+      ],
     );
   }
 
@@ -248,214 +309,190 @@ class _PinPadDialogState extends State<_PinPadDialog>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final surface = theme.colorScheme.surface;
-    return SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: isDark
-                  ? const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF0E1A33), Color(0xFF0A1022)],
-                    )
-                  : null,
-              color: isDark ? null : surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.34 : 0.08),
-                  blurRadius: 26,
-                  offset: const Offset(0, 14),
-                ),
-              ],
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.10)
-                    : theme.colorScheme.outline.withValues(alpha: 0.16),
-                width: 1,
-              ),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: isDark
-                                ? Colors.white
-                                : theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.86)
-                              : theme.colorScheme.onSurface.withValues(alpha: 0.72),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    widget.subtitle,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : theme.colorScheme.onSurface.withValues(alpha: 0.66),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  AnimatedBuilder(
-                    animation: _shakeController,
-                    builder: (context, child) {
-                      final t = _shakeController.value;
-                      final offset = math.sin(t * math.pi * 8) * 6;
-                      return Transform.translate(
-                        offset: Offset(_error != null ? offset : 0, 0),
-                        child: child,
-                      );
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        widget.pinLength,
-                        (i) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: _pinDot(i),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  AnimatedSwitcher(
-                    duration: AxisDurations.fast,
-                    child: _error == null
-                        ? const SizedBox(height: 18)
-                        : Padding(
-                            key: ValueKey(_error),
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFFFF6B6B),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                  ),
-                  Wrap(
-                    spacing: 14,
-                    runSpacing: 14,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      _keyButton(child: const Text('1'), onTap: () => _append('1')),
-                      _keyButton(child: const Text('2'), onTap: () => _append('2')),
-                      _keyButton(child: const Text('3'), onTap: () => _append('3')),
-                      _keyButton(child: const Text('4'), onTap: () => _append('4')),
-                      _keyButton(child: const Text('5'), onTap: () => _append('5')),
-                      _keyButton(child: const Text('6'), onTap: () => _append('6')),
-                      _keyButton(child: const Text('7'), onTap: () => _append('7')),
-                      _keyButton(child: const Text('8'), onTap: () => _append('8')),
-                      _keyButton(child: const Text('9'), onTap: () => _append('9')),
-                      _showBiometricButton
-                          ? _keyButton(
-                              child: Icon(
-                                Icons.fingerprint_rounded,
-                                size: 24,
-                                color: theme.colorScheme.primary,
-                              ),
-                              onTap: _authenticateWithBiometrics,
-                              enabled: !_submitting,
-                            )
-                          : _keyButton(
-                              child: const SizedBox.shrink(),
-                              onTap: () {},
-                              enabled: false,
-                            ),
-                      _keyButton(child: const Text('0'), onTap: () => _append('0')),
-                      _keyButton(
-                        child: Icon(
-                          Icons.backspace_outlined,
-                          size: 20,
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.9)
-                              : theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                        ),
-                        onTap: _backspace,
-                        enabled: _pin.isNotEmpty && !_submitting,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  TextButton(
-                    onPressed: _pin.length == widget.pinLength && !_submitting ? _confirm : null,
-                    child: AnimatedSwitcher(
-                      duration: AxisDurations.fast,
-                      child: _submitting
-                          ? SizedBox(
-                              key: const ValueKey('submitting'),
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: isDark
-                                    ? Colors.white
-                                    : theme.colorScheme.primary,
-                              ),
-                            )
-                          : Text(
-                              widget.confirmLabel,
-                              key: const ValueKey('confirm'),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: isDark
-                                    ? Colors.white
-                                    : theme.colorScheme.primary,
-                              ),
-                            ),
-                    ),
-                  ),
-                  if (widget.onForgotPin != null) ...[
-                    const SizedBox(height: 4),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        widget.onForgotPin!();
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        minimumSize: const Size(0, 32),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Forgot PIN?',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.6)
-                              : theme.colorScheme.primary.withValues(alpha: 0.8),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+    final backgroundColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black87, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          'Authorize Payment',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : Colors.black87,
           ),
+        ),
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          widget.subtitle,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      // PIN Boxes Container
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.4) : Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE2E8F0),
+                              width: 1,
+                            ),
+                            boxShadow: isDark ? [] : [
+                              BoxShadow(
+                                color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                                blurRadius: 20,
+                                spreadRadius: -5,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: AnimatedBuilder(
+                            animation: _shakeController,
+                            builder: (context, child) {
+                              final t = _shakeController.value;
+                              final offset = math.sin(t * math.pi * 8) * 6;
+                              return Transform.translate(
+                                offset: Offset(_error != null ? offset : 0, 0),
+                                child: child,
+                              );
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                widget.pinLength,
+                                (i) => Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  child: _buildPinBox(i, isDark),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      // Error Text
+                      AnimatedSwitcher(
+                        duration: AxisDurations.fast,
+                        child: _error == null
+                            ? const SizedBox(height: 24)
+                            : Padding(
+                                key: ValueKey(_error),
+                                padding: const EdgeInsets.only(top: 16, bottom: 8),
+                                child: Text(
+                                  _error!,
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: const Color(0xFFFF6B6B),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                      ),
+                      
+                      const SizedBox(height: 48),
+                      
+                      // Keypad
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _buildKeypad(isDark),
+                      ),
+                      
+                      const SizedBox(height: 12),
+                      
+                      // Submit/Loading state if not auto submit
+                      if (!widget.autoSubmit || _submitting)
+                        SizedBox(
+                          height: 48,
+                          child: _submitting
+                            ? Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              )
+                            : (!widget.autoSubmit
+                              ? TextButton(
+                                  onPressed: _pin.length == widget.pinLength ? _confirm : null,
+                                  child: Text(
+                                    widget.confirmLabel,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: _pin.length == widget.pinLength 
+                                          ? theme.colorScheme.primary 
+                                          : theme.colorScheme.primary.withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink()
+                            ),
+                        ),
+                        
+                      // Forgot PIN
+                      if (widget.onForgotPin != null && !_submitting) ...[
+                        const SizedBox(height: 4),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            widget.onForgotPin!();
+                          },
+                          child: Text(
+                            'Forgot PIN?',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      ],
+                      
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

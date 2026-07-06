@@ -83,6 +83,7 @@ class _DataScreenState extends State<DataScreen> {
   final GlobalKey _planStepKey = GlobalKey();
 
   String _network = 'mtn';
+  String _selectedCategory = 'All';
   String? _selectedPlanCode;
   List<dynamic> _plans = [];
 
@@ -355,6 +356,15 @@ class _DataScreenState extends State<DataScreen> {
     }).toList();
   }
 
+  String _extractCategory(dynamic plan) {
+    final name = (plan['name'] ?? plan['plan_name'] ?? plan['title'] ?? '').toString().toUpperCase();
+    if (name.contains('SME')) return 'SME';
+    if (name.contains('CORPORATE') || name.contains('CG')) return 'Corporate';
+    if (name.contains('GIFTING')) return 'Gifting';
+    if (name.contains('AWOOF')) return 'Awoof';
+    return 'Other';
+  }
+
   List<dynamic> get _sortedNetworkPlans {
     final plans = List<dynamic>.from(_networkPlans);
     plans.sort((a, b) {
@@ -373,7 +383,9 @@ class _DataScreenState extends State<DataScreen> {
         _planCapacity(a),
       ).compareTo(_capacityToGb(_planCapacity(b)));
     });
-    return plans;
+    
+    if (_selectedCategory == 'All') return plans;
+    return plans.where((p) => _extractCategory(p) == _selectedCategory).toList();
   }
 
   dynamic get _selectedPlan {
@@ -871,6 +883,16 @@ class _DataScreenState extends State<DataScreen> {
     );
   }
 
+  Color _getNetworkColor(String network) {
+    switch (network.toLowerCase()) {
+      case 'mtn': return const Color(0xFFFFCC00);
+      case 'airtel': return const Color(0xFFFF0000);
+      case 'glo': return const Color(0xFF009900);
+      case '9mobile': return const Color(0xFF006600);
+      default: return Theme.of(context).colorScheme.primary;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -880,271 +902,370 @@ class _DataScreenState extends State<DataScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ServiceShell(
-      title: 'Buy Data',
-      subtitle: 'Experience the fastest data top-up in the industry.',
+      title: 'Data',
+      subtitle: 'Lightning fast top-up.',
       icon: Icons.wifi_rounded,
       scrollController: _scrollController,
+      footer: (hasPhone && selected != null)
+          ? Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: _EpicCheckoutButton(
+                network: _network,
+                amount: '₦${_planPrice(selected)}',
+                loading: _submitting,
+                onBuy: _showSummaryModal,
+                netColor: _getNetworkColor(_network),
+              ),
+            ).animate().slideY(begin: 1, duration: const Duration(milliseconds: 400), curve: Curves.easeOutCubic)
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Step 1: Select Network (Elite Style)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '1. CHOOSE NETWORK',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
-                  ),
+          const SizedBox(height: 16),
+          
+          // 1. Epic Massive Input
+          Center(
+            child: TextFormField(
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              style: TextStyle(
+                fontSize: 42,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                hintText: '080...',
+                hintStyle: TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
                 ),
-                const SizedBox(height: 16),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _NetworkCard(
-                        key: const ValueKey('mtn'),
-                        name: 'mtn',
-                        isSelected: _network == 'mtn',
-                        onTap: () => _selectNetwork('mtn'),
-                        isDark: isDark,
-                      ),
-                      _NetworkCard(
-                        key: const ValueKey('airtel'),
-                        name: 'airtel',
-                        isSelected: _network == 'airtel',
-                        onTap: () => _selectNetwork('airtel'),
-                        isDark: isDark,
-                      ),
-                      _NetworkCard(
-                        key: const ValueKey('glo'),
-                        name: 'glo',
-                        isSelected: _network == 'glo',
-                        onTap: () => _selectNetwork('glo'),
-                        isDark: isDark,
-                      ),
-                      _NetworkCard(
-                        key: const ValueKey('9mobile'),
-                        name: '9mobile',
-                        isSelected: _network == '9mobile',
-                        onTap: () => _selectNetwork('9mobile'),
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                suffixIcon: _network.isNotEmpty 
+                  ? Container(
+                      padding: const EdgeInsets.all(8),
+                      child: _networkLogoByName(_network),
+                    ).animate().scale(duration: const Duration(milliseconds: 300)).fade()
+                  : IconButton(
+                      icon: Icon(Icons.contact_phone_rounded, size: 32, color: Theme.of(context).colorScheme.primary),
+                      onPressed: _pickContact,
+                    ),
+              ),
+              onChanged: (v) => _onPhoneChanged(),
             ),
           ),
+          
+          const SizedBox(height: 24),
 
-          const SizedBox(height: 32),
-
-          // Step 2: Recipient Details
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '2. RECIPIENT DETAILS',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElitePhoneInput(
-                  controller: _phoneCtrl,
-                  network: _network,
-                  onContactTap: _pickContact,
-                  onChanged: (v) => _onPhoneChanged(),
-                ),
-                if (_selectedPlanCode == null) ...[
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Opacity(
-                      opacity: hasPhone ? 1.0 : 0.5,
-                      child: IgnorePointer(
-                        ignoring: !hasPhone,
-                        child: hasPhone ? _PremiumSmallButton(
-                          label: 'Next: Select Plan',
-                          icon: Icons.arrow_forward_rounded,
-                          onTap: _openPlansSheet,
-                        ) : ImageFiltered(
-                          imageFilter: ui.ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
-                          child: _PremiumSmallButton(
-                            label: 'Next: Select Plan',
-                            icon: Icons.arrow_forward_rounded,
-                            onTap: () {},
+          // 2. Animated Recent Avatars
+          if (_recentNumbers.isNotEmpty) ...[
+            SizedBox(
+              height: 60,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _recentNumbers.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 16),
+                itemBuilder: (context, index) {
+                  final number = _recentNumbers[index];
+                  return GestureDetector(
+                    onTap: () => _applySuggestedNumber(number),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1)),
+                          ),
+                          child: Center(
+                            child: Text(
+                              number.length > 4 ? number.substring(number.length - 4) : number,
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () => showModalBottomSheet<void>(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    builder: (sheetContext) => _RecentRecipientsSheet(
-                      recentNumbers: _recentNumbers,
-                      currentNetwork: _network,
-                      onApply: _applySuggestedNumber,
-                      onClose: () => Navigator.pop(sheetContext),
-                    ),
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.history_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Select from recent numbers',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                        ),
-                        const Spacer(),
-                        Icon(Icons.chevron_right_rounded, size: 20, color: isDark ? const Color(0xFF475569) : const Color(0xFF94A3B8)),
                       ],
                     ),
-                  ),
-                ),
-              ],
+                  ).animate().fade(delay: Duration(milliseconds: 50 * index)).scale();
+                },
+              ),
             ),
-          ),
+            const SizedBox(height: 32),
+          ],
 
-          const SizedBox(height: 32),
+          // 3. Network fallback (if empty)
+          if (_network.isEmpty && !hasPhone) ...[
+            Center(
+              child: Text(
+                'Or tap to select network',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _NetworkCard(key: const ValueKey('mtn'), name: 'mtn', isSelected: _network == 'mtn', onTap: () => _selectNetwork('mtn'), isDark: isDark, netColor: const Color(0xFFEAB308)),
+                  _NetworkCard(key: const ValueKey('airtel'), name: 'airtel', isSelected: _network == 'airtel', onTap: () => _selectNetwork('airtel'), isDark: isDark, netColor: const Color(0xFFEF4444)),
+                  _NetworkCard(key: const ValueKey('glo'), name: 'glo', isSelected: _network == 'glo', onTap: () => _selectNetwork('glo'), isDark: isDark, netColor: const Color(0xFF22C55E)),
+                  _NetworkCard(key: const ValueKey('9mobile'), name: '9mobile', isSelected: _network == '9mobile', onTap: () => _selectNetwork('9mobile'), isDark: isDark, netColor: const Color(0xFF166534)),
+                ],
+              ),
+            ),
+          ],
 
-          // Step 3: Select Plan (Elite Reveal) - Only show when a plan is selected
-          if (hasPhone && selected != null) Padding(
-            key: _planStepKey,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+          // 4. Glowing Glassmorphic Plans
+          if (_network.isNotEmpty) AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '3. SELECTED DATA PLAN',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: _openPlansSheet,
-                      child: const Text('Change Plan', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0),
-                      width: 2,
+                // Category Tabs
+                if (_networkPlans.isNotEmpty) ...[
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: ['All', 'SME', 'Corporate', 'Gifting', 'Awoof'].where((cat) {
+                        if (cat == 'All') return true;
+                        return _networkPlans.any((p) => _extractCategory(p) == cat);
+                      }).map((cat) {
+                        final isSelected = _selectedCategory == cat;
+                        final netColor = _getNetworkColor(_network);
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => _selectedCategory = cat);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isSelected 
+                                  ? netColor.withValues(alpha: 0.15)
+                                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected 
+                                    ? netColor
+                                    : Colors.transparent,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Text(
+                              cat,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                color: isSelected 
+                                    ? netColor
+                                    : (isDark ? Colors.white70 : Colors.black54),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
+                  const SizedBox(height: 16),
+                ],
+
+                if (_loadingPlans && _sortedNetworkPlans.isEmpty)
+                  const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
+                else if (_sortedNetworkPlans.isEmpty)
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () => _loadPlans(forceRefresh: true),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry Loading Plans'),
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _sortedNetworkPlans.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      final plan = _sortedNetworkPlans[index];
+                      final code = plan['plan_code']?.toString();
+                      final isSelected = _selectedPlanCode == code;
+                      final netColor = _getNetworkColor(_network);
+
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
+                          color: isSelected 
+                              ? netColor.withValues(alpha: 0.08) 
+                              : (isDark ? const Color(0xFF161E2E) : const Color(0xFFF8FAFC)),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: isSelected 
+                                ? netColor 
+                                : (isDark ? const Color(0xFF2A3A52) : const Color(0xFFE2E8F0)),
+                            width: isSelected ? 2 : 1,
+                          ),
+                          boxShadow: isSelected ? [
                             BoxShadow(
-                              color: isDark ? const Color(0xFF08101F) : const Color(0xFFD1D5DB),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                              color: netColor.withValues(alpha: 0.15),
+                              blurRadius: 20,
+                              spreadRadius: -2,
+                            )
+                          ] : [],
                         ),
-                        child: const Icon(Icons.wifi_rounded, color: Colors.white, size: 28),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _planCapacity(selected),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            Text(
-                              _planValidity(selected),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            '₦${_planPrice(selected)}',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: Theme.of(context).colorScheme.primary,
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            setState(() => _selectedPlanCode = code);
+                          },
+                          borderRadius: BorderRadius.circular(24),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                // Capacity Badge
+                                Container(
+                                  width: 56,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.05),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      _planCapacity(plan).replaceAll('GB', '').replaceAll('MB', ''),
+                                      style: TextStyle(
+                                        fontSize: 20, 
+                                        fontWeight: FontWeight.w900, 
+                                        color: isSelected ? netColor : Theme.of(context).colorScheme.onSurface
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _planCapacity(plan),
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _planValidity(plan),
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '₦${_planPrice(plan)}',
+                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ).animate().fade(delay: Duration(milliseconds: 30 * index)).slideY(begin: 0.2);
+                    },
                   ),
-                ),
-                
-                if (selected != null) ...[
-                  const SizedBox(height: 40),
-                  _PremiumCheckoutCard(
-                    network: _network,
-                    phone: _normalizePhone(_phoneCtrl.text),
-                    plan: _planCapacity(selected),
-                    amount: '₦${_planPrice(selected)}',
-                    loading: _submitting,
-                    onBuy: _showSummaryModal,
-                  ),
-                ],
               ],
             ),
           ),
-
-          const SizedBox(height: 40),
+          
+          if (!(hasPhone && selected != null)) const SizedBox(height: 40),
         ],
+      ),
+    );
+  }
+}
+
+
+class _EpicCheckoutButton extends StatelessWidget {
+  final String network;
+  final String amount;
+  final bool loading;
+  final VoidCallback onBuy;
+  final Color netColor;
+
+  const _EpicCheckoutButton({
+    required this.network,
+    required this.amount,
+    required this.loading,
+    required this.onBuy,
+    required this.netColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 40,
+            offset: const Offset(0, -10),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          height: 64,
+          child: FilledButton(
+            onPressed: loading ? null : onBuy,
+            style: FilledButton.styleFrom(
+              backgroundColor: netColor,
+              foregroundColor: netColor.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              elevation: 0,
+            ),
+            child: loading
+              ? const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Pay $amount',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.arrow_forward_rounded, size: 24),
+                  ],
+                ),
+          ),
+        ),
       ),
     );
   }
@@ -2507,6 +2628,7 @@ class _NetworkCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final bool isDark;
+  final Color netColor;
 
   const _NetworkCard({
     super.key,
@@ -2514,6 +2636,7 @@ class _NetworkCard extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     required this.isDark,
+    required this.netColor,
   });
 
   @override
@@ -2527,14 +2650,14 @@ class _NetworkCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF2457F5)
+              ? netColor.withValues(alpha: 0.15)
               : (isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF)),
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF2457F5)
+                ? netColor
                 : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-            width: 1.5,
+            width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
@@ -2610,12 +2733,14 @@ class _ElitePlanTile extends StatelessWidget {
   final dynamic plan;
   final bool selected;
   final VoidCallback onTap;
+  final Color? netColor;
 
   const _ElitePlanTile({
     super.key,
     required this.plan,
     required this.selected,
     required this.onTap,
+    this.netColor,
   });
 
   @override

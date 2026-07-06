@@ -13,6 +13,8 @@ import '../state/session.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/service_shell.dart';
+import '../widgets/epic_purchase_summary.dart';
+import '../widgets/epic_receipt_modal.dart';
 import '../widgets/sticky_checkout_bar.dart';
 import '../widgets/insufficient_funds_sheet.dart';
 import '../utils/balance_util.dart';
@@ -500,6 +502,16 @@ class _CableScreenState extends State<CableScreen> {
 
   // ── auth / result helpers ─────────────────────────────────────────────────
 
+  Color _getProviderColor(String provider) {
+    switch (provider.toLowerCase()) {
+      case 'dstv': return const Color(0xFF0073C5);
+      case 'gotv': return const Color(0xFF00A859);
+      case 'startimes': return const Color(0xFFFFA500);
+      case 'showmax': return const Color(0xFFE50914);
+      default: return Theme.of(context).primaryColor;
+    }
+  }
+
   void _showAuthChoiceSheet() {
     final amount    = _selectedAmount;
     final smartcard = _smartcardCtrl.text.trim();
@@ -512,12 +524,30 @@ class _CableScreenState extends State<CableScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _DualAuthSheet(
-        title:    'Cable Summary',
-        subtitle: '${_provider.toUpperCase()} • $smartcard',
-        amount:   '₦${amount.toStringAsFixed(2)}',
-        onPin: () { Navigator.pop(context); _submit(authMethod: PurchaseAuthService.methodPin); },
-        onBiometric: () { Navigator.pop(context); _submit(authMethod: PurchaseAuthService.methodBiometric); },
+      builder: (context) => EpicPurchaseSummary(
+        title: 'Confirm Cable TV',
+        subtitle: 'Please review your cable TV details below',
+        amount: '₦${amount.toStringAsFixed(2)}',
+        primaryColor: _getProviderColor(_provider),
+        headerIcon: Icons.tv_rounded,
+        items: [
+          SummaryItem(label: 'Provider', value: _provider.toUpperCase(), icon: Icons.live_tv_rounded),
+          SummaryItem(label: 'Smartcard / IUC', value: smartcard, icon: Icons.credit_card_rounded),
+          SummaryItem(label: 'Package', value: _selectedPackageCode, icon: Icons.subscriptions_rounded),
+          SummaryItem(label: 'Phone Number', value: _phoneCtrl.text.trim(), icon: Icons.phone_android_rounded),
+        ],
+        onProceedPin: () {
+          Navigator.pop(context);
+          Future.delayed(const Duration(milliseconds: 350), () {
+            _submit(authMethod: PurchaseAuthService.methodPin);
+          });
+        },
+        onProceedBiometric: () {
+          Navigator.pop(context);
+          Future.delayed(const Duration(milliseconds: 350), () {
+            _submit(authMethod: PurchaseAuthService.methodBiometric);
+          });
+        },
       ),
     );
   }
@@ -529,20 +559,47 @@ class _CableScreenState extends State<CableScreen> {
     required List<ReceiptField> fields,
   }) {
     if (status != 'failed') context.read<SessionController>().refreshBalance();
+    final ok = status == 'success';
     final isSuccess = status.toLowerCase() != 'failed';
+    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
+    
+    final Map<String, String> details = {
+      'Date & Time': DateTime.now().toString().substring(0, 16),
+      'Sender': userName,
+      'Provider': 'MELE DATA',
+      'Transaction Type': 'Cable Subscription',
+      'Cable Provider': _provider.toUpperCase(),
+      'Smartcard / IUC': _smartcardCtrl.text.trim(),
+      'Package': _selectedPackageCode,
+      'Reference': reference,
+    };
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => PurchaseResultSheet(
-        status:   status,
-        title:    _statusTitle(status: status, success: 'Cable Order Successful', pending: 'Cable Order Pending', failed: 'Cable Order Failed'),
-        subtitle: subtitle,
-        fields: [
-          ReceiptField(label: 'Time', value: _formatDate(DateTime.now())),
-          ...fields,
-          ReceiptField(label: 'Reference', value: reference),
-        ],
+      builder: (context) => EpicReceiptModal(
+        isSuccess: ok,
+        title: 'Cable Subscription',
+        amount: '₦${_selectedAmount.toStringAsFixed(2)}',
+        primaryColor: _getProviderColor(_provider),
+        details: details,
+        onSave: () {
+          showDialog(
+            context: context,
+            builder: (context) => Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+              child: EpicShareableReceipt(
+                ok: ok,
+                title: 'Cable Subscription',
+                amount: '₦${_selectedAmount.toStringAsFixed(2)}',
+                details: details,
+                primaryColor: _getProviderColor(_provider),
+              ),
+            ),
+          );
+        },
       ),
     ).then((_) {
       if (isSuccess && mounted) {
