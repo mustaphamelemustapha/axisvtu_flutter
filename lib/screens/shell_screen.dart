@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import 'home_screen.dart';
 import 'services_screen.dart';
 import 'history_screen.dart';
-import 'transfer_screen.dart';
-import 'profile_screen.dart';
 import 'profile_screen.dart';
 
 class ShellScreen extends StatefulWidget {
@@ -28,7 +26,7 @@ class _ShellScreenState extends State<ShellScreen> {
     final screens = [
       HomeScreen(onNavigateTab: _goToTab),
       const ServicesScreen(),
-      const TransferScreen(),
+      const HistoryScreen(),
       const ProfileScreen(),
     ];
 
@@ -65,9 +63,9 @@ class _ShellScreenState extends State<ShellScreen> {
               label: 'Services',
             ),
             NavigationDestination(
-              icon: Icon(Icons.send_outlined),
-              selectedIcon: Icon(Icons.send_rounded),
-              label: 'Transfer',
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long_rounded),
+              label: 'History',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),

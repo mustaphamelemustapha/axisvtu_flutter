@@ -1423,10 +1423,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _buildActionPill(
                         context,
-                        icon: Icons.receipt_long_rounded,
-                        label: 'History',
+                        icon: Icons.send_rounded,
+                        label: 'Transfer',
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen()));
                         },
                         primary: false,
                         isDark: isDark,
