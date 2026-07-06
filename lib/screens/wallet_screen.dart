@@ -2030,7 +2030,7 @@ class _WalletAccountActivationCardState extends State<_WalletAccountActivationCa
                                 : FontWeight.normal,
                             color: _option == 'bvn'
                                 ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurfaceVariant,
+                                : (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87),
                           ),
                         ),
                       ),

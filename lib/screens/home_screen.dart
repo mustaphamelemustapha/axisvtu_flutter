@@ -1422,10 +1422,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _buildActionPill(
                         context,
-                        icon: Icons.send_rounded,
-                        label: 'Transfer',
+                        icon: Icons.receipt_long_rounded,
+                        label: 'History',
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryScreen()));
                         },
                         primary: false,
                         isDark: isDark,
@@ -1937,7 +1937,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 Text(
                                                   'Add Moniepoint for zero-delay instant wallet deposits! Link your BVN/NIN now.',
                                                   style: TextStyle(
-                                                    color: isDark ? Colors.white.withValues(alpha: 0.7) : Colors.black.withValues(alpha: 0.6),
+                                                    color: Colors.white.withValues(alpha: 0.7),
                                                     fontSize: 10,
                                                     fontWeight: FontWeight.w500,
                                                   ),
@@ -4294,7 +4294,7 @@ class _MELEDATAAccountActivationDialogState extends State<_MELEDATAAccountActiva
                                     : FontWeight.normal,
                                 color: _option == 'bvn'
                                     ? theme.colorScheme.primary
-                                    : theme.colorScheme.onSurfaceVariant,
+                                    : (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87),
                               ),
                             ),
                           ),
@@ -4339,7 +4339,7 @@ class _MELEDATAAccountActivationDialogState extends State<_MELEDATAAccountActiva
                                     : FontWeight.normal,
                                 color: _option == 'nin'
                                     ? theme.colorScheme.primary
-                                    : theme.colorScheme.onSurfaceVariant,
+                                    : (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87),
                               ),
                             ),
                           ),
@@ -4389,7 +4389,7 @@ class _MELEDATAAccountActivationDialogState extends State<_MELEDATAAccountActiva
               Text(
                 'MELE DATA will not store your ${_option.toUpperCase()} in our system for your safety.',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: theme.brightness == Brightness.dark ? Colors.white60 : Colors.black87,
                   height: 1.4,
                 ),
               ),
