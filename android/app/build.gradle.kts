@@ -35,9 +35,8 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.mmtech.axisvtu"
-        // We explicitly set minSdk to 23 (Android 6.0) to support older devices.
-        // Flutter 3.41's default is 24, but 23 is the minimum supported version.
-        minSdk = flutter.minSdkVersion
+        // We explicitly set minSdk to 21 to support older budget/Redmi devices.
+        minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
