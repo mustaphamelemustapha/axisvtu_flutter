@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -93,6 +94,8 @@ class _DataScreenState extends State<DataScreen> {
   final GlobalKey _planStepKey = GlobalKey();
 
   String _network = 'mtn';
+  String? _phoneErrorMsg;
+  String? _shakingPlanCode;
   String _selectedCategory = 'All';
   String? _selectedPlanCode;
   List<dynamic> _plans = [];
@@ -252,6 +255,9 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   void _onPhoneChanged() {
+    if (_phoneErrorMsg != null) {
+      setState(() => _phoneErrorMsg = null);
+    }
     _activeRequestId = null;
     final normalized = _normalizePhone(_phoneCtrl.text);
 
@@ -694,17 +700,11 @@ class _DataScreenState extends State<DataScreen> {
         price: price,
         onProceedPin: () {
           Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            if (!mounted) return;
-            _buy(authMethod: PurchaseAuthService.methodPin);
-          });
+          if (mounted) _buy(authMethod: PurchaseAuthService.methodPin);
         },
         onProceedBiometric: () {
           Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            if (!mounted) return;
-            _buy(authMethod: PurchaseAuthService.methodBiometric);
-          });
+          if (mounted) _buy(authMethod: PurchaseAuthService.methodBiometric);
         },
       ),
     );
@@ -903,584 +903,448 @@ class _DataScreenState extends State<DataScreen> {
     }
   }
 
+  void _showNetworkSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Container(
+          padding: const EdgeInsets.only(top: 24, bottom: 32, left: 24, right: 24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161E2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Change mobile network',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.close, size: 20, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              ...['Airtel', 'Glo', 'MTN', '9Mobile'].map((net) {
+                final netCode = net.toLowerCase();
+                return InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _selectNetwork(netCode);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          clipBehavior: Clip.hardEdge,
+                          decoration: const BoxDecoration(shape: BoxShape.circle),
+                          child: _networkLogoByName(netCode),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            net == '9Mobile' ? 'T2(9Mobile)' : net,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: isDark ? Colors.white54 : Colors.black54),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final selected = _selectedPlan;
     final hasPhone = _normalizePhone(_phoneCtrl.text).length >= 10;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final activeNetColor = _network.isNotEmpty ? _globalGetNetworkColor(_network) : Theme.of(context).colorScheme.primary;
-
-    return ServiceShell(
-      title: 'Data',
-      subtitle: 'Lightning fast top-up.',
-      icon: Icons.wifi_rounded,
-      scrollController: _scrollController,
-      child: Stack(
-        clipBehavior: Clip.none,
+    
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new, color: Theme.of(context).colorScheme.primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Buy Data',
+          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.history, color: Theme.of(context).colorScheme.primary),
+            onPressed: () {},
+          )
+        ],
+      ),
+      body: Stack(
         children: [
-          // Background ambient glow based on network
-          if (_network.isNotEmpty)
-            Positioned(
-              top: 100,
-              right: -50,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 700),
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: activeNetColor.withValues(alpha: isDark ? 0.15 : 0.08),
-                  boxShadow: [
-                    BoxShadow(
-                      color: activeNetColor.withValues(alpha: isDark ? 0.15 : 0.08),
-                      blurRadius: 100,
-                      spreadRadius: 80,
-                    )
-                  ],
-                ),
-              ),
-            ),
-          if (_network.isNotEmpty)
-            Positioned(
-              bottom: 200,
-              left: -50,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 1000),
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: activeNetColor.withValues(alpha: isDark ? 0.1 : 0.05),
-                  boxShadow: [
-                    BoxShadow(
-                      color: activeNetColor.withValues(alpha: isDark ? 0.1 : 0.05),
-                      blurRadius: 120,
-                      spreadRadius: 80,
-                    )
-                  ],
-                ),
-              ),
-            ),
-
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 16),
-              
-              // 1. Epic Massive Input
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(
-                      color: hasPhone ? activeNetColor.withValues(alpha: 0.5) : (isDark ? Colors.white12 : Colors.black12),
-                      width: hasPhone ? 2 : 1,
-                    ),
-                    boxShadow: [
-                      if (hasPhone) BoxShadow(
-                        color: activeNetColor.withValues(alpha: 0.15),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ) else BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
+          SingleChildScrollView(
+            controller: _scrollController,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Phone Input Section
+                  const Text(
+                    'Enter phone number',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
-                  child: TextFormField(
-                    controller: _phoneCtrl,
-                    keyboardType: TextInputType.phone,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    textAlign: TextAlign.center,
-                    decoration: InputDecoration(
-                      hintText: '080...',
-                      hintStyle: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                  const SizedBox(height: 8),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF161E2E) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _network.isNotEmpty ? _getNetworkColor(_network).withValues(alpha: 0.3) : Colors.transparent,
+                        width: 1,
                       ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      prefixIcon: _network.isNotEmpty 
-                        ? Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: _networkLogoByName(_network),
-                          ).animate().scale(duration: const Duration(milliseconds: 300), curve: Curves.easeOutBack).fade()
-                        : const SizedBox(width: 48),
-                      suffixIcon: IconButton(
-                        icon: Icon(Icons.contact_phone_rounded, size: 28, color: Theme.of(context).colorScheme.primary),
-                        onPressed: _pickContact,
-                      ),
+                      boxShadow: _network.isNotEmpty ? [
+                        BoxShadow(
+                          color: _getNetworkColor(_network).withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        )
+                      ] : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
                     ),
-                    onChanged: (v) => _onPhoneChanged(),
-                  ),
-                ),
-              ).animate().slideY(begin: -0.1, duration: const Duration(milliseconds: 400)).fade(),
-              
-              const SizedBox(height: 24),
-
-              // 2. Animated Recent Avatars
-              if (_recentNumbers.isNotEmpty) ...[
-                SizedBox(
-                  height: 60,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    itemCount: _recentNumbers.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 16),
-                    itemBuilder: (context, index) {
-                      final number = _recentNumbers[index];
-                      return GestureDetector(
-                        onTap: () => _applySuggestedNumber(number),
-                        child: Container(
-                          width: 54,
-                          height: 54,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: isDark 
-                                ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                                : [Colors.white, const Color(0xFFF1F5F9)],
+                    child: Row(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: _showNetworkSelector,
+                                child: Row(
+                                  children: [
+                                    if (_network.isNotEmpty) ...[
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        clipBehavior: Clip.hardEdge,
+                                        decoration: const BoxDecoration(shape: BoxShape.circle),
+                                        child: _networkLogoByName(_network),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 20),
+                                    ] else
+                                      const Icon(Icons.cell_tower, color: Colors.grey),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(width: 1, height: 30, color: Colors.grey.withValues(alpha: 0.2)),
+                        Expanded(
+                          child: TextField(
+                            controller: _phoneCtrl,
+                            keyboardType: TextInputType.phone,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 16),
                             ),
-                            border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              )
-                            ]
+                            onChanged: (v) => _onPhoneChanged(),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.contact_phone, color: Theme.of(context).colorScheme.primary),
+                          onPressed: _pickContact,
+                        )
+                      ],
+                    ),
+                  ),
+                  if (_phoneErrorMsg != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, left: 16),
+                      child: Text(
+                        _phoneErrorMsg!,
+                        style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Animated Recent Avatars (Restored functional feature)
+                  if (_recentNumbers.isNotEmpty) ...[
+                    SizedBox(
+                      height: 60,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _recentNumbers.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 16),
+                        itemBuilder: (context, index) {
+                          final number = _recentNumbers[index];
+                          return GestureDetector(
+                            onTap: () => _applySuggestedNumber(number),
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1)),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  number.length > 4 ? number.substring(number.length - 4) : number,
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  
+                  if (_network.isEmpty && !hasPhone) ...[
+                    const Text('Select a network', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: ['mtn', 'airtel', 'glo', '9mobile'].map((net) => GestureDetector(
+                        onTap: () => _selectNetwork(net),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: 60, height: 60,
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF161E2E) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.withValues(alpha: 0.2)),
                           ),
                           child: Center(
-                            child: Text(
-                              number.length > 4 ? number.substring(number.length - 4) : number,
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary),
-                            ),
+                            child: Text(net[0].toUpperCase(), style: TextStyle(color: _getNetworkColor(net), fontWeight: FontWeight.bold, fontSize: 20)),
                           ),
                         ),
-                      ).animate().fade(delay: Duration(milliseconds: 50 * index)).scale(curve: Curves.easeOutBack);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ],
-
-              // 3. Network Selection (Always Visible)
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    _NetworkCard(key: const ValueKey('mtn'), name: 'mtn', isSelected: _network == 'mtn', onTap: () => _selectNetwork('mtn'), isDark: isDark, netColor: const Color(0xFFFFCC00)),
-                    _NetworkCard(key: const ValueKey('airtel'), name: 'airtel', isSelected: _network == 'airtel', onTap: () => _selectNetwork('airtel'), isDark: isDark, netColor: const Color(0xFFFF0000)),
-                    _NetworkCard(key: const ValueKey('glo'), name: 'glo', isSelected: _network == 'glo', onTap: () => _selectNetwork('glo'), isDark: isDark, netColor: const Color(0xFF009900)),
-                    _NetworkCard(key: const ValueKey('9mobile'), name: '9mobile', isSelected: _network == '9mobile', onTap: () => _selectNetwork('9mobile'), isDark: isDark, netColor: const Color(0xFF006600)),
+                      )).toList(),
+                    ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // 4. Glowing Glassmorphic Plans
-              if (_network.isNotEmpty) AnimatedSize(
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeOutCubic,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Category Segmented Control
-                    if (_networkPlans.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: ['All', 'SME', 'Corporate', 'Gifting', 'Awoof'].where((cat) {
-                              if (cat == 'All') return true;
-                              return _networkPlans.any((p) => _extractCategory(p) == cat);
-                            }).map((cat) {
-                              final isSelected = _selectedCategory == cat;
-                              return GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(() => _selectedCategory = cat);
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  margin: const EdgeInsets.only(right: 12),
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: isSelected 
-                                        ? activeNetColor
-                                        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                                    borderRadius: BorderRadius.circular(30),
-                                    boxShadow: isSelected ? [
-                                      BoxShadow(
-                                        color: activeNetColor.withValues(alpha: 0.4),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      )
-                                    ] : [],
-                                  ),
-                                  child: Text(
+                  
+                  if (_network.isNotEmpty) ...[
+                    const Text('Select a data plan', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    const SizedBox(height: 12),
+                    
+                    // Categories
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: ['All', 'SME', 'Corporate', 'Gifting', 'Awoof'].where((cat) {
+                          if (cat == 'All') return true;
+                          return _networkPlans.any((p) => _extractCategory(p) == cat);
+                        }).map((cat) {
+                          final isSelected = _selectedCategory == cat;
+                          final netColor = _getNetworkColor(_network);
+                          return GestureDetector(
+                            onTap: () => setState(() => _selectedCategory = cat),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              margin: const EdgeInsets.only(right: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isSelected ? netColor.withValues(alpha: 0.15) : (isDark ? const Color(0xFF161E2E) : const Color(0xFFEFF6FF)),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: isSelected ? netColor : Colors.transparent),
+                              ),
+                              child: Row(
+                                children: [
+                                  if (isSelected) ...[
+                                    Icon(Icons.local_fire_department, color: netColor, size: 14),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Text(
                                     cat,
                                     style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
-                                      color: isSelected 
-                                          ? Colors.white
-                                          : (isDark ? Colors.white70 : Colors.black54),
+                                      color: isSelected ? netColor : (isDark ? Colors.white60 : Colors.blue.withValues(alpha: 0.6)),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                      const SizedBox(height: 24),
-                    ],
-
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
                     if (_loadingPlans && _sortedNetworkPlans.isEmpty)
                       const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
                     else if (_sortedNetworkPlans.isEmpty)
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: () => _loadPlans(forceRefresh: true),
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Retry Loading Plans'),
-                        ),
-                      )
+                      const Center(child: Text('No plans available'))
                     else
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.82, // Taller for the new epic layout
-                          ),
-                          itemCount: _sortedNetworkPlans.length,
-                          itemBuilder: (context, index) {
-                            final plan = _sortedNetworkPlans[index];
-                            final code = plan['plan_code']?.toString();
-                            final isSelected = _selectedPlanCode == code;
-                            final rawCapacity = _planCapacity(plan);
-                            final validity = _planValidity(plan);
-                            final price = _planPrice(plan);
-                            
-                            // Split capacity into number and unit for epic typography
-                            String capNum = rawCapacity;
-                            String capUnit = '';
-                            final match = RegExp(r'^([\d\.]+)\s*([a-zA-Z]+)$').firstMatch(rawCapacity);
-                            if (match != null) {
-                              capNum = match.group(1) ?? rawCapacity;
-                              capUnit = match.group(2) ?? '';
-                            }
-
-                            return GestureDetector(
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                setState(() => _selectedPlanCode = code);
-                                Future.delayed(const Duration(milliseconds: 250), () {
-                                  if (mounted) _showSummaryModal();
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.85,
+                        ),
+                        itemCount: _sortedNetworkPlans.length,
+                        itemBuilder: (context, index) {
+                          final plan = _sortedNetworkPlans[index];
+                          final code = plan['plan_code']?.toString();
+                          final isSelected = _selectedPlanCode == code;
+                          final netColor = _getNetworkColor(_network);
+                          
+                          return GestureDetector(
+                            onTap: () {
+                              if (!hasPhone) {
+                                setState(() {
+                                  _phoneErrorMsg = "Please enter a valid phone number";
+                                  _shakingPlanCode = code;
                                 });
+                                Future.delayed(const Duration(milliseconds: 500), () {
+                                  if (mounted) setState(() => _shakingPlanCode = null);
+                                });
+                                return;
+                              }
+                              setState(() {
+                                _selectedPlanCode = code;
+                                _phoneErrorMsg = null;
+                              });
+                              _showSummaryModal();
+                            },
+                            child: TweenAnimationBuilder<double>(
+                              key: ValueKey(_shakingPlanCode == code ? code : null),
+                              tween: Tween(begin: _shakingPlanCode == code ? 1.0 : 0.0, end: 0.0),
+                              duration: const Duration(milliseconds: 400),
+                              builder: (context, value, child) {
+                                final offset = value > 0 ? math.sin(value * math.pi * 4) * 8 : 0.0;
+                                return Transform.translate(
+                                  offset: Offset(offset, 0),
+                                  child: child,
+                                );
                               },
                               child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeOutCubic,
-                                decoration: BoxDecoration(
-                                  color: isSelected 
-                                      ? activeNetColor 
-                                      : (isDark ? const Color(0xFF161E2E) : Colors.white),
-                                  borderRadius: BorderRadius.circular(28),
-                                  border: Border.all(
-                                    color: isSelected 
-                                        ? activeNetColor.withValues(alpha: 0.8) 
-                                        : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                                    width: isSelected ? 2 : 1,
-                                  ),
-                                  boxShadow: isSelected ? [
-                                    BoxShadow(
-                                      color: activeNetColor.withValues(alpha: 0.5),
-                                      blurRadius: 24,
-                                      spreadRadius: 4,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                    BoxShadow(
-                                      color: Colors.white.withValues(alpha: 0.2),
-                                      blurRadius: 4,
-                                      spreadRadius: 0,
-                                      offset: const Offset(0, 2),
-                                    ) // Inner glow effect
-                                  ] : [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.04),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    )
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(28),
-                                  child: Stack(
-                                    children: [
-                                      // Epic Background Watermark Icon
-                                      Positioned(
-                                        right: -20,
-                                        bottom: -20,
-                                        child: AnimatedOpacity(
-                                          duration: const Duration(milliseconds: 300),
-                                          opacity: isSelected ? 0.2 : 0.03,
-                                          child: Icon(
-                                            Icons.wifi_tethering_rounded,
-                                            size: 120,
-                                            color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black),
-                                          ).animate(target: isSelected ? 1 : 0).scale(begin: const Offset(0.8, 0.8), end: const Offset(1.1, 1.1), duration: const Duration(milliseconds: 400), curve: Curves.easeOutBack),
-                                        ),
-                                      ),
-                                      
-                                      // Content Layer
-                                      Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            // Top Layer: Validity Pill
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: isSelected 
-                                                    ? Colors.black.withValues(alpha: 0.2) 
-                                                    : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(Icons.timer_outlined, size: 12, color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black54)),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    validity.toUpperCase(),
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.w800,
-                                                      letterSpacing: 0.5,
-                                                      color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            
-                                            // Middle Layer: Massive Typography
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                                                  textBaseline: TextBaseline.alphabetic,
-                                                  children: [
-                                                    Text(
-                                                      capNum,
-                                                      style: TextStyle(
-                                                        fontSize: 40,
-                                                        height: 1.0,
-                                                        fontWeight: FontWeight.w900,
-                                                        letterSpacing: -1.5,
-                                                        color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 2),
-                                                    Text(
-                                                      capUnit,
-                                                      style: TextStyle(
-                                                        fontSize: 18,
-                                                        fontWeight: FontWeight.w800,
-                                                        color: isSelected ? Colors.white.withValues(alpha: 0.8) : activeNetColor,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 8),
-                                                // Decorative line
-                                                AnimatedContainer(
-                                                  duration: const Duration(milliseconds: 300),
-                                                  width: isSelected ? 40 : 20,
-                                                  height: 3,
-                                                  decoration: BoxDecoration(
-                                                    color: isSelected ? Colors.white : activeNetColor.withValues(alpha: 0.3),
-                                                    borderRadius: BorderRadius.circular(2),
-                                                  ),
-                                                ),
-                                              ],
-                                            ).animate().slideX(begin: -0.1, duration: const Duration(milliseconds: 300)).fade(),
-
-                                            // Bottom Layer: Price
-                                            Text(
-                                              '₦$price',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w900,
-                                                color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ).animate().fade(delay: Duration(milliseconds: 30 * index)).slideY(begin: 0.1, curve: Curves.easeOutBack);
-                          },
-                        )
-                          itemCount: _sortedNetworkPlans.length,
-                          itemBuilder: (context, index) {
-                            final plan = _sortedNetworkPlans[index];
-                            final code = plan['plan_code']?.toString();
-                            final isSelected = _selectedPlanCode == code;
-                            final capacity = _planCapacity(plan);
-                            final validity = _planValidity(plan);
-                            
-                            return AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeOutCubic,
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: isSelected 
-                                    ? [activeNetColor.withValues(alpha: 0.9), activeNetColor]
-                                    : [
-                                        isDark ? const Color(0xFF1E293B).withValues(alpha: 0.9) : Colors.white,
-                                        isDark ? const Color(0xFF0F172A).withValues(alpha: 0.8) : const Color(0xFFF8FAFC),
-                                      ],
-                                ),
-                                borderRadius: BorderRadius.circular(32),
+                                color: isDark ? const Color(0xFF161E2E) : Colors.white,
+                                borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: isSelected 
-                                      ? activeNetColor.withValues(alpha: 0.5)
-                                      : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
-                                  width: isSelected ? 0 : 1.5,
+                                  color: isSelected ? netColor : (isDark ? Colors.white10 : Colors.transparent),
+                                  width: isSelected ? 2 : 1,
                                 ),
-                                boxShadow: [
-                                  if (isSelected) BoxShadow(
-                                    color: activeNetColor.withValues(alpha: 0.4),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
-                                    offset: const Offset(0, 8),
-                                  ) else BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
+                                boxShadow: isSelected ? [
+                                  BoxShadow(
+                                    color: netColor.withValues(alpha: 0.3),
                                     blurRadius: 15,
-                                    offset: const Offset(0, 5),
+                                    spreadRadius: 1,
+                                    offset: const Offset(0, 4),
                                   )
+                                ] : (isDark ? [] : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ]),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _planCapacity(plan),
+                                    style: TextStyle(
+                                      fontSize: 18, 
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected ? netColor : (isDark ? Colors.white : Colors.black)
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '₦${_planPrice(plan)}',
+                                    style: TextStyle(
+                                      fontSize: 16, 
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : Colors.black
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    _planValidity(plan),
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    plan['plan_name']?.toString() ?? '',
+                                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ],
                               ),
-                              child: InkWell(
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  setState(() => _selectedPlanCode = code);
-                                  Future.delayed(const Duration(milliseconds: 200), () {
-                                    if (mounted) _showSummaryModal();
-                                  });
-                                },
-                                borderRadius: BorderRadius.circular(32),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // Top Row: Price Tag
-                                      Align(
-                                        alignment: Alignment.topRight,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: isSelected ? Colors.white.withValues(alpha: 0.2) : activeNetColor.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(16),
-                                          ),
-                                          child: Text(
-                                            '₦${_planPrice(plan)}',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w900,
-                                              color: isSelected ? Colors.white : activeNetColor,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      // Middle: Massive Capacity
-                                      FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          capacity,
-                                          style: TextStyle(
-                                            fontSize: 28,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: -1,
-                                            height: 1.1,
-                                            color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      // Bottom: Validity Offer
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.bolt_rounded, 
-                                            size: 14, 
-                                            color: isSelected ? Colors.white70 : const Color(0xFF64748B)
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Expanded(
-                                            child: Text(
-                                              validity.toUpperCase(),
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 1,
-                                                color: isSelected ? Colors.white70 : const Color(0xFF64748B),
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ).animate().fade(delay: Duration(milliseconds: 40 * index)).slideY(begin: 0.2, curve: Curves.easeOutBack);
-                          },
-                        ),
+                            ),
+                            ),
+                          );
+                        },
                       ),
                   ],
-                ),
+                  const SizedBox(height: 100), // Space for checkout button
+                ],
               ),
-              
-              const SizedBox(height: 60),
-            ],
+            ),
           ),
+          
+
         ],
       ),
     );
   }
+
+
 }
 
 
