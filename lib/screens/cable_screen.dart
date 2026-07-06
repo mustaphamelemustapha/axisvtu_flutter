@@ -1,27 +1,16 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../services/api_client.dart';
-import '../services/purchase_auth_service.dart';
-import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
-import '../widgets/purchase_loading_overlay.dart';
-import '../widgets/purchase_result_sheet.dart';
-import '../widgets/service_shell.dart';
-import '../widgets/epic_purchase_summary.dart';
-import '../widgets/epic_receipt_modal.dart';
-import '../widgets/sticky_checkout_bar.dart';
-import '../widgets/insufficient_funds_sheet.dart';
-import '../utils/balance_util.dart';
-import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
-import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
-import '../widgets/elite_phone_input.dart';
-import '../services/permission_service.dart';
+import 'cable_details_screen.dart';
+
+class CableProvider {
+  final String id;
+  final String name;
+
+  CableProvider({required this.id, required this.name});
+}
 
 class CableScreen extends StatefulWidget {
   const CableScreen({super.key});
@@ -31,1054 +20,187 @@ class CableScreen extends StatefulWidget {
 }
 
 class _CableScreenState extends State<CableScreen> {
-  static const _saveBeneficiaryKey = 'axis_cable_save_beneficiary_v1';
-  static const _beneficiariesKey   = 'axis_cable_beneficiaries_v1';
-  static const Map<String, List<String>> _networkPrefixes = {
-    'mtn': [
-      '07025',
-      '07026',
-      '0803',
-      '0806',
-      '0703',
-      '0706',
-      '0810',
-      '0813',
-      '0814',
-      '0816',
-      '0903',
-      '0906',
-      '0913',
-      '0916',
-      '0704',
-    ],
-    'airtel': [
-      '0802',
-      '0808',
-      '0708',
-      '0812',
-      '0701',
-      '0902',
-      '0907',
-      '0901',
-      '0912',
-    ],
-    'glo': ['0805', '0807', '0705', '0815', '0811', '0905', '0915'],
-    '9mobile': ['0809', '0817', '0818', '0908', '0909'],
-  };
-
-  final _smartcardCtrl = TextEditingController();
-  final _phoneCtrl     = TextEditingController();
-  String _detectedNetwork = '';
-
-  String _provider = 'dstv';
-  List<Map<String, String>> _providers = const [
-    {'id': 'dstv',      'name': 'DStv'},
-    {'id': 'gotv',      'name': 'GOtv'},
-    {'id': 'startimes', 'name': 'StarTimes'},
-    {'id': 'showmax',   'name': 'Showmax'},
+  bool _loading = false;
+  List<CableProvider> _providers = [
+    CableProvider(id: 'dstv', name: 'DSTV'),
+    CableProvider(id: 'gotv', name: 'GOTV'),
+    CableProvider(id: 'startimes', name: 'Startimes'),
+    CableProvider(id: 'showmax', name: 'ShowMax TV'),
   ];
+  String _searchQuery = '';
 
-  // ── package state ──────────────────────────────────────────────────────────
-  List<Map<String, dynamic>> _packages      = [];
-  bool                       _packagesLoading = false;
-  String?                    _packagesError;
-  Map<String, dynamic>?      _selectedPackage;
-
-  // ── purchase / ui state ───────────────────────────────────────────────────
-  bool    _loading           = false;
-  bool    _verifying         = false;
-  String? _activeRequestId;
-  bool    _saveBeneficiary   = true;
-  List<Map<String, dynamic>> _beneficiaries = [];
-  String? _error;
-
-  // ── verification state ────────────────────────────────────────────────────
-  bool   _verificationChecked  = false;
-  bool   _verificationOk       = false;
-  String _verifiedCustomerName = '';
-  String _verificationMessage  = '';
-
-  // ─────────────────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
-    _smartcardCtrl.addListener(_invalidateRequestId);
-    _smartcardCtrl.addListener(_clearVerification);
-    _phoneCtrl.addListener(_onPhoneChanged);
     _loadCatalog();
-    _loadPreferences();
-    _loadPackages();
   }
-
-  @override
-  void dispose() {
-    _smartcardCtrl.removeListener(_invalidateRequestId);
-    _smartcardCtrl.removeListener(_clearVerification);
-    _phoneCtrl.removeListener(_onPhoneChanged);
-    _smartcardCtrl.dispose();
-    _phoneCtrl.dispose();
-    super.dispose();
-  }
-
-  // ── helpers ───────────────────────────────────────────────────────────────
-
-  void _invalidateRequestId() => _activeRequestId = null;
-
-  String _normalizePhone(String input) {
-    var digits = input.replaceAll(RegExp(r'\D'), '');
-    if (digits.startsWith('234')) {
-      digits = '0${digits.substring(3)}';
-    }
-    if (digits.length == 10 && !digits.startsWith('0')) {
-      digits = '0$digits';
-    }
-    return digits;
-  }
-
-  String? _detectNetwork(String normalizedPhone) {
-    if (normalizedPhone.length < 4) return null;
-    final prefixes = <MapEntry<String, String>>[];
-    _networkPrefixes.forEach((network, items) {
-      for (final prefix in items) {
-        prefixes.add(MapEntry(prefix, network));
-      }
-    });
-    prefixes.sort((a, b) => b.key.length.compareTo(a.key.length));
-    for (final entry in prefixes) {
-      if (normalizedPhone.startsWith(entry.key)) {
-        return entry.value;
-      }
-    }
-    return null;
-  }
-
-  void _onPhoneChanged() {
-    _invalidateRequestId();
-    final normalized = _normalizePhone(_phoneCtrl.text);
-    final detected = _detectNetwork(normalized) ?? '';
-    if (detected != _detectedNetwork) {
-      setState(() {
-        _detectedNetwork = detected;
-      });
-    }
-  }
-
-  void _clearVerification() {
-    if (_verificationChecked || _verificationOk) {
-      setState(() {
-        _verificationChecked  = false;
-        _verificationOk       = false;
-        _verifiedCustomerName = '';
-        _verificationMessage  = '';
-      });
-    }
-  }
-
-  double get _selectedAmount {
-    final raw = _selectedPackage?['amount'];
-    if (raw == null) return 0;
-    return (raw is num) ? raw.toDouble() : double.tryParse(raw.toString()) ?? 0;
-  }
-
-  String get _selectedPackageCode =>
-      (_selectedPackage?['code'] ?? '').toString();
-
-  String get _selectedPackageName =>
-      (_selectedPackage?['name'] ?? '').toString();
-
-  // ── data loading ──────────────────────────────────────────────────────────
 
   Future<void> _loadCatalog() async {
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) return;
+
+    if (mounted) setState(() => _loading = true);
+    
     try {
       final data = await ServicesService(token: token).getCatalog();
-      final raw  = data['cable_providers'];
+      final raw = data['cable_providers'];
       if (raw is List && raw.isNotEmpty) {
-        final providers = <Map<String, String>>[];
+        final providers = <CableProvider>[];
         for (final item in raw) {
           if (item is Map) {
-            final id   = (item['id']   ?? '').toString().trim().toLowerCase();
+            final id = (item['id'] ?? '').toString().trim().toLowerCase();
             final name = (item['name'] ?? id).toString().trim();
             if (id.isNotEmpty) {
-              providers.add({'id': id, 'name': name.isEmpty ? id.toUpperCase() : name});
+              providers.add(CableProvider(
+                id: id,
+                name: name.isEmpty ? id.toUpperCase() : name,
+              ));
             }
           }
         }
-        if (!mounted || providers.isEmpty) return;
-        setState(() {
-          _providers = providers;
-          final ids = _providers.map((e) => e['id']).whereType<String>().toList();
-          if (!ids.contains(_provider)) _provider = ids.first;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _loadPackages({String? provider}) async {
-    final p     = provider ?? _provider;
-    final token = (context.read<SessionController>().token ?? '').trim();
-    if (token.isEmpty) return;
-
-    if (!mounted) return;
-    setState(() {
-      _packagesLoading = true;
-      _packagesError   = null;
-      _packages        = [];
-      _selectedPackage = null;
-    });
-
-    try {
-      final data = await ServicesService(token: token).getCablePackages(provider: p);
-      final raw  = data['packages'];
-      final list = <Map<String, dynamic>>[];
-      if (raw is List) {
-        for (final item in raw) {
-          if (item is Map) {
-            list.add(item.map((k, v) => MapEntry(k.toString(), v)));
-          }
+        if (mounted && providers.isNotEmpty) {
+          setState(() => _providers = providers);
         }
       }
-      if (!mounted) return;
-      setState(() {
-        _packages = list;
-        if (list.isNotEmpty) _selectedPackage = list.first;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _packagesError = 'Could not load packages. Tap to retry.');
+    } catch (_) {
+      // Keep defaults if failed
     } finally {
-      if (mounted) setState(() => _packagesLoading = false);
-    }
-  }
-
-  Future<void> _loadPreferences() async {
-    final prefs   = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool(_saveBeneficiaryKey) ?? _saveBeneficiary;
-    final raw     = prefs.getString(_beneficiariesKey);
-    final list    = <Map<String, dynamic>>[];
-    if (raw != null && raw.isNotEmpty) {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) {
-        for (final item in decoded) {
-          if (item is Map) list.add(item.map((k, v) => MapEntry(k.toString(), v)));
-        }
-      }
-    }
-    if (!mounted) return;
-    setState(() {
-      _saveBeneficiary = enabled;
-      _beneficiaries   = list;
-    });
-  }
-
-  // ── verification ──────────────────────────────────────────────────────────
-
-  Future<void> _verifySmartcard() async {
-    final token = (context.read<SessionController>().token ?? '').trim();
-    if (token.isEmpty) return;
-
-    final smartcard = _smartcardCtrl.text.trim();
-    if (smartcard.length < 5) {
-      setState(() => _error = 'Enter a valid smartcard number to verify.');
-      return;
-    }
-
-    setState(() {
-      _verifying            = true;
-      _verificationChecked  = false;
-      _verificationOk       = false;
-      _verifiedCustomerName = '';
-      _verificationMessage  = '';
-      _error                = null;
-    });
-
-    try {
-      final res = await ServicesService(token: token).verifyCable(
-        provider:       _provider,
-        smartcardNumber: smartcard,
-      );
-      final ok = res['ok'] == true;
-      setState(() {
-        _verificationChecked  = true;
-        _verificationOk       = ok;
-        _verifiedCustomerName = ok ? (res['customer_name'] ?? '').toString().trim() : '';
-        _verificationMessage  = ok
-            ? 'Smartcard verified successfully.'
-            : (res['message'] ?? 'Unable to verify smartcard number.').toString();
-      });
-    } catch (e) {
-      final msg = e is ApiException ? e.message : e.toString();
-      setState(() {
-        _verificationChecked = true;
-        _verificationOk      = false;
-        _verificationMessage = msg.isNotEmpty ? msg : 'Unable to verify smartcard number right now.';
-      });
-    } finally {
-      if (mounted) setState(() => _verifying = false);
-    }
-  }
-
-  // ── contact picker ────────────────────────────────────────────────────────
-
-  final FlutterNativeContactPicker _contactPicker = FlutterNativeContactPicker();
-
-  Future<void> _pickContact() async {
-    try {
-      final granted = await PermissionService.requestContactPermission(context);
-      if (!granted) return;
-
-      final native_contact.Contact? contact = await _contactPicker.selectContact();
-      if (contact != null && contact.phoneNumbers != null && contact.phoneNumbers!.isNotEmpty) {
-        String phone = contact.phoneNumbers!.first.replaceAll(RegExp(r'\D'), '');
-        if (phone.startsWith('234') && phone.length > 10) phone = '0${phone.substring(3)}';
-        _phoneCtrl.text = phone;
-        _onPhoneChanged();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error picking contact: $e')));
-    }
-  }
-
-  // ── beneficiary helpers ───────────────────────────────────────────────────
-
-  Future<void> _savePreference(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_saveBeneficiaryKey, value);
-  }
-
-  Future<void> _saveBeneficiaryFromInput() async {
-    if (!_saveBeneficiary) return;
-    final smartcard   = _smartcardCtrl.text.trim();
-    final packageCode = _selectedPackageCode;
-    final phone       = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
-    if (smartcard.isEmpty || packageCode.isEmpty || phone.isEmpty) return;
-
-    final entry = <String, dynamic>{
-      'provider':        _provider,
-      'smartcard_number': smartcard,
-      'package_code':    packageCode,
-      'package_name':    _selectedPackageName,
-      'phone_number':    phone,
-      'updated_at':      DateTime.now().toIso8601String(),
-    };
-
-    final identity = '${_provider.toLowerCase()}|$smartcard|$packageCode';
-    final next = <Map<String, dynamic>>[
-      entry,
-      ..._beneficiaries.where((item) {
-        final key =
-            '${(item['provider'] ?? '').toString().toLowerCase()}|${(item['smartcard_number'] ?? '').toString()}|${(item['package_code'] ?? '').toString().toLowerCase()}';
-        return key != identity;
-      }),
-    ].take(10).toList();
-
-    setState(() => _beneficiaries = next);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_beneficiariesKey, jsonEncode(next));
-  }
-
-  void _applyBeneficiary(Map<String, dynamic> item) {
-    final provider    = (item['provider'] ?? _provider).toString().toLowerCase();
-    final smartcard   = (item['smartcard_number'] ?? '').toString().trim();
-    final savedCode   = (item['package_code'] ?? '').toString().trim();
-    final phone       = (item['phone_number'] ?? '').toString().trim();
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _invalidateRequestId();
-      _verificationChecked  = false;
-      _verificationOk       = false;
-      _verifiedCustomerName = '';
-      _verificationMessage  = '';
-      if (_providers.any((p) => p['id'] == provider)) _provider = provider;
-      _smartcardCtrl.text = smartcard;
-      _phoneCtrl.text     = phone;
-    });
-    // Load packages for the new provider then restore the saved plan
-    _loadPackages(provider: provider).then((_) {
-      if (!mounted || savedCode.isEmpty) return;
-      final match = _packages.where((p) => (p['code'] ?? '').toString() == savedCode).firstOrNull;
-      if (match != null) setState(() => _selectedPackage = match);
-    });
-  }
-
-  // ── purchase ──────────────────────────────────────────────────────────────
-
-  Future<void> _submit({String authMethod = PurchaseAuthService.methodAuto}) async {
-    if (_loading) return;
-    final token = (context.read<SessionController>().token ?? '').trim();
-    if (token.isEmpty) return;
-
-    final smartcard   = _smartcardCtrl.text.trim();
-    final phone       = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
-    final packageCode = _selectedPackageCode;
-    final amount      = _selectedAmount;
-
-    if (!_verificationOk) {
-      setState(() => _error = 'Please verify your smartcard number before paying.');
-      return;
-    }
-    if (smartcard.length < 5) {
-      setState(() => _error = 'Enter a valid smartcard number.');
-      return;
-    }
-    if (phone.length < 7 || phone.length > 15) {
-      setState(() => _error = 'Enter a valid phone number.');
-      return;
-    }
-    if (packageCode.length < 2) {
-      setState(() => _error = 'Please select a package.');
-      return;
-    }
-    if (amount < 500) {
-      setState(() => _error = 'Selected package has an invalid amount.');
-      return;
-    }
-
-    final authorized = await PurchaseAuthService.authorizePin(
-      context:         context,
-      reason:          'cable subscription',
-      preferredMethod: authMethod,
-    );
-    if (!mounted || !authorized) return;
-
-    setState(() { _loading = true; _error = null; });
-    PurchaseLoadingOverlay.show(context, title: 'Processing order');
-
-    try {
-      _activeRequestId ??= buildRequestId("cable");
-      final res = await ServicesService(token: token).purchaseCable(
-        provider:         _provider,
-        smartcardNumber:  smartcard,
-        phoneNumber:      phone,
-        packageCode:      packageCode,
-        amount:           amount,
-        customerName:     _verifiedCustomerName.isNotEmpty ? _verifiedCustomerName : null,
-        clientRequestId:  _activeRequestId,
-      );
-      final status = _resolveResultStatus(res);
-      if (!mounted) return;
-      if (status != 'failed') await _saveBeneficiaryFromInput();
-      PurchaseLoadingOverlay.hide();
-      _showResult(
-        status:    status,
-        subtitle:  _resultSubtitle(status, res),
-        reference: (res['reference'] ?? '').toString(),
-        fields: [
-          ReceiptField(label: 'Provider',  value: _provider.toUpperCase()),
-          ReceiptField(label: 'Smartcard', value: smartcard),
-          if (_verifiedCustomerName.isNotEmpty)
-            ReceiptField(label: 'Customer', value: _verifiedCustomerName),
-          ReceiptField(label: 'Package',   value: _selectedPackageName.isNotEmpty ? _selectedPackageName : packageCode),
-          ReceiptField(label: 'Phone',     value: phone),
-          ReceiptField(label: 'Amount',    value: '₦${amount.toStringAsFixed(2)}'),
-        ],
-      );
-      if (status != 'pending') _activeRequestId = null;
-    } catch (e) {
-      if (!mounted) return;
-      final message = e is ApiException ? e.message : e.toString();
-      PurchaseLoadingOverlay.hide();
-      _showResult(
-        status:    'failed',
-        subtitle:  message,
-        reference: 'AXIS-CABLE-${DateTime.now().millisecondsSinceEpoch}',
-        fields: [
-          ReceiptField(label: 'Provider',  value: _provider.toUpperCase()),
-          ReceiptField(label: 'Smartcard', value: smartcard),
-          ReceiptField(label: 'Package',   value: packageCode),
-          ReceiptField(label: 'Phone',     value: phone),
-          ReceiptField(label: 'Amount',    value: '₦${amount.toStringAsFixed(2)}'),
-          ReceiptField(label: 'Failure',   value: message),
-        ],
-      );
-      _activeRequestId = null;
-    } finally {
-      PurchaseLoadingOverlay.hide();
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  // ── auth / result helpers ─────────────────────────────────────────────────
-
-  Color _getProviderColor(String provider) {
-    switch (provider.toLowerCase()) {
-      case 'dstv': return const Color(0xFF0073C5);
-      case 'gotv': return const Color(0xFF00A859);
-      case 'startimes': return const Color(0xFFFFA500);
-      case 'showmax': return const Color(0xFFE50914);
-      default: return Theme.of(context).primaryColor;
+  Widget _buildProviderIcon(String id) {
+    if (id == 'dstv') {
+      return Image.asset('assets/images/dstv.png', width: 36, height: 36, errorBuilder: (c,e,s) => const Icon(Icons.tv, color: Color(0xFF0073C5)));
+    } else if (id == 'gotv') {
+      return Image.asset('assets/images/gotv.png', width: 36, height: 36, errorBuilder: (c,e,s) => const Icon(Icons.tv, color: Color(0xFF00A859)));
+    } else if (id == 'startimes') {
+      return Image.asset('assets/images/startimes.png', width: 36, height: 36, errorBuilder: (c,e,s) => const Icon(Icons.tv, color: Color(0xFFFFA500)));
+    } else if (id == 'showmax') {
+      return Image.asset('assets/images/showmax.png', width: 36, height: 36, errorBuilder: (c,e,s) => const Icon(Icons.tv, color: Color(0xFFE50914)));
     }
+    return const Icon(Icons.live_tv_rounded, color: Colors.blueAccent);
   }
-
-  void _showAuthChoiceSheet() {
-    final amount    = _selectedAmount;
-    final smartcard = _smartcardCtrl.text.trim();
-    final balance   = getUserBalance(context);
-    if (balance < amount) {
-      InsufficientFundsSheet.show(context, shortfall: amount - balance);
-      return;
-    }
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => EpicPurchaseSummary(
-        title: 'Confirm Cable TV',
-        subtitle: 'Please review your cable TV details below',
-        amount: '₦${amount.toStringAsFixed(2)}',
-        primaryColor: _getProviderColor(_provider),
-        headerIcon: Icons.tv_rounded,
-        items: [
-          SummaryItem(label: 'Provider', value: _provider.toUpperCase(), icon: Icons.live_tv_rounded),
-          SummaryItem(label: 'Smartcard / IUC', value: smartcard, icon: Icons.credit_card_rounded),
-          SummaryItem(label: 'Package', value: _selectedPackageCode, icon: Icons.subscriptions_rounded),
-          SummaryItem(label: 'Phone Number', value: _phoneCtrl.text.trim(), icon: Icons.phone_android_rounded),
-        ],
-        onProceedPin: () {
-          Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            _submit(authMethod: PurchaseAuthService.methodPin);
-          });
-        },
-        onProceedBiometric: () {
-          Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            _submit(authMethod: PurchaseAuthService.methodBiometric);
-          });
-        },
-      ),
-    );
-  }
-
-  void _showResult({
-    required String status,
-    required String subtitle,
-    required String reference,
-    required List<ReceiptField> fields,
-  }) {
-    if (status != 'failed') context.read<SessionController>().refreshBalance();
-    final ok = status == 'success';
-    final isSuccess = status.toLowerCase() != 'failed';
-    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
-    
-    final Map<String, String> details = {
-      'Date & Time': DateTime.now().toString().substring(0, 16),
-      'Sender': userName,
-      'Provider': 'MELE DATA',
-      'Transaction Type': 'Cable Subscription',
-      'Cable Provider': _provider.toUpperCase(),
-      'Smartcard / IUC': _smartcardCtrl.text.trim(),
-      'Package': _selectedPackageCode,
-      'Reference': reference,
-    };
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => EpicReceiptModal(
-        isSuccess: ok,
-        title: 'Cable Subscription',
-        amount: '₦${_selectedAmount.toStringAsFixed(2)}',
-        primaryColor: _getProviderColor(_provider),
-        details: details,
-        onSave: () {
-          showDialog(
-            context: context,
-            builder: (context) => Dialog(
-              backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-              child: EpicShareableReceipt(
-                ok: ok,
-                title: 'Cable Subscription',
-                amount: '₦${_selectedAmount.toStringAsFixed(2)}',
-                details: details,
-                primaryColor: _getProviderColor(_provider),
-              ),
-            ),
-          );
-        },
-      ),
-    ).then((_) {
-      if (isSuccess && mounted) {
-        Navigator.popUntil(context, (route) => route.isFirst);
-      }
-    });
-  }
-
-  String _resolveResultStatus(Map<String, dynamic> payload) {
-    final s = (payload['status'] ?? '').toString().trim().toLowerCase();
-    if (payload['success'] == true || s == 'success' || s == 'successful' || s == 'delivered' || s == 'completed' || s == 'order_completed') return 'success';
-    if (s == 'pending' || s == 'processing' || s == 'queued' || s == 'order_received' || s == 'order_onhold') return 'pending';
-    return 'failed';
-  }
-
-  String _statusTitle({required String status, required String success, required String pending, required String failed}) {
-    if (status == 'success') return success;
-    if (status == 'pending') return pending;
-    return failed;
-  }
-
-  String _resultSubtitle(String status, Map<String, dynamic> payload) {
-    final msg = (payload['message'] ?? payload['detail'] ?? '').toString().trim();
-    if (msg.isNotEmpty) return msg;
-    if (status == 'success') return 'Cable order completed successfully.';
-    if (status == 'pending') return 'Cable request received and currently processing.';
-    return 'Cable order failed.';
-  }
-
-  String _formatDate(DateTime v) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${two(v.day)}/${two(v.month)}/${v.year} ${two(v.hour)}:${two(v.minute)}';
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // BUILD
-  // ─────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final amount = _selectedAmount;
-    return ServiceShell(
-      title:    'Cable TV',
-      subtitle: 'Pay DStv, GOtv, StarTimes and Showmax.',
-      icon:     Icons.tv_rounded,
-      footer: StickyCheckoutBar(
-        title:    _provider.toUpperCase(),
-        subtitle: _smartcardCtrl.text.trim().isEmpty
-            ? 'Enter decoder number'
-            : _smartcardCtrl.text.trim(),
-        amount:   amount > 0 ? '₦${amount.toStringAsFixed(2)}' : '—',
-        active:   _verificationOk && !_loading && _selectedPackage != null && amount >= 500,
-        loading:  _loading,
-        onBuy:    _showAuthChoiceSheet,
-        actionLabel: 'Confirm',
-        icon:     Icons.tv_rounded,
-      ),
-      child: Column(
-        children: [
-          // ── Provider chips ──────────────────────────────────────────────
-          ServiceSectionCard(
-            title: 'Choose Provider',
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _providers.map((p) => Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: ServiceChoiceChip(
-                    label:    (p['name'] ?? p['id'] ?? '').toString(),
-                    selected: _provider == p['id'],
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      final newProvider = (p['id'] ?? _provider).toString();
-                      if (newProvider == _provider) return;
-                      _invalidateRequestId();
-                      setState(() {
-                        _provider             = newProvider;
-                        _verificationChecked  = false;
-                        _verificationOk       = false;
-                        _verifiedCustomerName = '';
-                        _verificationMessage  = '';
-                      });
-                      _loadPackages(provider: newProvider);
-                    },
-                  ),
-                )).toList(),
-              ),
-            ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final filtered = _providers
+        .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F141E) : const Color(0xFFF9FAFB),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios, color: isDark ? Colors.white : Colors.black, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Cable TV',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
-
-          // ── Subscription details ────────────────────────────────────────
-          ServiceSectionCard(
-            title: 'Subscription Details',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Smartcard input
-                TextField(
-                  controller:  _smartcardCtrl,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                  decoration: InputDecoration(
-                    labelText:  'Smartcard / IUC Number',
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                    prefixIcon: const Icon(Icons.confirmation_number_outlined),
-                    border:        OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(width: 1.5)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.1), width: 1.5)),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Verify button
-                Row(children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _verifying ? null : _verifySmartcard,
-                      icon: _verifying
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.verified_user_rounded, size: 18),
-                      label: Text(
-                        _verifying ? 'Verifying...' : 'Verify Smartcard',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                    ),
-                  ),
-                ]),
-
-                // Verification feedback
-                if (_verificationChecked) ...[
-                  const SizedBox(height: 8),
-                  _VerificationBadge(ok: _verificationOk, message: _verificationOk && _verifiedCustomerName.isNotEmpty ? 'Customer: $_verifiedCustomerName' : _verificationMessage),
-                ],
-
-                const SizedBox(height: 16),
-
-                // ── Package dropdown ──────────────────────────────────────
-                _buildPackageSelector(),
-
-                // ── Auto-amount display ───────────────────────────────────
-                if (_selectedPackage != null && _selectedAmount > 0) ...[
-                  const SizedBox(height: 12),
-                  _AmountDisplay(amount: _selectedAmount),
-                ],
-
-                const SizedBox(height: 16),
-
-                // Phone input
-                ElitePhoneInput(
-                  controller: _phoneCtrl,
-                  network:    _detectedNetwork,
-                  onChanged:  (v) => _onPhoneChanged(),
-                  onContactTap: _pickContact,
-                ),
-              ],
-            ),
-          ),
-
-          // ── Saved beneficiaries ─────────────────────────────────────────
-          if (_beneficiaries.isNotEmpty)
-            ServiceSectionCard(
-              title: 'Recent Subscriptions',
-              child: Column(
-                children: _beneficiaries.take(5).map((b) => _BeneficiaryTile(
-                  item: b,
-                  onTap: () => _applyBeneficiary(b),
-                )).toList(),
-              ),
-            ),
-
-          // ── Save-beneficiary toggle ─────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Switch(
-                  value:    _saveBeneficiary,
-                  onChanged: (v) {
-                    setState(() => _saveBeneficiary = v);
-                    _savePreference(v);
-                  },
-                ),
-                const SizedBox(width: 8),
-                const Expanded(child: Text('Save for future subscriptions', style: TextStyle(fontWeight: FontWeight.w500))),
-              ],
-            ),
-          ),
-
-          // ── Error banner ────────────────────────────────────────────────
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color:        Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border:       Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2)),
-                ),
-                child: Row(children: [
-                  Icon(Icons.error_outline_rounded, color: Theme.of(context).colorScheme.error, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600))),
-                ]),
-              ),
-            ),
-
-          const SizedBox(height: 24),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.receipt_long_rounded, color: isDark ? Colors.white : Colors.black, size: 22),
+            onPressed: () {},
+          )
         ],
       ),
-    );
-  }
-
-  // ── Package selector widget ───────────────────────────────────────────────
-
-  Widget _buildPackageSelector() {
-    if (_packagesLoading) {
-      return Container(
-        height: 60,
-        decoration: BoxDecoration(
-          border:       Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.2)),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Center(child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-            SizedBox(width: 12),
-            Text('Loading packages...', style: TextStyle(fontWeight: FontWeight.w500)),
-          ],
-        )),
-      );
-    }
-
-    if (_packagesError != null) {
-      return GestureDetector(
-        onTap: () => _loadPackages(),
-        child: Container(
-          height: 60,
-          decoration: BoxDecoration(
-            border:       Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3)),
-            borderRadius: BorderRadius.circular(20),
-            color:        Theme.of(context).colorScheme.error.withValues(alpha: 0.05),
-          ),
-          child: Center(child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.refresh_rounded, size: 18, color: Theme.of(context).colorScheme.error),
-              const SizedBox(width: 8),
-              Text(_packagesError!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w500)),
-            ],
-          )),
-        ),
-      );
-    }
-
-    if (_packages.isEmpty) {
-      return Container(
-        height: 60,
-        decoration: BoxDecoration(
-          border:       Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.2)),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Center(child: Text('No packages available', style: TextStyle(fontWeight: FontWeight.w500))),
-      );
-    }
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        border:       Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.15), width: 1.5),
-        borderRadius: BorderRadius.circular(20),
-        color:        isDark ? const Color(0xFF1C2333) : const Color(0xFFF8F9FC),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<Map<String, dynamic>>(
-          value:      _selectedPackage,
-          isExpanded: true,
-          borderRadius: BorderRadius.circular(16),
-          icon: const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Icon(Icons.keyboard_arrow_down_rounded, size: 24),
-          ),
-          selectedItemBuilder: (context) => _packages.map((pkg) {
-            final name   = (pkg['name'] ?? '').toString();
-            final amount = (pkg['amount'] != null)
-                ? '₦${(pkg['amount'] as num).toStringAsFixed(0)}'
-                : '';
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-              child: Row(
-                children: [
-                  const Icon(Icons.tv_rounded, size: 18, color: Colors.blueAccent),
-                  const SizedBox(width: 10),
-                  Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment:  MainAxisAlignment.center,
-                    children: [
-                      Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
-                      if (amount.isNotEmpty)
-                        Text(amount, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.primary)),
-                    ],
-                  )),
-                ],
-              ),
-            );
-          }).toList(),
-          items: _packages.map((pkg) {
-            final name   = (pkg['name'] ?? '').toString();
-            final code   = (pkg['code'] ?? '').toString();
-            final amount = (pkg['amount'] != null)
-                ? '₦${(pkg['amount'] as num).toStringAsFixed(0)}'
-                : 'Price N/A';
-            return DropdownMenuItem<Map<String, dynamic>>(
-              value: pkg,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Row(
-                  children: [
-                    Expanded(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment:  MainAxisAlignment.center,
-                      children: [
-                        Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                        Text(code, style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6))),
-                      ],
-                    )),
-                    const SizedBox(width: 8),
-                    Text(amount, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Theme.of(context).colorScheme.primary)),
-                  ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Text(
+                'Select Biller',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white54 : Colors.grey.shade600,
                 ),
               ),
-            );
-          }).toList(),
-          onChanged: (pkg) {
-            if (pkg == null) return;
-            HapticFeedback.selectionClick();
-            setState(() {
-              _selectedPackage = pkg;
-              _invalidateRequestId();
-            });
-          },
+            ),
+            
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E2638) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: isDark ? [] : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: _loading && _providers.length == 4 // Default length
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: filtered.length,
+                          separatorBuilder: (context, index) => Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+                            indent: 72,
+                          ),
+                          itemBuilder: (context, index) {
+                            final provider = filtered[index];
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              leading: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                  child: _buildProviderIcon(provider.id),
+                                ),
+                              ),
+                              title: Text(
+                                provider.name,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                              trailing: Icon(
+                                Icons.chevron_right,
+                                color: Theme.of(context).primaryColor,
+                                size: 20,
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CableDetailsScreen(provider: provider),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-// ── Supporting widgets ────────────────────────────────────────────────────────
-
-class _VerificationBadge extends StatelessWidget {
-  const _VerificationBadge({required this.ok, required this.message});
-  final bool   ok;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark  = Theme.of(context).brightness == Brightness.dark;
-    final bg      = ok ? (isDark ? const Color(0xFF123322) : const Color(0xFFEAF9EF)) : (isDark ? const Color(0xFF3A1818) : const Color(0xFFFDECEC));
-    final border  = ok ? (isDark ? const Color(0xFF34D399) : const Color(0xFF22C55E)) : (isDark ? const Color(0xFFF87171) : const Color(0xFFEF4444));
-    final txtColor = ok ? (isDark ? const Color(0xFFD1FAE5) : const Color(0xFF166534)) : (isDark ? const Color(0xFFFEE2E2) : const Color(0xFF991B1B));
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: bg, border: Border.all(color: border)),
-      child: Row(children: [
-        Icon(ok ? Icons.check_circle_outline_rounded : Icons.cancel_outlined, size: 18, color: txtColor),
-        const SizedBox(width: 8),
-        Expanded(child: Text(message, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: txtColor))),
-      ]),
-    );
-  }
-}
-
-class _AmountDisplay extends StatelessWidget {
-  const _AmountDisplay({required this.amount});
-  final double amount;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF1A2540), const Color(0xFF0F1A33)]
-              : [const Color(0xFFEEF2FF), const Color(0xFFE0E7FF)],
-        ),
-        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: Row(children: [
-        Icon(Icons.payments_outlined, size: 20, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 10),
-        Expanded(child: Text('Subscription Amount', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color))),
-        Text(
-          '₦${amount.toStringAsFixed(0)}',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Theme.of(context).colorScheme.primary),
-        ),
-      ]),
-    );
-  }
-}
-
-class _BeneficiaryTile extends StatelessWidget {
-  const _BeneficiaryTile({required this.item, required this.onTap});
-  final Map<String, dynamic> item;
-  final VoidCallback          onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final provider  = (item['provider'] ?? '').toString().toUpperCase();
-    final smartcard = (item['smartcard_number'] ?? '').toString();
-    final pkgName   = (item['package_name'] ?? item['package_code'] ?? '').toString();
-    final phone     = (item['phone_number'] ?? '').toString();
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      leading: Container(
-        width: 42, height: 42,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-        ),
-        child: Center(child: Icon(Icons.tv_rounded, size: 20, color: Theme.of(context).colorScheme.primary)),
-      ),
-      title:    Text('$provider • $smartcard', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-      subtitle: Text('$pkgName • $phone',      style: const TextStyle(fontSize: 12)),
-      trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Theme.of(context).textTheme.bodySmall?.color),
-      onTap:    onTap,
-    );
-  }
-}
-
-// ── Auth bottom sheet ─────────────────────────────────────────────────────────
-
-class _DualAuthSheet extends StatelessWidget {
-  const _DualAuthSheet({
-    required this.title,
-    required this.subtitle,
-    required this.amount,
-    required this.onPin,
-    required this.onBiometric,
-  });
-
-  final String       title;
-  final String       subtitle;
-  final String       amount;
-  final VoidCallback onPin;
-  final VoidCallback onBiometric;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color:        isDark ? const Color(0xFF111827) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(title,    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 6),
-          Text(amount,   style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 16),
-          Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: onPin,      icon: const Icon(Icons.lock_outline_rounded),  label: const Text('Use PIN'))),
-            const SizedBox(width: 10),
-            Expanded(child: FilledButton.icon(  onPressed: onBiometric, icon: const Icon(Icons.fingerprint_rounded), label: const Text('Use Biometric'))),
-          ]),
-        ],
       ),
     );
   }

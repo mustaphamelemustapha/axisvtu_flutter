@@ -815,7 +815,7 @@ class AirtimeAmountScreen extends StatefulWidget {
 }
 
 class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
-  final _amountCtrl = TextEditingController(text: '200');
+  final _amountCtrl = TextEditingController();
   bool _loading = false;
   String? _activeRequestId;
   String? _error;
@@ -826,8 +826,24 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
     super.dispose();
   }
 
-  void _invalidateRequestId() {
-    _activeRequestId = null;
+  void _onPresetSelected(String amount) {
+    setState(() {
+      _amountCtrl.text = amount;
+    });
+    _showSummaryModal();
+  }
+
+  String _resultSubtitle(String status, Map<String, dynamic> res) {
+    if (status == 'success') return 'Your airtime recharge was successful.';
+    if (status == 'pending') return 'Order submitted. Pending confirmation.';
+    return res['message']?.toString() ?? 'Transaction failed';
+  }
+
+  String _resolveResultStatus(Map<String, dynamic> res) {
+    final status = res['status']?.toString().toLowerCase() ?? 'failed';
+    if (status == 'success' || status == 'completed' || status == 'delivered') return 'success';
+    if (status == 'pending' || status == 'processing') return 'pending';
+    return 'failed';
   }
 
   bool _isUncertainPurchaseError(String message) {
@@ -840,16 +856,10 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
         text.contains('connection');
   }
 
-  Future<void> _saveRecentNumber(String number) async {
-    final digits = number.replaceAll(RegExp(r'\D'), '');
-    String normalized = digits;
-    if (digits.startsWith('234') && digits.length >= 13) {
-      normalized = '0${digits.substring(3)}';
-    } else if (!digits.startsWith('0') && digits.length == 10) {
-      normalized = '0$digits';
-    }
-    
+  Future<void> _saveRecentNumber(String phone) async {
     final prefs = await SharedPreferences.getInstance();
+    final normalized = phone.replaceAll(RegExp(r'\D'), '');
+    if (normalized.length < 10) return;
     final recent = prefs.getStringList('axis_airtime_recent_numbers_v1') ?? [];
     final next = [normalized, ...recent.where((n) => n != normalized)];
     await prefs.setStringList('axis_airtime_recent_numbers_v1', next.take(8).toList());
@@ -862,7 +872,8 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) return;
 
-    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+    final amountText = _amountCtrl.text.replaceAll(',', '').trim();
+    final amount = double.tryParse(amountText) ?? 0;
     if (amount < 50) {
       setState(() => _error = 'Minimum airtime amount is ₦50.');
       return;
@@ -931,19 +942,15 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
     }
   }
 
-  Color _getNetworkColor(String network) {
-    switch (network.toLowerCase()) {
-      case 'mtn': return const Color(0xFFFFCC00);
-      case 'airtel': return const Color(0xFFFF0000);
-      case 'glo': return const Color(0xFF009933);
-      case '9mobile': return const Color(0xFF006600);
-      default: return Theme.of(context).primaryColor;
-    }
-  }
-
   void _showSummaryModal() {
     final amountText = _amountCtrl.text.replaceAll(',', '').trim();
     final amount = double.tryParse(amountText) ?? 0;
+    
+    if (amount < 50) {
+      setState(() => _error = 'Minimum airtime amount is ₦50.');
+      return;
+    }
+    
     final phone = widget.phone;
 
     final balance = getUserBalance(context);
@@ -951,6 +958,8 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
       InsufficientFundsSheet.show(context, shortfall: amount - balance);
       return;
     }
+
+    FocusScope.of(context).unfocus();
 
     showModalBottomSheet(
       context: context,
@@ -960,7 +969,7 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
         title: 'Confirm Airtime',
         subtitle: 'Please review your airtime purchase details below',
         amount: '₦${amount.toStringAsFixed(2)}',
-        primaryColor: _getNetworkColor(widget.network),
+        primaryColor: _getNetworkColor(widget.network, context),
         headerIcon: Icons.phone_in_talk_rounded,
         items: [
           SummaryItem(label: 'Network', value: widget.network.toUpperCase(), icon: Icons.cell_tower_rounded),
@@ -969,15 +978,11 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
         ],
         onProceedPin: () {
           Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            _submit(authMethod: PurchaseAuthService.methodPin);
-          });
+          _submit(authMethod: PurchaseAuthService.methodPin);
         },
         onProceedBiometric: () {
           Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            _submit(authMethod: PurchaseAuthService.methodBiometric);
-          });
+          _submit(authMethod: PurchaseAuthService.methodBiometric);
         },
       ),
     );
@@ -993,7 +998,8 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
     }
     final ok = status == 'success';
     final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
-    final amount = _amountCtrl.text.trim();
+    final amountText = _amountCtrl.text.replaceAll(',', '').trim();
+    final amount = double.tryParse(amountText) ?? 0;
 
     final isSuccess = status.toLowerCase() != 'failed';
     
@@ -1004,7 +1010,7 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
       'Transaction Type': 'Airtime Recharge',
       'Network': widget.network.toUpperCase(),
       'Phone Number': widget.phone,
-      'Amount': '₦$amount',
+      'Amount': '₦${amount.toStringAsFixed(2)}',
     };
 
     showModalBottomSheet(
@@ -1014,8 +1020,8 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
       builder: (context) => EpicReceiptModal(
         isSuccess: ok,
         title: 'Airtime Recharge',
-        amount: '₦$amount',
-        primaryColor: _getNetworkColor(widget.network),
+        amount: '₦${amount.toStringAsFixed(2)}',
+        primaryColor: _getNetworkColor(widget.network, context),
         details: details,
         onSave: () {
           showDialog(
@@ -1026,9 +1032,9 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
               child: EpicShareableReceipt(
                 ok: ok,
                 title: 'Airtime Recharge',
-                amount: '₦$amount',
+                amount: '₦${amount.toStringAsFixed(2)}',
                 details: details,
-                primaryColor: _getNetworkColor(widget.network),
+                primaryColor: _getNetworkColor(widget.network, context),
               ),
             ),
           );
@@ -1041,163 +1047,246 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
     });
   }
 
-  void _shareReceipt(bool ok, String sender, String phone, String amount) {
-    HapticFeedback.mediumImpact();
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-        child: _ShareableReceipt(
-          ok: ok,
-          sender: sender,
-          phone: phone,
-          type: 'Airtime',
-          network: widget.network.toUpperCase(),
-          amount: '₦$amount',
-          time: _formatDate(DateTime.now()),
-        ),
-      ),
-    );
-  }
-
-  String _resolveResultStatus(Map<String, dynamic> payload) {
-    final statusRaw = (payload['status'] ?? '').toString().trim().toLowerCase();
-    final ok = payload['success'] == true || statusRaw == 'success' || statusRaw == 'successful' || statusRaw == 'delivered';
-    if (ok) return 'success';
-    if (statusRaw == 'pending' || statusRaw == 'processing') return 'pending';
-    return 'failed';
-  }
-
-  String _resultSubtitle(String status, Map<String, dynamic> payload) {
-    final message = (payload['message'] ?? payload['detail'] ?? '').toString().trim();
-    if (message.isNotEmpty) return message;
-    if (status == 'success') return 'Airtime order completed successfully.';
-    return 'Airtime order failed.';
-  }
-
-  String _formatDate(DateTime value) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${two(value.day)} ${_monthName(value.month)} ${value.year} at ${two(value.hour)}:${two(value.minute)}';
-  }
-
-  String _monthName(int month) {
-    const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return names[month - 1];
-  }
-
   @override
   Widget build(BuildContext context) {
+    final netColor = _getNetworkColor(widget.network, context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = Theme.of(context).colorScheme.primary;
-
+    
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0F141E) : const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black),
+          icon: Icon(Icons.arrow_back_ios, color: isDark ? Colors.white : Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Select Amount',
+          'Add amount',
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: primary.withValues(alpha: 0.1)),
-              ),
-              child: Row(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
+              // Network & Phone Info Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 24,
+                    height: 24,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      color: netColor,
+                      shape: BoxShape.circle,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: _NetworkIcon(network: widget.network, size: 32),
+                    child: Center(
+                      child: Text(
+                        widget.network.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.phone,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        Text(
-                          widget.network.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: primary,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.network.toUpperCase(),
+                    style: TextStyle(
+                      color: isDark ? Colors.blue.shade300 : Colors.blue,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.keyboard_arrow_down, color: isDark ? Colors.blue.shade300 : Colors.blue, size: 16),
+                  const SizedBox(width: 12),
+                  Text(
+                    widget.phone,
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontSize: 14,
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 32),
-            _AirtimeAmountPicker(
-              amountCtrl: _amountCtrl,
-              onProceed: _showSummaryModal,
-              loading: _loading,
-              network: widget.network,
-            ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 24),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
+              
+              const SizedBox(height: 48),
+              
+              // Massive Amount Display with TextField
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    '₦',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
+                  const SizedBox(width: 6),
+                  IntrinsicWidth(
+                    child: TextField(
+                      controller: _amountCtrl,
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                      textAlign: TextAlign.center,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _showSummaryModal(),
+                      onChanged: (_) {
+                        setState(() { _error = null; });
+                      },
+                      style: TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        ),
+                        border: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
                     _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontWeight: FontWeight.w600,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ),
+              
+              const SizedBox(height: 16),
+              
+              // Allowed Limit
+              Text(
+                'Allowed limit: ₦50 – ₦50,000',
+                style: TextStyle(
+                  color: isDark ? Colors.white54 : Colors.grey,
+                  fontSize: 13,
+                ),
+              ),
+              
+              const SizedBox(height: 48),
+              
+              // Preset Grid (No Cashbacks)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 1.3,
+                  children: [
+                    _PresetCard(amount: '100', isDark: isDark, onTap: () => _onPresetSelected('100')),
+                    _PresetCard(amount: '200', isDark: isDark, onTap: () => _onPresetSelected('200')),
+                    _PresetCard(amount: '300', isDark: isDark, onTap: () => _onPresetSelected('300')),
+                    _PresetCard(amount: '500', isDark: isDark, onTap: () => _onPresetSelected('500')),
+                    _PresetCard(amount: '1000', isDark: isDark, onTap: () => _onPresetSelected('1000')),
+                    _PresetCard(amount: '2000', isDark: isDark, onTap: () => _onPresetSelected('2000')),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _showSummaryModal,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Proceed',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetCard extends StatelessWidget {
+  final String amount;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _PresetCard({
+    required this.amount,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E2638) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+          ),
+          boxShadow: isDark ? [] : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
           ],
+        ),
+        child: Center(
+          child: Text(
+            '₦$amount',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
         ),
       ),
     );

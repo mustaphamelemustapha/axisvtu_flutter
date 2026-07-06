@@ -152,7 +152,7 @@ class _EpicPurchaseSummaryState extends State<EpicPurchaseSummary> {
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.5,
                   ),
-                ).animate().fade().slideY(begin: 0.2, duration: const Duration(milliseconds: 400)),
+                ).animate().fade().slideY(begin: 0.2, duration: const Duration(milliseconds: 200)),
                 const SizedBox(height: 8),
                 Text(
                   widget.subtitle,
@@ -161,7 +161,7 @@ class _EpicPurchaseSummaryState extends State<EpicPurchaseSummary> {
                     color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                     fontWeight: FontWeight.w500,
                   ),
-                ).animate().fade().slideY(begin: 0.2, duration: const Duration(milliseconds: 450)),
+                ).animate().fade().slideY(begin: 0.2, duration: const Duration(milliseconds: 200)),
                 
                 const SizedBox(height: 36),
                 
@@ -203,15 +203,15 @@ class _EpicPurchaseSummaryState extends State<EpicPurchaseSummary> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '₦${widget.amount}',
+                        widget.amount,
                         style: TextStyle(
                           fontSize: 42,
                           fontWeight: FontWeight.w900,
-                          color: primary,
+                          color: isDark ? Colors.white : primary,
                           letterSpacing: -1.5,
                           shadows: [
                             Shadow(
-                              color: primary.withValues(alpha: 0.3),
+                              color: (isDark ? Colors.white : primary).withValues(alpha: 0.3),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -220,7 +220,7 @@ class _EpicPurchaseSummaryState extends State<EpicPurchaseSummary> {
                       ),
                     ],
                   ),
-                ).animate().fade(delay: const Duration(milliseconds: 100)).slideY(begin: 0.1),
+                ).animate().fade(delay: const Duration(milliseconds: 50)).slideY(begin: 0.1, duration: const Duration(milliseconds: 200)),
                 
                 const SizedBox(height: 32),
                 
@@ -232,7 +232,7 @@ class _EpicPurchaseSummaryState extends State<EpicPurchaseSummary> {
                       value: entry.value.value,
                       icon: entry.value.icon,
                       isDark: isDark,
-                    ).animate().fade(delay: Duration(milliseconds: 200 + (entry.key * 50))).slideX(begin: 0.1);
+                    ).animate().fade(delay: Duration(milliseconds: 50 + (entry.key * 20))).slideX(begin: 0.1, duration: const Duration(milliseconds: 200));
                   }).toList(),
                 ),
                 

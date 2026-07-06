@@ -1,28 +1,22 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import '../services/api_client.dart';
-import '../services/purchase_auth_service.dart';
-import '../services/request_id.dart';
 import '../services/services_service.dart';
 import '../state/session.dart';
-import '../widgets/purchase_loading_overlay.dart';
-import '../widgets/purchase_result_sheet.dart';
-import '../widgets/service_shell.dart';
-import '../widgets/epic_purchase_summary.dart';
-import '../widgets/epic_receipt_modal.dart';
-import '../widgets/sticky_checkout_bar.dart';
-import '../widgets/insufficient_funds_sheet.dart';
-import '../utils/balance_util.dart';
-import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
-import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
-import 'package:permission_handler/permission_handler.dart';
-import '../widgets/elite_phone_input.dart';
-import '../services/permission_service.dart';
+import 'electricity_meter_screen.dart';
+
+class ElectricityProvider {
+  final String discoId;
+  final String name;
+  final String type; // prepaid or postpaid
+  final String imagePath;
+
+  ElectricityProvider({
+    required this.discoId,
+    required this.name,
+    required this.type,
+    required this.imagePath,
+  });
+}
 
 class ElectricityScreen extends StatefulWidget {
   const ElectricityScreen({super.key});
@@ -32,971 +26,266 @@ class ElectricityScreen extends StatefulWidget {
 }
 
 class _ElectricityScreenState extends State<ElectricityScreen> {
-  static const _saveBeneficiaryKey = 'axis_electricity_save_beneficiary_v1';
-  static const _beneficiariesKey = 'axis_electricity_beneficiaries_v1';
-  static const Map<String, List<String>> _networkPrefixes = {
-    'mtn': [
-      '07025',
-      '07026',
-      '0803',
-      '0806',
-      '0703',
-      '0706',
-      '0810',
-      '0813',
-      '0814',
-      '0816',
-      '0903',
-      '0906',
-      '0913',
-      '0916',
-      '0704',
-    ],
-    'airtel': [
-      '0802',
-      '0808',
-      '0708',
-      '0812',
-      '0701',
-      '0902',
-      '0907',
-      '0901',
-      '0912',
-    ],
-    'glo': ['0805', '0807', '0705', '0815', '0811', '0905', '0915'],
-    '9mobile': ['0809', '0817', '0818', '0908', '0909'],
-  };
-
-  final _meterNumberCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _amountCtrl = TextEditingController(text: '2000');
-  String _detectedNetwork = '';
-
-  String _disco = 'ikeja';
-  String _meterType = 'prepaid';
-  List<String> _discos = const [
-    'ikeja',
-    'eko',
-    'abuja',
-    'kano',
-    'ibadan',
-    'enugu',
-    'portharcourt',
-    'kaduna',
-  ];
-  bool _loading = false;
-  bool _verifying = false;
-  String? _activeRequestId;
-  bool _saveBeneficiary = true;
-  List<Map<String, dynamic>> _beneficiaries = [];
-  String? _error;
-
-  // Verification state
-  bool _verificationChecked = false;
-  bool _verificationOk = false;
-  String _verifiedCustomerName = '';
-  String _verificationMessage = '';
+  final TextEditingController _searchCtrl = TextEditingController();
+  List<ElectricityProvider> _allProviders = [];
+  List<ElectricityProvider> _filteredProviders = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _meterNumberCtrl.addListener(_invalidateRequestId);
-    _meterNumberCtrl.addListener(_clearVerification);
-    _phoneCtrl.addListener(_onPhoneChanged);
-    _amountCtrl.addListener(_invalidateRequestId);
+    _searchCtrl.addListener(_onSearch);
     _loadCatalog();
-    _loadPreferences();
   }
 
   @override
   void dispose() {
-    _meterNumberCtrl.removeListener(_invalidateRequestId);
-    _meterNumberCtrl.removeListener(_clearVerification);
-    _phoneCtrl.removeListener(_onPhoneChanged);
-    _amountCtrl.removeListener(_invalidateRequestId);
-    _meterNumberCtrl.dispose();
-    _phoneCtrl.dispose();
-    _amountCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
+  }
+
+  String _getDiscoImage(String disco) {
+    switch (disco.toLowerCase()) {
+      case 'ikeja': return 'assets/images/discos/ikeja.png';
+      case 'eko': return 'assets/images/discos/eko.png';
+      case 'abuja': return 'assets/images/discos/abuja.png';
+      case 'kano': return 'assets/images/discos/kano.png';
+      case 'ibadan': return 'assets/images/discos/ibadan.png';
+      case 'enugu': return 'assets/images/discos/enugu.png';
+      case 'portharcourt': return 'assets/images/discos/ph.png';
+      case 'kaduna': return 'assets/images/discos/kaduna.png';
+      case 'jos': return 'assets/images/discos/jos.png';
+      case 'aba': return 'assets/images/discos/aba.png';
+      case 'benin': return 'assets/images/discos/benin.png';
+      default: return 'assets/images/discos/default.png';
+    }
+  }
+
+  String _formatDiscoName(String disco) {
+    final mapping = {
+      'ikeja': 'Ikeja Electricity Distribution',
+      'eko': 'Eko Electricity Distribution',
+      'abuja': 'Abuja Electricity Distribution',
+      'kano': 'Kano Electricity Distribution',
+      'ibadan': 'Ibadan Electricity Distribution',
+      'enugu': 'Enugu Electricity Distribution',
+      'portharcourt': 'Port-Harcourt Electricity Distribution',
+      'kaduna': 'Kaduna Electricity Distribution',
+      'jos': 'Jos Electricity Distribution',
+      'aba': 'Aba Electricity Distribution',
+      'benin': 'Benin Electricity Distribution Company (BEDC)',
+    };
+    return mapping[disco.toLowerCase()] ?? disco.toUpperCase();
   }
 
   Future<void> _loadCatalog() async {
     final token = (context.read<SessionController>().token ?? '').trim();
-    if (token.isEmpty) return;
+    if (token.isEmpty) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    
     try {
       final data = await ServicesService(token: token).getCatalog();
       final raw = data['electricity_discos'];
+      
+      List<ElectricityProvider> providers = [];
       if (raw is List && raw.isNotEmpty) {
-        final items = raw
-            .map((e) => e.toString().trim().toLowerCase())
-            .where((e) => e.isNotEmpty)
-            .toList();
-        if (!mounted) return;
-        setState(() {
-          _invalidateRequestId();
-          _discos = items;
-          if (!_discos.contains(_disco)) {
-            _disco = _discos.first;
+        for (var e in raw) {
+          final disco = e.toString().trim().toLowerCase();
+          if (disco.isNotEmpty) {
+            providers.add(ElectricityProvider(
+              discoId: disco,
+              name: '${_formatDiscoName(disco)} Postpaid',
+              type: 'postpaid',
+              imagePath: _getDiscoImage(disco),
+            ));
+            providers.add(ElectricityProvider(
+              discoId: disco,
+              name: '${_formatDiscoName(disco)} Prepaid',
+              type: 'prepaid',
+              imagePath: _getDiscoImage(disco),
+            ));
           }
+        }
+      }
+      
+      // If backend failed to return discos, provide fallbacks
+      if (providers.isEmpty) {
+        final fallbacks = ['aba', 'abuja', 'benin', 'eko', 'enugu', 'ibadan', 'ikeja', 'jos', 'kaduna', 'kano', 'portharcourt'];
+        for (var disco in fallbacks) {
+            providers.add(ElectricityProvider(
+              discoId: disco,
+              name: '${_formatDiscoName(disco)} Postpaid',
+              type: 'postpaid',
+              imagePath: _getDiscoImage(disco),
+            ));
+            providers.add(ElectricityProvider(
+              discoId: disco,
+              name: '${_formatDiscoName(disco)} Prepaid',
+              type: 'prepaid',
+              imagePath: _getDiscoImage(disco),
+            ));
+        }
+      }
+
+      // Sort alphabetically like screenshot
+      providers.sort((a, b) => a.name.compareTo(b.name));
+
+      if (mounted) {
+        setState(() {
+          _allProviders = providers;
+          _filteredProviders = providers;
+          _loading = false;
         });
       }
-    } catch (_) {}
-  }
-
-  Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool(_saveBeneficiaryKey) ?? _saveBeneficiary;
-    final raw = prefs.getString(_beneficiariesKey);
-    final list = <Map<String, dynamic>>[];
-    if (raw != null && raw.isNotEmpty) {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) {
-        for (final item in decoded) {
-          if (item is Map) {
-            list.add(item.map((k, v) => MapEntry(k.toString(), v)));
-          }
-        }
-      }
-    }
-    if (!mounted) return;
-    setState(() {
-      _saveBeneficiary = enabled;
-      _beneficiaries = list;
-    });
-  }
-
-  void _invalidateRequestId() {
-    _activeRequestId = null;
-  }
-
-  String _normalizePhone(String input) {
-    var digits = input.replaceAll(RegExp(r'\D'), '');
-    if (digits.startsWith('234')) {
-      digits = '0${digits.substring(3)}';
-    }
-    if (digits.length == 10 && !digits.startsWith('0')) {
-      digits = '0$digits';
-    }
-    return digits;
-  }
-
-  String? _detectNetwork(String normalizedPhone) {
-    if (normalizedPhone.length < 4) return null;
-    final prefixes = <MapEntry<String, String>>[];
-    _networkPrefixes.forEach((network, items) {
-      for (final prefix in items) {
-        prefixes.add(MapEntry(prefix, network));
-      }
-    });
-    prefixes.sort((a, b) => b.key.length.compareTo(a.key.length));
-    for (final entry in prefixes) {
-      if (normalizedPhone.startsWith(entry.key)) {
-        return entry.value;
-      }
-    }
-    return null;
-  }
-
-  void _onPhoneChanged() {
-    _invalidateRequestId();
-    final normalized = _normalizePhone(_phoneCtrl.text);
-    final detected = _detectNetwork(normalized) ?? '';
-    if (detected != _detectedNetwork) {
-      setState(() {
-        _detectedNetwork = detected;
-      });
-    }
-  }
-
-  final FlutterNativeContactPicker _contactPicker = FlutterNativeContactPicker();
-
-  Future<void> _pickContact() async {
-    try {
-      final granted = await PermissionService.requestContactPermission(context);
-      if (!granted) return;
-
-      final native_contact.Contact? contact = await _contactPicker.selectContact();
-      if (contact != null && contact.phoneNumbers != null && contact.phoneNumbers!.isNotEmpty) {
-        String phone = contact.phoneNumbers!.first.replaceAll(RegExp(r'\D'), '');
-        // Strip 234 prefix if present
-        if (phone.startsWith('234') && phone.length > 10) {
-          phone = '0${phone.substring(3)}';
-        }
-        _phoneCtrl.text = phone;
-        _onPhoneChanged();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking contact: $e')),
-      );
-    }
-  }
-
-  void _clearVerification() {
-    if (_verificationChecked || _verificationOk) {
-      setState(() {
-        _verificationChecked = false;
-        _verificationOk = false;
-        _verifiedCustomerName = '';
-        _verificationMessage = '';
-      });
-    }
-  }
-
-  Future<void> _verifyMeter() async {
-    final token = (context.read<SessionController>().token ?? '').trim();
-    if (token.isEmpty) return;
-
-    final meterNumber = _meterNumberCtrl.text.replaceAll(RegExp(r'\D'), '');
-    if (meterNumber.length < 5) {
-      setState(() => _error = 'Enter a valid meter number to verify.');
-      return;
-    }
-
-    setState(() {
-      _verifying = true;
-      _verificationChecked = false;
-      _verificationOk = false;
-      _verifiedCustomerName = '';
-      _verificationMessage = '';
-      _error = null;
-    });
-
-    try {
-      final res = await ServicesService(token: token).verifyElectricity(
-        disco: _disco,
-        meterType: _meterType,
-        meterNumber: meterNumber,
-      );
-      final ok = res['ok'] == true;
-      setState(() {
-        _verificationChecked = true;
-        _verificationOk = ok;
-        _verifiedCustomerName = ok
-            ? (res['customer_name'] ?? '').toString().trim()
-            : '';
-        _verificationMessage = ok
-            ? 'Meter verified successfully.'
-            : (res['message'] ?? 'Unable to verify meter number.').toString();
-      });
-    } catch (e) {
-      final msg = e is ApiException ? e.message : e.toString();
-      setState(() {
-        _verificationChecked = true;
-        _verificationOk = false;
-        _verificationMessage = msg.isNotEmpty
-            ? msg
-            : 'Unable to verify meter number right now.';
-      });
-    } finally {
-      if (mounted) setState(() => _verifying = false);
-    }
-  }
-
-  Future<void> _savePreference(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_saveBeneficiaryKey, value);
-  }
-
-  Future<void> _saveBeneficiaryFromInput() async {
-    if (!_saveBeneficiary) return;
-    final meterNumber = _meterNumberCtrl.text.replaceAll(RegExp(r'\D'), '');
-    final phone = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
-    final amount = _amountCtrl.text.trim();
-    if (meterNumber.isEmpty || phone.isEmpty) return;
-
-    final entry = <String, dynamic>{
-      'disco': _disco,
-      'meter_type': _meterType,
-      'meter_number': meterNumber,
-      'phone_number': phone,
-      'amount': amount,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-
-    final identity =
-        '${_disco.toLowerCase()}|${_meterType.toLowerCase()}|$meterNumber';
-    final next = <Map<String, dynamic>>[
-      entry,
-      ..._beneficiaries.where((item) {
-        final key =
-            '${(item['disco'] ?? '').toString().toLowerCase()}|${(item['meter_type'] ?? '').toString().toLowerCase()}|${(item['meter_number'] ?? '').toString()}';
-        return key != identity;
-      }),
-    ].take(10).toList();
-
-    setState(() => _beneficiaries = next);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_beneficiariesKey, jsonEncode(next));
-  }
-
-  void _applyBeneficiary(Map<String, dynamic> item) {
-    final disco = (item['disco'] ?? _disco).toString().toLowerCase();
-    final meterType = (item['meter_type'] ?? _meterType)
-        .toString()
-        .toLowerCase();
-    final meterNumber = (item['meter_number'] ?? '').toString().trim();
-    final phone = (item['phone_number'] ?? '').toString().trim();
-    final amount = (item['amount'] ?? '').toString().trim();
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _invalidateRequestId();
-      _verificationChecked = false;
-      _verificationOk = false;
-      _verifiedCustomerName = '';
-      _verificationMessage = '';
-      if (_discos.contains(disco)) {
-        _disco = disco;
-      }
-      if (meterType == 'prepaid' || meterType == 'postpaid') {
-        _meterType = meterType;
-      }
-      _meterNumberCtrl.text = meterNumber;
-      _phoneCtrl.text = phone;
-      if (amount.isNotEmpty) {
-        _amountCtrl.text = amount;
-      }
-    });
-  }
-
-  Future<void> _submit({
-    String authMethod = PurchaseAuthService.methodAuto,
-  }) async {
-    if (_loading) return;
-    final token = (context.read<SessionController>().token ?? '').trim();
-    if (token.isEmpty) return;
-
-    final meterNumber = _meterNumberCtrl.text.replaceAll(RegExp(r'\D'), '');
-    final phone = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
-    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
-
-    if (!_verificationOk) {
-      setState(() => _error = 'Please verify your meter number before paying.');
-      return;
-    }
-    if (meterNumber.length < 6 || meterNumber.length > 13) {
-      setState(() => _error = 'Enter a valid meter number.');
-      return;
-    }
-    if (phone.length < 7 || phone.length > 15) {
-      setState(() => _error = 'Enter a valid phone number.');
-      return;
-    }
-    if (amount < 500) {
-      setState(() => _error = 'Minimum electricity amount is ₦500.');
-      return;
-    }
-
-    final authorized = await PurchaseAuthService.authorizePin(
-      context: context,
-      reason: 'electricity subscription',
-      preferredMethod: authMethod,
-    );
-    if (!mounted || !authorized) return;
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    PurchaseLoadingOverlay.show(context, title: 'Processing order');
-
-    try {
-      _activeRequestId ??= buildRequestId("electricity");
-      final res = await ServicesService(token: token).purchaseElectricity(
-        disco: _disco,
-        meterType: _meterType,
-        meterNumber: meterNumber,
-        phoneNumber: phone,
-        amount: amount,
-        clientRequestId: _activeRequestId,
-      );
-      final status = _resolveResultStatus(res);
-      if (!mounted) return;
-      if (status != 'failed') {
-        await _saveBeneficiaryFromInput();
-      }
-      PurchaseLoadingOverlay.hide();
-      _showResult(
-        status: status,
-        subtitle: _resultSubtitle(status, res),
-        reference: (res['reference'] ?? '').toString(),
-        fields: [
-          ReceiptField(label: 'Disco', value: _disco.toUpperCase()),
-          ReceiptField(label: 'Meter Number', value: meterNumber),
-          ReceiptField(label: 'Meter Type', value: _meterType.toUpperCase()),
-          if (_verifiedCustomerName.isNotEmpty)
-            ReceiptField(label: 'Customer Name', value: _verifiedCustomerName),
-          ReceiptField(label: 'Phone', value: phone),
-          ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
-          ReceiptField(label: 'Token', value: (res['token'] ?? '').toString()),
-        ],
-      );
-      if (status != 'pending') {
-        _activeRequestId = null;
-      }
-    } catch (e) {
-      if (!mounted) return;
-      final message = e is ApiException ? e.message : e.toString();
-      PurchaseLoadingOverlay.hide();
-      _showResult(
-        status: 'failed',
-        subtitle: message,
-        reference:
-            'AXIS-ELECTRICITY-ATTEMPT-${DateTime.now().millisecondsSinceEpoch}',
-        fields: [
-          ReceiptField(label: 'Disco', value: _disco.toUpperCase()),
-          ReceiptField(label: 'Meter Number', value: meterNumber),
-          ReceiptField(label: 'Meter Type', value: _meterType.toUpperCase()),
-          ReceiptField(label: 'Phone', value: phone),
-          ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
-          ReceiptField(label: 'Failure', value: message),
-        ],
-      );
-      _activeRequestId = null;
-    } finally {
-      PurchaseLoadingOverlay.hide();
+    } catch (_) {
       if (mounted) {
         setState(() => _loading = false);
       }
     }
   }
 
-  Color _getDiscoColor(String disco) {
-    switch (disco.toLowerCase()) {
-      case 'ikeja': return const Color(0xFFE53935);
-      case 'eko': return const Color(0xFF1E88E5);
-      case 'abuja': return const Color(0xFF43A047);
-      case 'kano': return const Color(0xFF8E24AA);
-      default: return Theme.of(context).primaryColor;
-    }
-  }
-
-  void _showAuthChoiceSheet() {
-    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
-    final meter = _meterNumberCtrl.text.trim();
-
-    final balance = getUserBalance(context);
-    if (balance < amount) {
-      InsufficientFundsSheet.show(context, shortfall: amount - balance);
-      return;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => EpicPurchaseSummary(
-        title: 'Confirm Electricity',
-        subtitle: 'Please review your electricity token details below',
-        amount: '₦${amount.toStringAsFixed(2)}',
-        primaryColor: _getDiscoColor(_disco),
-        headerIcon: Icons.bolt_rounded,
-        items: [
-          SummaryItem(label: 'Disco', value: _disco.toUpperCase(), icon: Icons.electric_meter_rounded),
-          SummaryItem(label: 'Meter Number', value: meter, icon: Icons.numbers_rounded),
-          SummaryItem(label: 'Meter Type', value: _meterType.toUpperCase(), icon: Icons.category_rounded),
-          SummaryItem(label: 'Phone Number', value: _phoneCtrl.text.trim(), icon: Icons.phone_android_rounded),
-        ],
-        onProceedPin: () {
-          Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            _submit(authMethod: PurchaseAuthService.methodPin);
-          });
-        },
-        onProceedBiometric: () {
-          Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            _submit(authMethod: PurchaseAuthService.methodBiometric);
-          });
-        },
-      ),
-    );
-  }
-
-  void _showResult({
-    required String status,
-    required String subtitle,
-    required String reference,
-    required List<ReceiptField> fields,
-  }) {
-    if (status != 'failed') {
-      context.read<SessionController>().refreshBalance();
-    }
-    final ok = status == 'success';
-    final isSuccess = status.toLowerCase() != 'failed';
-    final userName = context.read<SessionController>().user?['full_name'] ?? 'User';
-    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
-
-    final Map<String, String> details = {
-      'Date & Time': DateTime.now().toString().substring(0, 16),
-      'Sender': userName,
-      'Provider': 'MELE DATA',
-      'Transaction Type': 'Electricity Token',
-      'Disco': _disco.toUpperCase(),
-      'Meter Number': _meterNumberCtrl.text.trim(),
-      'Meter Type': _meterType.toUpperCase(),
-      'Reference': reference,
-    };
-
-    // Extract token if any from fields to put it in details
-    for (final field in fields) {
-      if (field.label.toLowerCase().contains('token') && field.value.isNotEmpty) {
-        details['Token'] = field.value;
-      }
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => EpicReceiptModal(
-        isSuccess: ok,
-        title: 'Electricity Token',
-        amount: '₦${amount.toStringAsFixed(2)}',
-        primaryColor: _getDiscoColor(_disco),
-        details: details,
-        onSave: () {
-          showDialog(
-            context: context,
-            builder: (context) => Dialog(
-              backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-              child: EpicShareableReceipt(
-                ok: ok,
-                title: 'Electricity Token',
-                amount: '₦${amount.toStringAsFixed(2)}',
-                details: details,
-                primaryColor: _getDiscoColor(_disco),
-              ),
-            ),
-          );
-        },
-      ),
-    ).then((_) {
-      if (isSuccess && mounted) {
-        Navigator.popUntil(context, (route) => route.isFirst);
+  void _onSearch() {
+    final query = _searchCtrl.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProviders = _allProviders;
+      } else {
+        _filteredProviders = _allProviders.where((p) {
+          return p.name.toLowerCase().contains(query);
+        }).toList();
       }
     });
   }
 
-  String _resolveResultStatus(Map<String, dynamic> payload) {
-    final statusRaw = (payload['status'] ?? '').toString().trim().toLowerCase();
-    final ok =
-        payload['success'] == true ||
-        statusRaw == 'success' ||
-        statusRaw == 'successful' ||
-        statusRaw == 'delivered' ||
-        statusRaw == 'completed' ||
-        statusRaw == 'order_completed';
-    if (ok) return 'success';
-    final pending =
-        statusRaw == 'pending' ||
-        statusRaw == 'processing' ||
-        statusRaw == 'queued' ||
-        statusRaw == 'order_received' ||
-        statusRaw == 'order_onhold';
-    if (pending) return 'pending';
-    return 'failed';
-  }
-
-  String _statusTitle({
-    required String status,
-    required String success,
-    required String pending,
-    required String failed,
-  }) {
-    final normalized = status.toLowerCase();
-    if (normalized == 'success') return success;
-    if (normalized == 'pending') return pending;
-    return failed;
-  }
-
-  String _resultSubtitle(String status, Map<String, dynamic> payload) {
-    final message = (payload['message'] ?? payload['detail'] ?? '')
-        .toString()
-        .trim();
-    if (message.isNotEmpty) return message;
-    if (status == 'success') {
-      return 'Electricity order completed successfully.';
-    }
-    if (status == 'pending') {
-      return 'Electricity request received and currently processing.';
-    }
-    return 'Electricity order failed.';
-  }
-
-  String _formatDate(DateTime value) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${two(value.day)}/${two(value.month)}/${value.year} ${two(value.hour)}:${two(value.minute)}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
-    return ServiceShell(
-      title: 'Electricity',
-      subtitle: 'Pay prepaid or postpaid meter with a polished checkout.',
-      icon: Icons.flash_on_rounded,
-      footer: StickyCheckoutBar(
-        title: _disco.toUpperCase(),
-        subtitle: _meterNumberCtrl.text.trim().isEmpty
-            ? 'Enter meter number'
-            : _meterNumberCtrl.text.trim(),
-        amount: '₦${amount.toStringAsFixed(2)}',
-        active: _verificationOk && !_loading && amount >= 500,
-        loading: _loading,
-        onBuy: _showAuthChoiceSheet,
-        actionLabel: 'Confirm',
-        icon: Icons.flash_on_rounded,
-      ),
-      child: Column(
-        children: [
-          ServiceSectionCard(
-            title: 'Disco',
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _discos.map((n) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: ServiceChoiceChip(
-                      label: n.toUpperCase(),
-                      selected: _disco == n,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        _invalidateRequestId();
-                        setState(() {
-                          _disco = n;
-                          _verificationChecked = false;
-                          _verificationOk = false;
-                          _verifiedCustomerName = '';
-                          _verificationMessage = '';
-                        });
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          ServiceSectionCard(
-            title: 'Meter Type',
-            child: Row(
-              children: [
-                ServiceChoiceChip(
-                  label: 'PREPAID',
-                  selected: _meterType == 'prepaid',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _invalidateRequestId();
-                    setState(() {
-                      _meterType = 'prepaid';
-                      _verificationChecked = false;
-                      _verificationOk = false;
-                      _verifiedCustomerName = '';
-                      _verificationMessage = '';
-                    });
-                  },
-                ),
-                const SizedBox(width: 10),
-                ServiceChoiceChip(
-                  label: 'POSTPAID',
-                  selected: _meterType == 'postpaid',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _invalidateRequestId();
-                    setState(() {
-                      _meterType = 'postpaid';
-                      _verificationChecked = false;
-                      _verificationOk = false;
-                      _verifiedCustomerName = '';
-                      _verificationMessage = '';
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          ServiceSectionCard(
-            title: 'Payment Details',
-            child: Column(
-              children: [
-                TextField(
-                  controller: _meterNumberCtrl,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                  decoration: InputDecoration(
-                    labelText: 'Meter Number',
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                    prefixIcon: const Icon(Icons.pin_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: const BorderSide(width: 1.5),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // --- Verify Meter button & feedback ---
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: _verifying ? null : _verifyMeter,
-                        icon: _verifying
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.verified_user_rounded, size: 18),
-                        label: Text(
-                          _verifying ? 'Verifying...' : 'Verify Meter Account',
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_verificationChecked) ...[
-                  const SizedBox(height: 8),
-                  Builder(
-                    builder: (context) {
-                      final isDark =
-                          Theme.of(context).brightness == Brightness.dark;
-                      final okBg = isDark
-                          ? const Color(0xFF123322)
-                          : const Color(0xFFEAF9EF);
-                      final failBg = isDark
-                          ? const Color(0xFF3A1818)
-                          : const Color(0xFFFDECEC);
-                      final okBorder = isDark
-                          ? const Color(0xFF34D399)
-                          : const Color(0xFF22C55E);
-                      final failBorder = isDark
-                          ? const Color(0xFFF87171)
-                          : const Color(0xFFEF4444);
-                      final okText = isDark
-                          ? const Color(0xFFD1FAE5)
-                          : const Color(0xFF166534);
-                      final failText = isDark
-                          ? const Color(0xFFFEE2E2)
-                          : const Color(0xFF991B1B);
-
-                      return Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: _verificationOk ? okBg : failBg,
-                          border: Border.all(
-                            color: _verificationOk ? okBorder : failBorder,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _verificationOk
-                                  ? Icons.check_circle_outline_rounded
-                                  : Icons.cancel_outlined,
-                              size: 18,
-                              color: _verificationOk ? okText : failText,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _verificationOk &&
-                                        _verifiedCustomerName.isNotEmpty
-                                    ? 'Customer: $_verifiedCustomerName'
-                                    : _verificationMessage,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: _verificationOk ? okText : failText,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
-                const SizedBox(height: 16),
-                ElitePhoneInput(
-                  controller: _phoneCtrl,
-                  network: _detectedNetwork,
-                  onChanged: (v) => _onPhoneChanged(),
-                  onContactTap: _pickContact,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-                  decoration: InputDecoration(
-                    labelText: 'Amount (₦)',
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                    prefixIcon: const Icon(Icons.payments_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: const BorderSide(width: 1.5),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [1000, 2000, 5000, 10000]
-                      .map(
-                        (v) => ActionChip(
-                          label: Text('₦$v'),
-                          onPressed: () => setState(() {
-                            _invalidateRequestId();
-                            _amountCtrl.text = v.toString();
-                          }),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
-            ),
-          ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.error.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline_rounded,
-                      color: Theme.of(context).colorScheme.error,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
+  void _selectProvider(ElectricityProvider provider) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ElectricityMeterScreen(provider: provider),
       ),
     );
   }
-}
-
-class _DualAuthSheet extends StatelessWidget {
-  const _DualAuthSheet({
-    required this.title,
-    required this.subtitle,
-    required this.amount,
-    required this.onPin,
-    required this.onBiometric,
-  });
-
-  final String title;
-  final String subtitle;
-  final String amount;
-  final VoidCallback onPin;
-  final VoidCallback onBiometric;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF111827) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+    
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F141E) : const Color(0xFFF9FAFB),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios, color: isDark ? Colors.white : Colors.black, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Electricity',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
-          const SizedBox(height: 6),
-          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 6),
-          Text(
-            amount,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onPin,
-                  icon: const Icon(Icons.lock_outline_rounded),
-                  label: const Text('Use PIN'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onBiometric,
-                  icon: const Icon(Icons.fingerprint_rounded),
-                  label: const Text('Use Biometric'),
-                ),
-              ),
-            ],
-          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.receipt_long, color: Theme.of(context).primaryColor),
+            onPressed: () {}, // Optional: history
+          )
         ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E2638) : const Color(0xFFEBEFF4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  controller: _searchCtrl,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
+                    fontSize: 15,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Search all billers',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white54 : Colors.black45,
+                      fontSize: 15,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ),
+            ),
+            
+            Expanded(
+              child: _loading 
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    itemCount: _filteredProviders.length,
+                    itemBuilder: (context, index) {
+                      final p = _filteredProviders[index];
+                      // Simulate the "Temporarily unavailable" for BEDC/Abuja Postpaid from screenshot just for UX, or leave normal.
+                      // The screenshot had Abuja Postpaid and BEDC Postpaid as unavailable. We will just render them normal.
+                      
+                      return InkWell(
+                        onTap: () => _selectProvider(p),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isDark ? const Color(0xFF1E2638) : Colors.white,
+                                  border: Border.all(
+                                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)
+                                  ),
+                                ),
+                                child: ClipOval(
+                                  // Use standard Icons if image missing, else try load image
+                                  child: Icon(Icons.electrical_services, color: isDark ? Colors.white54 : Colors.grey, size: 24),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  p.name,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right,
+                                color: isDark ? Colors.white54 : Colors.black45,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
