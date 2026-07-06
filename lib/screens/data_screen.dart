@@ -1134,18 +1134,22 @@ class _DataScreenState extends State<DataScreen> {
                           return GestureDetector(
                             onTap: () => _applySuggestedNumber(number),
                             child: Container(
-                              width: 48,
-                              height: 48,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
                                 color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(999),
                                 border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1)),
                               ),
-                              child: Center(
-                                child: Text(
-                                  number.length > 4 ? number.substring(number.length - 4) : number,
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.primary),
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.history_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    number,
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.primary),
+                                  ),
+                                ],
                               ),
                             ),
                           );
