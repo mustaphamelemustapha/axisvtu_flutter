@@ -1167,10 +1167,186 @@ class _DataScreenState extends State<DataScreen> {
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            mainAxisSpacing: 20,
-                            crossAxisSpacing: 20,
-                            childAspectRatio: 0.95, 
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            childAspectRatio: 0.82, // Taller for the new epic layout
                           ),
+                          itemCount: _sortedNetworkPlans.length,
+                          itemBuilder: (context, index) {
+                            final plan = _sortedNetworkPlans[index];
+                            final code = plan['plan_code']?.toString();
+                            final isSelected = _selectedPlanCode == code;
+                            final rawCapacity = _planCapacity(plan);
+                            final validity = _planValidity(plan);
+                            final price = _planPrice(plan);
+                            
+                            // Split capacity into number and unit for epic typography
+                            String capNum = rawCapacity;
+                            String capUnit = '';
+                            final match = RegExp(r'^([\d\.]+)\s*([a-zA-Z]+)$').firstMatch(rawCapacity);
+                            if (match != null) {
+                              capNum = match.group(1) ?? rawCapacity;
+                              capUnit = match.group(2) ?? '';
+                            }
+
+                            return GestureDetector(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                setState(() => _selectedPlanCode = code);
+                                Future.delayed(const Duration(milliseconds: 250), () {
+                                  if (mounted) _showSummaryModal();
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeOutCubic,
+                                decoration: BoxDecoration(
+                                  color: isSelected 
+                                      ? activeNetColor 
+                                      : (isDark ? const Color(0xFF161E2E) : Colors.white),
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(
+                                    color: isSelected 
+                                        ? activeNetColor.withValues(alpha: 0.8) 
+                                        : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                  boxShadow: isSelected ? [
+                                    BoxShadow(
+                                      color: activeNetColor.withValues(alpha: 0.5),
+                                      blurRadius: 24,
+                                      spreadRadius: 4,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                    BoxShadow(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      blurRadius: 4,
+                                      spreadRadius: 0,
+                                      offset: const Offset(0, 2),
+                                    ) // Inner glow effect
+                                  ] : [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.04),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(28),
+                                  child: Stack(
+                                    children: [
+                                      // Epic Background Watermark Icon
+                                      Positioned(
+                                        right: -20,
+                                        bottom: -20,
+                                        child: AnimatedOpacity(
+                                          duration: const Duration(milliseconds: 300),
+                                          opacity: isSelected ? 0.2 : 0.03,
+                                          child: Icon(
+                                            Icons.wifi_tethering_rounded,
+                                            size: 120,
+                                            color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black),
+                                          ).animate(target: isSelected ? 1 : 0).scale(begin: const Offset(0.8, 0.8), end: const Offset(1.1, 1.1), duration: const Duration(milliseconds: 400), curve: Curves.easeOutBack),
+                                        ),
+                                      ),
+                                      
+                                      // Content Layer
+                                      Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            // Top Layer: Validity Pill
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: isSelected 
+                                                    ? Colors.black.withValues(alpha: 0.2) 
+                                                    : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.timer_outlined, size: 12, color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black54)),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    validity.toUpperCase(),
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w800,
+                                                      letterSpacing: 0.5,
+                                                      color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            
+                                            // Middle Layer: Massive Typography
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                                                  textBaseline: TextBaseline.alphabetic,
+                                                  children: [
+                                                    Text(
+                                                      capNum,
+                                                      style: TextStyle(
+                                                        fontSize: 40,
+                                                        height: 1.0,
+                                                        fontWeight: FontWeight.w900,
+                                                        letterSpacing: -1.5,
+                                                        color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 2),
+                                                    Text(
+                                                      capUnit,
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                        fontWeight: FontWeight.w800,
+                                                        color: isSelected ? Colors.white.withValues(alpha: 0.8) : activeNetColor,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                // Decorative line
+                                                AnimatedContainer(
+                                                  duration: const Duration(milliseconds: 300),
+                                                  width: isSelected ? 40 : 20,
+                                                  height: 3,
+                                                  decoration: BoxDecoration(
+                                                    color: isSelected ? Colors.white : activeNetColor.withValues(alpha: 0.3),
+                                                    borderRadius: BorderRadius.circular(2),
+                                                  ),
+                                                ),
+                                              ],
+                                            ).animate().slideX(begin: -0.1, duration: const Duration(milliseconds: 300)).fade(),
+
+                                            // Bottom Layer: Price
+                                            Text(
+                                              '₦$price',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w900,
+                                                color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ).animate().fade(delay: Duration(milliseconds: 30 * index)).slideY(begin: 0.1, curve: Curves.easeOutBack);
+                          },
+                        )
                           itemCount: _sortedNetworkPlans.length,
                           itemBuilder: (context, index) {
                             final plan = _sortedNetworkPlans[index];
