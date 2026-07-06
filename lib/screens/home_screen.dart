@@ -2331,7 +2331,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 40),
             Center(
               child: Text(
-                'MELE DATA v1.0.7 • SECURE & TRUSTED',
+                'MELE DATA v1.2.0 • SECURE & TRUSTED',
                 style: TextStyle(
                   color: muted.withValues(alpha: 0.4),
                   fontSize: 10,

@@ -50,7 +50,8 @@ class ApiClient {
 
   Future<Map<String, dynamic>> get(String path, {bool forceRefresh = false}) async {
     final uri = Uri.parse('$baseUrl$path');
-    final cacheKey = 'api_cache_$path';
+    final tokenSuffix = (token != null && token!.length > 10) ? token!.substring(token!.length - 10) : 'none';
+    final cacheKey = 'api_cache_${tokenSuffix}_$path';
 
     // 1. Return memory cache immediately if available and not forced
     if (!forceRefresh && _memoryCache.containsKey(cacheKey)) {
