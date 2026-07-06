@@ -8,6 +8,7 @@ import 'exam_screen.dart';
 import 'referral_screen.dart';
 import 'wallet_screen.dart';
 import 'senior_men_board_screen.dart';
+import 'transfer_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/concentric_circles_bg.dart';
 class ServicesScreen extends StatelessWidget {
@@ -57,6 +58,12 @@ class ServicesScreen extends StatelessWidget {
                       icon: Icons.bolt_rounded,
                       accent: const Color(0xFFF59E0B),
                       onTap: () => _openScreen(context, const ElectricityScreen()),
+                    ),
+                    _ServiceItem(
+                      label: 'Transfer',
+                      icon: Icons.send_rounded,
+                      accent: const Color(0xFF14B8A6),
+                      onTap: () => _openScreen(context, const TransferScreen()),
                     ),
                     _ServiceItem(
                       label: 'Cable TV',

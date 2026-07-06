@@ -1134,13 +1134,6 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => _openScreen(const AirtimeScreen()),
       ),
       _HomeService(
-        label: 'Transfer',
-        subtitle: 'Wallet to wallet',
-        icon: Icons.send_rounded,
-        accent: const Color(0xFF14B8A6), // Teal color for transfer
-        onTap: () => _openScreen(const TransferScreen()),
-      ),
-      _HomeService(
         label: 'Electricity',
         subtitle: 'Meter tokens',
         icon: Icons.bolt_rounded,
@@ -1429,10 +1422,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _buildActionPill(
                         context,
-                        icon: Icons.history_rounded,
-                        label: 'History',
+                        icon: Icons.send_rounded,
+                        label: 'Transfer',
                         onTap: () {
-                          widget.onNavigateTab?.call(2);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen()));
                         },
                         primary: false,
                         isDark: isDark,
@@ -1944,7 +1937,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 Text(
                                                   'Add Moniepoint for zero-delay instant wallet deposits! Link your BVN/NIN now.',
                                                   style: TextStyle(
-                                                    color: Colors.white.withValues(alpha: 0.7),
+                                                    color: isDark ? Colors.white.withValues(alpha: 0.7) : Colors.black.withValues(alpha: 0.6),
                                                     fontSize: 10,
                                                     fontWeight: FontWeight.w500,
                                                   ),

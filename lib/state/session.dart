@@ -426,6 +426,7 @@ class SessionController extends ChangeNotifier {
     _user = null;
     _securityPreference = null;
     _isLocked = false;
+    await ApiClient.clearCache();
     notifyListeners();
   }
 
@@ -439,6 +440,7 @@ class SessionController extends ChangeNotifier {
       await BiometricService.deletePin();
     } catch (_) {}
     _lastUser = null;
+    await ApiClient.clearCache();
     notifyListeners();
   }
 

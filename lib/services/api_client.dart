@@ -16,6 +16,21 @@ class ApiClient {
   // Fast memory cache for 0ms loading
   static final Map<String, dynamic> _memoryCache = {};
 
+  static Future<void> clearCache() async {
+    _memoryCache.clear();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith('api_cache_')) {
+          await prefs.remove(key);
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiClient] Error clearing cache: $e');
+    }
+  }
+
   void _log(String message) {
     if (kDebugMode) {
       debugPrint(message);
