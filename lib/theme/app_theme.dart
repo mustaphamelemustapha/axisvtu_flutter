@@ -44,7 +44,7 @@ class AppTheme {
           shadow: Colors.black,
         );
 
-    final baseText = GoogleFonts.poppinsTextTheme().apply(
+    final baseText = GoogleFonts.plusJakartaSansTextTheme().apply(
       bodyColor: scheme.onSurface,
       displayColor: scheme.onSurface,
     );
@@ -137,7 +137,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      fontFamily: GoogleFonts.poppins().fontFamily,
+      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
       visualDensity: VisualDensity.standard,
       scaffoldBackgroundColor: isDark ? _darkBg : _lightBg,
       textTheme: textTheme,
