@@ -24,7 +24,19 @@ import '../utils/balance_util.dart';
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart' as native_contact;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../services/permission_service.dart';
+
+Color _getNetworkColor(String network, [BuildContext? context]) {
+  switch (network.toLowerCase()) {
+    case 'mtn': return const Color(0xFFFFCC00);
+    case 'airtel': return const Color(0xFFFF0000);
+    case 'glo': return const Color(0xFF009900);
+    case '9mobile': return const Color(0xFF006600);
+    default: return context != null ? Theme.of(context).colorScheme.primary : Colors.blue;
+  }
+}
 
 class AirtimeScreen extends StatefulWidget {
   const AirtimeScreen({super.key});
@@ -534,35 +546,64 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   @override
   Widget build(BuildContext context) {
     final hasPhone = _normalizePhone(_phoneCtrl.text).isNotEmpty;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ServiceShell(
       title: 'Airtime',
       subtitle: 'Smart network detect, quick suggestions, and instant top-up.',
       icon: Icons.phone_iphone_rounded,
-      child: Column(
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          ServiceSectionCard(
-            title: 'Network',
+          if (_network.isNotEmpty)
+            Positioned(
+              top: -100,
+              left: -50,
+              right: -50,
+              height: 300,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeOutCubic,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _getNetworkColor(_network).withValues(alpha: isDark ? 0.08 : 0.04),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _getNetworkColor(_network).withValues(alpha: isDark ? 0.15 : 0.05),
+                      blurRadius: 100,
+                      spreadRadius: 40,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+          const SizedBox(height: 16),
+          // Epic Network Selection
+          Center(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: _networks.map((network) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: ServiceChoiceChip(
-                      label: network.toUpperCase(),
-                      selected: _network == network,
-                      leading: _NetworkIcon(network: network, size: 20),
-                      onTap: () {
-                        _invalidateRequestId();
-                        setState(() => _network = network);
-                      },
-                    ),
+                  return _NetworkCard(
+                    key: ValueKey(network),
+                    name: network,
+                    isSelected: _network == network,
+                    onTap: () {
+                      _invalidateRequestId();
+                      setState(() => _network = network);
+                    },
+                    isDark: Theme.of(context).brightness == Brightness.dark,
+                    netColor: _getNetworkColor(network),
                   );
                 }).toList(),
               ),
             ),
           ),
+          const SizedBox(height: 24),
           ServiceSectionCard(
             title: 'Recipient',
             child: Column(
@@ -687,7 +728,73 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                 ),
               ),
             ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _NetworkCard extends StatelessWidget {
+  final String name;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final bool isDark;
+  final Color netColor;
+
+  const _NetworkCard({
+    super.key,
+    required this.name,
+    required this.isSelected,
+    required this.onTap,
+    required this.isDark,
+    required this.netColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        margin: const EdgeInsets.only(right: 12),
+        width: 68,
+        height: 68,
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? netColor.withValues(alpha: isDark ? 0.2 : 0.1)
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected 
+                ? netColor 
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            width: isSelected ? 2 : 1.5,
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: netColor.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ] : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
+        child: Center(
+          child: AnimatedScale(
+            scale: isSelected ? 1.1 : 1.0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            child: _NetworkIcon(network: name, size: 36),
+          ),
+        ),
       ),
     );
   }
@@ -1199,6 +1306,7 @@ class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
+    final netColor = _getNetworkColor(widget.network, context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1206,9 +1314,22 @@ class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
         Container(
           padding: const EdgeInsets.symmetric(vertical: 40),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            gradient: LinearGradient(
+              colors: isDark 
+                ? [const Color(0xFF1E293B).withValues(alpha: 0.7), const Color(0xFF0F172A).withValues(alpha: 0.7)]
+                : [const Color(0xFFF8FAFC), const Color(0xFFF1F5F9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: primary.withValues(alpha: 0.1)),
+            border: Border.all(color: netColor.withValues(alpha: 0.4), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: netColor.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -1329,10 +1450,10 @@ class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
           child: FilledButton(
             onPressed: widget.loading ? null : widget.onProceed,
             style: FilledButton.styleFrom(
-              backgroundColor: primary,
+              backgroundColor: netColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
               elevation: 8,
-              shadowColor: primary.withValues(alpha: 0.4),
+              shadowColor: netColor.withValues(alpha: 0.4),
             ),
             child: widget.loading
                 ? const CircularProgressIndicator(color: Colors.white)
