@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
   ApiClient({required this.baseUrl, this.token});
@@ -11,6 +12,9 @@ class ApiClient {
   final String baseUrl;
   final String? token;
   static const Duration _timeout = Duration(seconds: 60);
+  
+  // Fast memory cache for 0ms loading
+  static final Map<String, dynamic> _memoryCache = {};
 
   void _log(String message) {
     if (kDebugMode) {
@@ -29,31 +33,68 @@ class ApiClient {
     return headers;
   }
 
-  Future<Map<String, dynamic>> get(String path) async {
+  Future<Map<String, dynamic>> get(String path, {bool forceRefresh = false}) async {
     final uri = Uri.parse('$baseUrl$path');
-    _log('API GET: $uri');
+    final cacheKey = 'api_cache_$path';
+
+    // 1. Return memory cache immediately if available and not forced
+    if (!forceRefresh && _memoryCache.containsKey(cacheKey)) {
+      _log('API GET (Memory Cache): $uri');
+      // Kick off background refresh silently
+      _fetchAndCache(uri, path, cacheKey).ignore();
+      return _memoryCache[cacheKey];
+    }
+
+    // 2. Check SharedPreferences disk cache
+    if (!forceRefresh) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cachedString = prefs.getString(cacheKey);
+        if (cachedString != null) {
+          final cachedData = jsonDecode(cachedString);
+          _memoryCache[cacheKey] = cachedData;
+          _log('API GET (Disk Cache): $uri');
+          // Kick off background refresh silently
+          _fetchAndCache(uri, path, cacheKey).ignore();
+          return cachedData;
+        }
+      } catch (e) {
+        _log('API Cache Read Error: $e');
+      }
+    }
+
+    // 3. If no cache or forceRefresh, fetch normally and block
+    _log('API GET (Network): $uri');
+    return await _fetchAndCache(uri, path, cacheKey);
+  }
+
+  Future<Map<String, dynamic>> _fetchAndCache(Uri uri, String path, String cacheKey) async {
     try {
       final resp = await http.get(uri, headers: _headers()).timeout(_timeout);
-      _log('API RESP [$path]: ${resp.statusCode}');
-      return _decode(resp, path);
+      if (resp.statusCode >= 200 && resp.statusCode < 300) {
+        final data = _decode(resp, path);
+        
+        // Save to memory
+        _memoryCache[cacheKey] = data;
+        
+        // Save to disk asynchronously
+        SharedPreferences.getInstance().then((prefs) {
+          prefs.setString(cacheKey, jsonEncode(data));
+        }).catchError((_) {});
+        
+        return data;
+      } else {
+        return _decode(resp, path); // Will throw ApiException inside _decode
+      }
     } on TimeoutException catch (e) {
       _log('API ERR [$path]: Timeout - $e');
-      throw ApiException(
-        408,
-        'Request timed out. The server is taking too long to respond.',
-      );
+      throw ApiException(408, 'Request timed out. The server is taking too long to respond.');
     } on SocketException catch (e) {
       _log('API ERR [$path]: SocketException - $e');
-      throw ApiException(
-        503,
-        'Unable to connect. Check your internet connection and try again.',
-      );
+      throw ApiException(503, 'Unable to connect. Check your internet connection and try again.');
     } on http.ClientException catch (e) {
       _log('API ERR [$path]: ClientException - $e');
-      throw ApiException(
-        503,
-        'Unable to reach server right now. Please try again shortly.',
-      );
+      throw ApiException(503, 'Unable to reach server right now. Please try again shortly.');
     } on ApiException {
       rethrow;
     } catch (e) {

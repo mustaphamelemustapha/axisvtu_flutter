@@ -8,8 +8,8 @@ class ServicesService {
 
   ApiClient get _client => ApiClient(baseUrl: AppConfig.baseUrl, token: token);
 
-  Future<Map<String, dynamic>> getCatalog() {
-    return _client.get('/services/catalog');
+  Future<Map<String, dynamic>> getCatalog({bool forceRefresh = false}) {
+    return _client.get('/services/catalog', forceRefresh: forceRefresh);
   }
 
   Future<Map<String, dynamic>> purchaseAirtime({

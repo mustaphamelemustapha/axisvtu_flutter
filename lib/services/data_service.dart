@@ -7,65 +7,22 @@ class DataService {
   DataService({required this.token});
 
   final String token;
-  static const Duration _cacheTtl = Duration(seconds: 5);
-  static List<dynamic> _cachedPlans = [];
-  static DateTime? _cacheAt;
-  static const String _prefsKey = 'axis_data_plans_cache_v1';
 
   ApiClient get _client => ApiClient(baseUrl: AppConfig.baseUrl, token: token);
 
-  static bool get hasCache => _cachedPlans.isNotEmpty;
-
-  static bool get isCacheFresh =>
-      _cacheAt != null && DateTime.now().difference(_cacheAt!) < _cacheTtl;
-
-  static List<dynamic> get cachedPlans => List<dynamic>.from(_cachedPlans);
-
   static void clearCache() {
-    _cachedPlans = [];
-    _cacheAt = null;
   }
 
   Future<List<dynamic>> getPlans({bool forceRefresh = false}) async {
-    if (!forceRefresh) {
-      // Serve from fresh in-memory cache immediately.
-      if (_cachedPlans.isNotEmpty && isCacheFresh) {
-        return cachedPlans;
-      }
-
-      if (_cachedPlans.isEmpty) {
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          final str = prefs.getString(_prefsKey);
-          if (str != null) {
-            final decoded = jsonDecode(str);
-            if (decoded is List) {
-              _cachedPlans = decoded;
-            }
-          }
-        } catch (_) {}
-      }
-    }
-    return await _fetchAndCache();
+    return await _fetchAndCache(forceRefresh: forceRefresh);
   }
 
-  Future<List<dynamic>> _fetchAndCache() async {
+  Future<List<dynamic>> _fetchAndCache({bool forceRefresh = false}) async {
     try {
-      final data = await _client.get('/data/plans');
+      final data = await _client.get('/data/plans', forceRefresh: forceRefresh);
       final list = _extractList(data);
-      final plans = list ?? <dynamic>[];
-      
-      _cachedPlans = plans;
-      _cacheAt = DateTime.now();
-
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_prefsKey, jsonEncode(plans));
-      } catch (_) {}
-
-      return plans;
+      return list ?? <dynamic>[];
     } catch (e) {
-      if (_cachedPlans.isNotEmpty) return _cachedPlans;
       rethrow;
     }
   }
