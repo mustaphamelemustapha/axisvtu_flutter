@@ -1221,16 +1221,11 @@ class _DataScreenState extends State<DataScreen> {
                     else if (_sortedNetworkPlans.isEmpty)
                       const Center(child: Text('No plans available'))
                     else
-                      GridView.builder(
+                      ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.85,
-                        ),
                         itemCount: _sortedNetworkPlans.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final plan = _sortedNetworkPlans[index];
                           final code = plan['plan_code']?.toString();
@@ -1267,70 +1262,155 @@ class _DataScreenState extends State<DataScreen> {
                                 );
                               },
                               child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOutCubic,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF161E2E) : Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected ? netColor : (isDark ? Colors.white10 : Colors.transparent),
-                                  width: isSelected ? 2 : 1,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOutCubic,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                decoration: BoxDecoration(
+                                  gradient: isSelected
+                                      ? LinearGradient(
+                                          begin: Alignment.centerLeft,
+                                          end: Alignment.centerRight,
+                                          colors: [
+                                            isDark ? netColor.withValues(alpha: 0.25) : netColor.withValues(alpha: 0.1),
+                                            isDark ? const Color(0xFF161E2E) : Colors.white,
+                                          ],
+                                        )
+                                      : LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: isDark 
+                                            ? [const Color(0xFF1A2235), const Color(0xFF121826)]
+                                          : [Colors.white, const Color(0xFFF8FAFC)],
+                                        ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isSelected ? netColor : (isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                  boxShadow: isSelected ? [
+                                    BoxShadow(
+                                      color: netColor.withValues(alpha: 0.4),
+                                      blurRadius: 20,
+                                      spreadRadius: -2,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ] : (isDark ? [] : [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.02),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ]),
                                 ),
-                                boxShadow: isSelected ? [
-                                  BoxShadow(
-                                    color: netColor.withValues(alpha: 0.3),
-                                    blurRadius: 15,
-                                    spreadRadius: 1,
-                                    offset: const Offset(0, 4),
-                                  )
-                                ] : (isDark ? [] : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ]),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _planCapacity(plan),
-                                    style: TextStyle(
-                                      fontSize: 18, 
-                                      fontWeight: FontWeight.bold,
-                                      color: isSelected ? netColor : (isDark ? Colors.white : Colors.black)
+                                child: Row(
+                                  children: [
+                                    // Data capacity prominent
+                                    Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? netColor : (isDark ? const Color(0xFF283656) : const Color(0xFFF1F5F9)),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isSelected ? netColor : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                                        ),
+                                        boxShadow: isSelected ? [
+                                          BoxShadow(
+                                            color: netColor.withValues(alpha: 0.3),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          )
+                                        ] : [],
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            _planCapacity(plan).replaceAll('MB', '').replaceAll('GB', '').replaceAll('TB', '').trim(),
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w900,
+                                              color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                                              height: 1.1,
+                                            ),
+                                          ),
+                                          Text(
+                                            _planCapacity(plan).contains('GB') ? 'GB' : _planCapacity(plan).contains('TB') ? 'TB' : 'MB',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              color: isSelected ? Colors.white70 : (isDark ? Colors.white54 : Colors.grey.shade600),
+                                              height: 1.1,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '₦${_planPrice(plan)}',
-                                    style: TextStyle(
-                                      fontSize: 16, 
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : Colors.black
+                                    
+                                    const SizedBox(width: 16),
+                                    
+                                    // Details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            '₦${_planPrice(plan)}',
+                                            style: TextStyle(
+                                              fontSize: 18, 
+                                              fontWeight: FontWeight.w900,
+                                              color: isDark ? Colors.white : Colors.black87,
+                                              letterSpacing: -0.5,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.schedule, size: 12, color: isSelected ? netColor : Colors.grey),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  '${_planValidity(plan)} • ${plan['plan_name']?.toString() ?? ''}',
+                                                  style: TextStyle(
+                                                    fontSize: 11, 
+                                                    color: isDark ? Colors.white60 : Colors.grey.shade600,
+                                                    fontWeight: FontWeight.w600
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    _planValidity(plan),
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    plan['plan_name']?.toString() ?? '',
-                                    style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                                    
+                                    // Chevron / Radio
+                                    const SizedBox(width: 12),
+                                    AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: isSelected ? netColor : Colors.transparent,
+                                        border: Border.all(
+                                          color: isSelected ? netColor : (isDark ? Colors.white30 : Colors.grey.shade300),
+                                          width: isSelected ? 0 : 2,
+                                        ),
+                                      ),
+                                      child: isSelected
+                                          ? const Icon(Icons.check, size: 16, color: Colors.white)
+                                          : null,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
                             ),
                           );
-                        },
-                      ),
+                        }),
                   ],
                   const SizedBox(height: 100), // Space for checkout button
                 ],
