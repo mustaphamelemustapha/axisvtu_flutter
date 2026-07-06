@@ -159,110 +159,11 @@ class _PurchaseResultSheetState extends State<PurchaseResultSheet> {
               ),
               RepaintBoundary(
                 key: _receiptCaptureKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: _isSuccess 
-                            ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)] 
-                            : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                )
-                              ],
-                            ),
-                            child: Image.asset(
-                              'assets/brand/meledata-receipt-logo.jpg',
-                              height: 52,
-                              fit: BoxFit.contain,
-                              errorBuilder: (c, e, s) => Icon(
-                                _isSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded, 
-                                color: _isSuccess ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
-                                size: 52
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Transaction Receipt',
-                            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      color: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                      child: Column(
-                        children: [
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _isSuccess 
-                                  ? const Color(0xFFDCFCE7) 
-                                  : (_isPending ? const Color(0xFFFEF3C7) : const Color(0xFFFEE2E2)),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _isSuccess ? Icons.check_circle : (_isPending ? Icons.access_time_filled : Icons.cancel),
-                                    color: _isSuccess ? const Color(0xFF166534) : (_isPending ? const Color(0xFF92400E) : const Color(0xFF991B1B)),
-                                    size: 14,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _isSuccess ? 'Successful' : (_isPending ? 'Pending' : 'Failed'),
-                                    style: TextStyle(
-                                      color: _isSuccess ? const Color(0xFF166534) : (_isPending ? const Color(0xFF92400E) : const Color(0xFF991B1B)),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ...widget.fields
-                              .where((f) => !_hideAmountForCapture || f.label.toLowerCase() != 'amount')
-                              .map((f) => _ReceiptTableItem(label: f.label, value: f.value, bold: f.label == 'Amount')),
-                          const SizedBox(height: 24),
-                          const Divider(height: 1),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'meledata.ng',
-                            style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                    CustomPaint(
-                      size: const Size(double.infinity, 20),
-                      painter: _ZigZagPainter(),
-                    ),
-                  ],
+                child: DetailedReceiptImage(
+                  isSuccess: _isSuccess,
+                  isPending: _isPending,
+                  fields: widget.fields,
+                  hideAmountForCapture: _hideAmountForCapture,
                 ),
               ),
               const SizedBox(height: 24),
@@ -370,3 +271,128 @@ class _ZigZagPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+class DetailedReceiptImage extends StatelessWidget {
+  final bool isSuccess;
+  final bool isPending;
+  final List<ReceiptField> fields;
+  final bool hideAmountForCapture;
+
+  const DetailedReceiptImage({
+    super.key,
+    required this.isSuccess,
+    required this.isPending,
+    required this.fields,
+    this.hideAmountForCapture = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isSuccess 
+                ? [const Color(0xFF2463EB), const Color(0xFF3B82F6)] 
+                : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    )
+                  ],
+                ),
+                child: Image.asset(
+                  'assets/brand/meledata-receipt-logo.jpg',
+                  height: 52,
+                  fit: BoxFit.contain,
+                  errorBuilder: (c, e, s) => Icon(
+                    isSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded, 
+                    color: isSuccess ? const Color(0xFF2463EB) : const Color(0xFF64748B), 
+                    size: 52
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Transaction Receipt',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            children: [
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSuccess 
+                      ? const Color(0xFFDCFCE7) 
+                      : (isPending ? const Color(0xFFFEF3C7) : const Color(0xFFFEE2E2)),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSuccess ? Icons.check_circle : (isPending ? Icons.access_time_filled : Icons.cancel),
+                        color: isSuccess ? const Color(0xFF166534) : (isPending ? const Color(0xFF92400E) : const Color(0xFF991B1B)),
+                        size: 14,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isSuccess ? 'Successful' : (isPending ? 'Pending' : 'Failed'),
+                        style: TextStyle(
+                          color: isSuccess ? const Color(0xFF166534) : (isPending ? const Color(0xFF92400E) : const Color(0xFF991B1B)),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              ...fields
+                  .where((f) => !hideAmountForCapture || f.label.toLowerCase() != 'amount')
+                  .map((f) => _ReceiptTableItem(label: f.label, value: f.value, bold: f.label == 'Amount')),
+              const SizedBox(height: 24),
+              const Divider(height: 1),
+              const SizedBox(height: 24),
+              const Text(
+                'meledata.ng',
+                style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ),
+        CustomPaint(
+          size: const Size(double.infinity, 20),
+          painter: _ZigZagPainter(),
+        ),
+      ],
+    );
+  }
+}
+

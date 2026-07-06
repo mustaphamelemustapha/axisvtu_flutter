@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:share_plus/share_plus.dart';
+import '../services/receipt_export_service.dart';
+import 'purchase_result_sheet.dart' show ReceiptField, DetailedReceiptImage;
 
 class EpicReceiptModal extends StatefulWidget {
   final bool isSuccess;
@@ -29,6 +30,8 @@ class EpicReceiptModal extends StatefulWidget {
 
 class _EpicReceiptModalState extends State<EpicReceiptModal> {
   bool _showDetails = false;
+  final GlobalKey _receiptKey = GlobalKey();
+  bool _isSharing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +47,24 @@ class _EpicReceiptModalState extends State<EpicReceiptModal> {
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
         children: [
+          Positioned(
+            left: -9999,
+            child: RepaintBoundary(
+              key: _receiptKey,
+              child: SizedBox(
+                width: 380,
+                child: DetailedReceiptImage(
+                  isSuccess: widget.isSuccess,
+                  isPending: false,
+                  fields: [
+                    ReceiptField(label: 'Amount', value: widget.amount),
+                    ...widget.details.entries.map((e) => ReceiptField(label: e.key, value: e.value)),
+                  ],
+                  hideAmountForCapture: false,
+                ),
+              ),
+            ),
+          ),
           Positioned(
             top: -60,
             child: TweenAnimationBuilder<double>(
@@ -215,13 +236,44 @@ class _EpicReceiptModalState extends State<EpicReceiptModal> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            widget.onSave();
+                          onPressed: _isSharing ? null : () async {
+                            setState(() => _isSharing = true);
+                            try {
+                              // Small delay to ensure rendering
+                              await Future.delayed(const Duration(milliseconds: 100));
+                              final renderObject = _receiptKey.currentContext?.findRenderObject();
+                              if (renderObject is RenderRepaintBoundary) {
+                                final image = await renderObject.toImage(pixelRatio: 3.0);
+                                final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+                                final imageBytes = byteData?.buffer.asUint8List();
+                                if (imageBytes != null && context.mounted) {
+                                  final fields = widget.details.entries
+                                      .map((e) => ReceiptField(label: e.key, value: e.value))
+                                      .toList();
+                                  await ReceiptExportService.shareReceiptImage(
+                                    context: context,
+                                    imageBytes: imageBytes,
+                                    fields: fields,
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              debugPrint('Error sharing receipt: $e');
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isSharing = false);
+                                widget.onSave(); // Trigger any additional save hook if needed
+                              }
+                            }
                           },
-                          icon: const Icon(Icons.share_rounded, color: Colors.white, size: 20),
-                          label: const Text(
-                            'Share Receipt',
+                          icon: _isSharing 
+                              ? const SizedBox(
+                                  width: 20, height: 20, 
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                                )
+                              : const Icon(Icons.share_rounded, color: Colors.white, size: 20),
+                          label: Text(
+                            _isSharing ? 'Preparing...' : 'Share Receipt',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,

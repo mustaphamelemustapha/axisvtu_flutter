@@ -78,12 +78,13 @@ class _InteractiveNotificationBannerState extends State<InteractiveNotificationB
   }
 
   void _hideAndDismiss() {
-    if (!mounted) return;
+    if (!mounted || !_visible) return;
+    _dismissTimer?.cancel();
     setState(() {
       _visible = false;
     });
     Future.delayed(const Duration(milliseconds: 350), () {
-      widget.onDismiss();
+      if (mounted) widget.onDismiss();
     });
   }
 

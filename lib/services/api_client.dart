@@ -377,8 +377,15 @@ class ApiClient {
 
   String _friendlyMessage(int statusCode, String message) {
     final normalized = _sanitizeUserMessage(message).trim();
+    
+    // Completely hide backend issues
+    if (statusCode >= 500) {
+      return 'The server is temporarily down. Please try again shortly.';
+    }
+    
     if (normalized.isNotEmpty &&
-        !normalized.toLowerCase().contains('request failed')) {
+        !normalized.toLowerCase().contains('request failed') &&
+        !normalized.toLowerCase().contains('unexpected issue')) {
       return normalized;
     }
 
@@ -396,14 +403,9 @@ class ApiClient {
       case 409:
         return 'This request is already being processed. Please wait.';
       case 422:
-        return 'Invalid request details. Please check your input.';
+        return 'Some details provided are invalid. Please check and try again.';
       case 429:
         return 'Too many requests right now. Please wait a moment and retry.';
-      case 500:
-      case 502:
-      case 503:
-      case 504:
-        return 'Server temporarily unavailable. Please try again shortly.';
       default:
         return normalized.isEmpty
             ? 'Unable to complete request. Please try again.'
@@ -422,6 +424,25 @@ class ApiClient {
       RegExp(r'temporarily', caseSensitive: false),
       'right now',
     );
+    
+    // Check for technical leakage
+    final lower = text.toLowerCase();
+    if (lower.contains('sqlalchemy') || 
+        lower.contains('psycopg2') || 
+        lower.contains('traceback') || 
+        lower.contains('internal server error') ||
+        lower.contains('exception') ||
+        lower.contains('attributeerror') ||
+        lower.contains('typeerror') ||
+        lower.contains('valueerror') ||
+        lower.contains('api error') ||
+        lower.contains('unhandled') ||
+        lower.contains('postgres') ||
+        lower.contains('duplicate key') ||
+        lower.contains('syntax error')) {
+        return 'An unexpected issue occurred. Please try again shortly.';
+    }
+
     text = text.replaceAll(RegExp(r'\s{2,}'), ' ').trim();
     if (text.isEmpty) return 'Unable to complete request. Please try again.';
     return text;
@@ -435,5 +456,5 @@ class ApiException implements Exception {
   final String message;
 
   @override
-  String toString() => 'ApiException($statusCode): $message';
+  String toString() => message;
 }
