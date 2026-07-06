@@ -29,6 +29,7 @@ import 'cable_screen.dart';
 import 'data_screen.dart';
 import 'electricity_screen.dart';
 import 'exam_screen.dart';
+import 'history_screen.dart';
 import 'transfer_screen.dart';
 import 'referral_screen.dart';
 import '../services/purchase_auth_service.dart';
@@ -1425,7 +1426,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icons.receipt_long_rounded,
                         label: 'History',
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryScreen()));
                         },
                         primary: false,
                         isDark: isDark,
