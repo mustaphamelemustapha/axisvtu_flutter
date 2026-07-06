@@ -36,4 +36,18 @@ class WalletService {
     }
     return _client.post('/wallet/bank-transfer-accounts', body);
   }
+
+  Future<Map<String, dynamic>> verifyTransferRecipient(String identifier) async {
+    return _client.post('/wallet/transfer/verify', {
+      'identifier': identifier,
+    });
+  }
+
+  Future<Map<String, dynamic>> performTransfer(String identifier, String amount) async {
+    return _client.post('/wallet/transfer', {
+      'identifier': identifier,
+      'amount': amount,
+
+    });
+  }
 }

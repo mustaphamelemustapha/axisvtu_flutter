@@ -29,6 +29,7 @@ import 'cable_screen.dart';
 import 'data_screen.dart';
 import 'electricity_screen.dart';
 import 'exam_screen.dart';
+import 'transfer_screen.dart';
 import 'referral_screen.dart';
 import '../services/purchase_auth_service.dart';
 import '../services/transaction_pin_service.dart';
@@ -1133,6 +1134,13 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => _openScreen(const AirtimeScreen()),
       ),
       _HomeService(
+        label: 'Transfer',
+        subtitle: 'Wallet to wallet',
+        icon: Icons.send_rounded,
+        accent: const Color(0xFF14B8A6), // Teal color for transfer
+        onTap: () => _openScreen(const TransferScreen()),
+      ),
+      _HomeService(
         label: 'Electricity',
         subtitle: 'Meter tokens',
         icon: Icons.bolt_rounded,
@@ -1421,10 +1429,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: _buildActionPill(
                         context,
-                        icon: Icons.history_rounded,
-                        label: 'History',
+                        icon: Icons.send_rounded,
+                        label: 'Transfer',
                         onTap: () {
-                          widget.onNavigateTab?.call(2);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen()));
                         },
                         primary: false,
                         isDark: isDark,
