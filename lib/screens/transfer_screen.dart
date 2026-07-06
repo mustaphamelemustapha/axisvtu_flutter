@@ -29,7 +29,7 @@ class _TransferScreenState extends State<TransferScreen> {
 
   bool _isVerifying = false;
   String? _verifiedName;
-  String? _verifiedUsername;
+  
   String? _verifyError;
   Timer? _debounce;
   bool _submitting = false;
@@ -56,7 +56,7 @@ class _TransferScreenState extends State<TransferScreen> {
     if (text.isEmpty) {
       setState(() {
         _verifiedName = null;
-        _verifiedUsername = null;
+        
         _verifyError = null;
       });
       return;
@@ -77,12 +77,12 @@ class _TransferScreenState extends State<TransferScreen> {
       final res = await _walletService.verifyTransferRecipient(identifier);
       setState(() {
         _verifiedName = res['full_name'];
-        _verifiedUsername = res['username'];
+        
       });
     } catch (e) {
       setState(() {
         _verifiedName = null;
-        _verifiedUsername = null;
+        
         _verifyError = e.toString().replaceAll('Exception: ', '');
       });
     } finally {
@@ -122,7 +122,7 @@ class _TransferScreenState extends State<TransferScreen> {
         headerIcon: Icons.send_rounded,
         items: [
           SummaryItem(label: 'Recipient', value: _verifiedName!, icon: Icons.person),
-          SummaryItem(label: 'Username', value: _verifiedUsername ?? '—', icon: Icons.alternate_email),
+          
           SummaryItem(label: 'Amount', value: '₦$amountStr', icon: Icons.account_balance_wallet),
         ],
         onProceedPin: () {
@@ -184,7 +184,7 @@ class _TransferScreenState extends State<TransferScreen> {
       _amountController.clear();
       setState(() {
         _verifiedName = null;
-        _verifiedUsername = null;
+        
       });
 
     } catch (e) {
@@ -333,13 +333,7 @@ class _TransferScreenState extends State<TransferScreen> {
                                 _verifiedName!,
                                 style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
                               ),
-                              if (_verifiedUsername != null)
-                                Text(
-                                  _verifiedUsername!,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)
-                                  ),
-                                ),
+                              
                             ],
                           ),
                         ),
