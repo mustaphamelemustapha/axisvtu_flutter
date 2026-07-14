@@ -81,10 +81,12 @@ class PushNotificationService {
           if (context != null && context.mounted) {
             final title = message.notification?.title ?? 'MELE DATA';
             final body = message.notification?.body ?? '';
+            final soundType = message.data['sound_type'] as String?;
             InteractiveNotificationBanner.show(
               context,
               title: title,
               message: body,
+              soundType: soundType,
             );
           }
         }

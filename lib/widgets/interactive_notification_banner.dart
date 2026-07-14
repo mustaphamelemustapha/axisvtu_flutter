@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class InteractiveNotificationBanner extends StatefulWidget {
   const InteractiveNotificationBanner({
@@ -21,6 +22,7 @@ class InteractiveNotificationBanner extends StatefulWidget {
     BuildContext context, {
     required String title,
     required String message,
+    String? soundType,
     String logoAsset = 'assets/brand/meledata-icon.png',
   }) {
     // Generate tactile feedback to simulate native notification arrival
@@ -28,6 +30,16 @@ class InteractiveNotificationBanner extends StatefulWidget {
     Future.delayed(const Duration(milliseconds: 80), () {
       HapticFeedback.mediumImpact();
     });
+    
+    // Play the custom notification sound if requested
+    if (soundType == 'balance_success') {
+      try {
+        final player = AudioPlayer();
+        player.play(AssetSource('sounds/balance_success.wav'));
+      } catch (e) {
+        debugPrint("Could not play notification sound: $e");
+      }
+    }
 
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
