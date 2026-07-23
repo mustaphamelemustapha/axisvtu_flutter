@@ -371,12 +371,16 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   String _extractCategory(dynamic plan) {
+    if (plan['data_type'] != null && plan['data_type'].toString().trim().isNotEmpty) {
+      return plan['data_type'].toString().trim().toUpperCase();
+    }
     final name = (plan['name'] ?? plan['plan_name'] ?? plan['title'] ?? '').toString().toUpperCase();
+    if (name.contains('SME2')) return 'SME2';
     if (name.contains('SME')) return 'SME';
-    if (name.contains('CORPORATE') || name.contains('CG')) return 'Corporate';
-    if (name.contains('GIFTING')) return 'Gifting';
-    if (name.contains('AWOOF')) return 'Awoof';
-    return 'Other';
+    if (name.contains('CORPORATE') || name.contains('CG')) return 'CORPORATE GIFTING';
+    if (name.contains('GIFTING')) return 'GIFTING';
+    if (name.contains('AWOOF')) return 'AWOOF DATA';
+    return 'GENERAL';
   }
 
   List<dynamic> get _sortedNetworkPlans {
@@ -1190,7 +1194,7 @@ class _DataScreenState extends State<DataScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: ['All', 'SME', 'Corporate', 'Gifting', 'Awoof'].where((cat) {
+                        children: ['All', 'SME', 'SME2', 'GIFTING', 'CORPORATE GIFTING', 'AWOOF DATA', 'GENERAL'].where((cat) {
                           if (cat == 'All') return true;
                           return _networkPlans.any((p) => _extractCategory(p) == cat);
                         }).map((cat) {
