@@ -1192,52 +1192,87 @@ class _DataScreenState extends State<DataScreen> {
                   ],
                   
                   if (_network.isNotEmpty) ...[
-                    const Text('Select a data plan', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    const SizedBox(height: 12),
+                    const Text('Select Data Type', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    const SizedBox(height: 8),
                     
-                    // Categories
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: ['SME', 'SME2', 'GIFTING', 'CORPORATE GIFTING', 'AWOOF DATA', 'GENERAL'].where((cat) {
+                    // Custom Dropdown for Categories
+                    GestureDetector(
+                      onTap: () {
+                        final cats = ['SME', 'SME2', 'GIFTING', 'CORPORATE GIFTING', 'AWOOF DATA', 'GENERAL'].where((cat) {
                           return _networkPlans.any((p) => _extractCategory(p) == cat);
-                        }).map((cat) {
-                          final isSelected = _selectedCategory == cat;
-                          final netColor = _getNetworkColor(_network);
-                          return GestureDetector(
-                            onTap: () => setState(() => _selectedCategory = cat),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isSelected ? netColor.withValues(alpha: 0.15) : (isDark ? const Color(0xFF161E2E) : const Color(0xFFEFF6FF)),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: isSelected ? netColor : Colors.transparent),
-                              ),
-                              child: Row(
+                        }).toList();
+                        
+                        if (cats.isEmpty) return;
+                        
+                        showModalBottomSheet(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => Container(
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                            ),
+                            child: SafeArea(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (isSelected) ...[
-                                    Icon(Icons.local_fire_department, color: netColor, size: 14),
-                                    const SizedBox(width: 4),
-                                  ],
-                                  Text(
-                                    cat,
-                                    style: TextStyle(
-                                      color: isSelected ? netColor : (isDark ? Colors.white60 : Colors.blue.withValues(alpha: 0.6)),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  const SizedBox(height: 12),
+                                  Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+                                  const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Text('Select Data Type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                   ),
+                                  ...cats.map((cat) => ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                                    title: Text(cat, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                                    trailing: _selectedCategory == cat ? Icon(Icons.check_circle, color: _getNetworkColor(_network)) : null,
+                                    onTap: () {
+                                      setState(() => _selectedCategory = cat);
+                                      Navigator.pop(context);
+                                    },
+                                  )),
+                                  const SizedBox(height: 16),
                                 ],
                               ),
                             ),
-                          );
-                        }).toList(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF161E2E) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _network.isNotEmpty ? _getNetworkColor(_network).withValues(alpha: 0.3) : Colors.transparent,
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _selectedCategory ?? 'Select Data Type',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: _selectedCategory != null ? FontWeight.bold : FontWeight.normal,
+                                color: _selectedCategory != null ? (isDark ? Colors.white : Colors.black) : Colors.grey,
+                              ),
+                            ),
+                            Icon(Icons.keyboard_arrow_down, color: _network.isNotEmpty ? _getNetworkColor(_network) : Colors.grey),
+                          ],
+                        ),
                       ),
                     ),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     
                     if (_loadingPlans && _plans.isEmpty)
                       const Expanded(
@@ -1245,8 +1280,70 @@ class _DataScreenState extends State<DataScreen> {
                       )
                     else if (_error != null)
                       const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
+                    else if (_selectedCategory == null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 32, bottom: 40),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: _getNetworkColor(_network).withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.data_usage_rounded, size: 48, color: _getNetworkColor(_network)),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'Select a Data Type',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                              ),
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 32),
+                                child: Text(
+                                  'Please select a data category from the dropdown above to view available plans.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13, height: 1.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
                     else if (_sortedNetworkPlans.isEmpty)
-                      const Center(child: Text('No plans available'))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 32, bottom: 40),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.inbox_rounded, size: 48, color: Colors.orange),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'No Plans Found',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                              ),
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 32),
+                                child: Text(
+                                  'There are currently no active plans for $_selectedCategory on $_network.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13, height: 1.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
                     else
                       GridView.builder(
                         shrinkWrap: true,
