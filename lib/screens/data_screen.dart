@@ -1208,7 +1208,7 @@ class _DataScreenState extends State<DataScreen> {
                         showModalBottomSheet(
                           context: context,
                           backgroundColor: Colors.transparent,
-                          builder: (context) => Container(
+                          builder: (sheetContext) => Container(
                             decoration: BoxDecoration(
                               color: isDark ? const Color(0xFF1E293B) : Colors.white,
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -1228,8 +1228,8 @@ class _DataScreenState extends State<DataScreen> {
                                     title: Text(cat, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                                     trailing: _selectedCategory == cat ? Icon(Icons.check_circle, color: _getNetworkColor(_network)) : null,
                                     onTap: () {
+                                      Navigator.pop(sheetContext);
                                       setState(() => _selectedCategory = cat);
-                                      Navigator.pop(context);
                                     },
                                   )),
                                   const SizedBox(height: 16),
