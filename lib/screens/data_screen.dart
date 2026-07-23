@@ -1198,9 +1198,10 @@ class _DataScreenState extends State<DataScreen> {
                     // Custom Dropdown for Categories
                     GestureDetector(
                       onTap: () {
-                        final cats = ['SME', 'SME2', 'GIFTING', 'CORPORATE GIFTING', 'AWOOF DATA', 'GENERAL'].where((cat) {
-                          return _networkPlans.any((p) => _extractCategory(p) == cat);
-                        }).toList();
+                        final cats = _networkPlans
+                            .map((p) => _extractCategory(p))
+                            .toSet()
+                            .toList();
                         
                         if (cats.isEmpty) return;
                         
