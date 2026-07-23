@@ -1276,7 +1276,8 @@ class _DataScreenState extends State<DataScreen> {
                     const SizedBox(height: 24),
                     
                     if (_loadingPlans && _plans.isEmpty)
-                      const Expanded(
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
                         child: Center(child: MeleDataLoader(size: 80.0)),
                       )
                     else if (_error != null)
