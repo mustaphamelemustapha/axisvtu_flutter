@@ -100,7 +100,7 @@ class _DataScreenState extends State<DataScreen> {
   String _network = 'mtn';
   String? _phoneErrorMsg;
   String? _shakingPlanCode;
-  String _selectedCategory = 'All';
+  String? _selectedCategory;
   String? _selectedPlanCode;
   List<dynamic> _plans = [];
 
@@ -402,7 +402,7 @@ class _DataScreenState extends State<DataScreen> {
       ).compareTo(_capacityToGb(_planCapacity(b)));
     });
     
-    if (_selectedCategory == 'All') return plans;
+    if (_selectedCategory == null) return [];
     return plans.where((p) => _extractCategory(p) == _selectedCategory).toList();
   }
 
@@ -567,8 +567,13 @@ class _DataScreenState extends State<DataScreen> {
                   Expanded(
                     child: isLoading
                         ? const _PlanShimmerGrid()
-                        : currentPlans.isEmpty
-                            ? _EmptyPlansState(onRetry: () => _loadPlans(forceRefresh: true))
+                        : _selectedCategory == null
+                            ? const Center(
+                                child: Text('Please select a data type category above to view plans.',
+                                    style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w600)),
+                              )
+                            : currentPlans.isEmpty
+                                ? _EmptyPlansState(onRetry: () => _loadPlans(forceRefresh: true))
                             : GridView.builder(
                                 padding: const EdgeInsets.all(16),
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -1194,8 +1199,7 @@ class _DataScreenState extends State<DataScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: ['All', 'SME', 'SME2', 'GIFTING', 'CORPORATE GIFTING', 'AWOOF DATA', 'GENERAL'].where((cat) {
-                          if (cat == 'All') return true;
+                        children: ['SME', 'SME2', 'GIFTING', 'CORPORATE GIFTING', 'AWOOF DATA', 'GENERAL'].where((cat) {
                           return _networkPlans.any((p) => _extractCategory(p) == cat);
                         }).map((cat) {
                           final isSelected = _selectedCategory == cat;
