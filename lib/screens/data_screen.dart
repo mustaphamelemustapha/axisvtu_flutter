@@ -371,6 +371,7 @@ class _DataScreenState extends State<DataScreen> {
   }
 
   String _extractCategory(dynamic plan) {
+    print('DEBUG PLAN: ${plan['plan_name']} - DATA_TYPE: ${plan['data_type']}');
     if (plan['data_type'] != null && plan['data_type'].toString().trim().isNotEmpty) {
       return plan['data_type'].toString().trim().toUpperCase();
     }
