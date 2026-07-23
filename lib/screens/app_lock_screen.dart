@@ -87,6 +87,10 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
       if (success && mounted) {
         context.read<SessionController>().unlock();
       }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Biometric authentication failed or is unavailable.');
+      }
     } finally {
       if (mounted) {
         setState(() {
