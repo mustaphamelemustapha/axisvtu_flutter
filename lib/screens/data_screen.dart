@@ -2971,7 +2971,7 @@ class _ElitePlanTile extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = netColor ?? Theme.of(context).colorScheme.primary;
 
-    final capacityRaw = _planCapacity(plan);
+    final capacityRaw = _planCapacityValue(plan);
     String capNumber = capacityRaw;
     String capUnit = '';
     final match = RegExp(r'^([\d.]+)(MB|GB|TB)$', caseSensitive: false).firstMatch(capacityRaw.trim());
@@ -2982,8 +2982,8 @@ class _ElitePlanTile extends StatelessWidget {
       capNumber = capacityRaw;
     }
 
-    final price = _planPrice(plan);
-    final validity = _planValidity(plan);
+    final price = _planPriceValueFormatted(plan);
+    final validity = (plan['validity']?.toString().trim().isEmpty ?? true) ? '—' : plan['validity'].toString().trim();
     final promoActive = plan['promo_active'] == true || plan['promo_active'] == 1 || plan['promo_active']?.toString().toLowerCase() == 'true';
     final promoLabel = plan['promo_label']?.toString();
     final cashbackLabel = plan['cashback_label']?.toString();
