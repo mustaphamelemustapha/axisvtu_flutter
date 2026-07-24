@@ -578,10 +578,10 @@ class _DataScreenState extends State<DataScreen> {
                             : GridView.builder(
                                 padding: const EdgeInsets.all(16),
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 0.95,
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: 0.7,
                                 ),
                                 itemCount: currentPlans.length,
                                 itemBuilder: (context, index) {
@@ -1352,10 +1352,10 @@ class _DataScreenState extends State<DataScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.85,
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 0.7,
                         ),
                         itemCount: _sortedNetworkPlans.length,
                         itemBuilder: (context, index) {
@@ -1364,7 +1364,12 @@ class _DataScreenState extends State<DataScreen> {
                           final isSelected = _selectedPlanCode == code;
                           final netColor = _getNetworkColor(_network);
                           
-                          return GestureDetector(
+                          return _ElitePlanTile(
+                            key: ValueKey(code),
+                            plan: plan,
+                            selected: isSelected,
+                            netColor: netColor,
+                            isShaking: _shakingPlanCode == code,
                             onTap: () {
                               if (!hasPhone) {
                                 setState(() {
@@ -1382,188 +1387,6 @@ class _DataScreenState extends State<DataScreen> {
                               });
                               _showSummaryModal();
                             },
-                            child: TweenAnimationBuilder<double>(
-                              key: ValueKey(_shakingPlanCode == code ? code : null),
-                              tween: Tween(begin: _shakingPlanCode == code ? 1.0 : 0.0, end: 0.0),
-                              duration: const Duration(milliseconds: 400),
-                              builder: (context, value, child) {
-                                final offset = value > 0 ? math.sin(value * math.pi * 4) * 8 : 0.0;
-                                return Transform.translate(
-                                  offset: Offset(offset, 0),
-                                  child: child,
-                                );
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOutCubic,
-                                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                                decoration: BoxDecoration(
-                                  gradient: isSelected
-                                      ? LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            isDark ? netColor.withValues(alpha: 0.15) : netColor.withValues(alpha: 0.08),
-                                            isDark ? const Color(0xFF0F141E) : Colors.white,
-                                          ],
-                                        )
-                                      : LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: isDark 
-                                            ? [const Color(0xFF1E2638), const Color(0xFF0B101A)]
-                                            : [Colors.white, const Color(0xFFF8FAFC)],
-                                        ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: isSelected ? netColor : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05)),
-                                    width: isSelected ? 2 : 1,
-                                  ),
-                                  boxShadow: isSelected ? [
-                                    BoxShadow(
-                                      color: netColor.withValues(alpha: 0.25),
-                                      blurRadius: 15,
-                                      offset: const Offset(0, 6),
-                                    )
-                                  ] : (isDark ? [] : [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.02),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    )
-                                  ]),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Text(
-                                        _planCapacity(plan),
-                                        style: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w800,
-                                          color: isSelected ? netColor : (isDark ? Colors.white : Colors.black87),
-                                          letterSpacing: -0.5,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                                        textBaseline: TextBaseline.alphabetic,
-                                        children: [
-                                          Text(
-                                            '₦${_planPrice(plan)}',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w700,
-                                              color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
-                                            ),
-                                          ),
-                                          if (plan['promo_old_price'] != null) ...[
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              '₦${plan['promo_old_price']}',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w500,
-                                                color: isDark ? Colors.white.withValues(alpha: 0.35) : Colors.grey,
-                                                decoration: TextDecoration.lineThrough,
-                                                decorationColor: isDark ? Colors.red.withValues(alpha: 0.6) : Colors.red,
-                                                decorationThickness: 2,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black12,
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            _planValidity(plan),
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                              color: isDark ? Colors.white.withValues(alpha: 0.8) : Colors.black87,
-                                            ),
-                                          ),
-                                        ),
-                                        if (plan['promo_label'] != null) ...[
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green.withValues(alpha: 0.1),
-                                              borderRadius: BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: Colors.green.withValues(alpha: 0.5),
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              plan['promo_label'].toString(),
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.green,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    if (plan['cashback_label'] != null) ...[
-                                      const SizedBox(height: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: plan['cashback_label'].toString().toLowerCase().contains('new') 
-                                                ? [Colors.orange.shade400, Colors.orange.shade600]
-                                                : [const Color(0xFF22C55E), const Color(0xFF16A34A)],
-                                          ),
-                                          borderRadius: BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: plan['cashback_label'].toString().toLowerCase().contains('new') 
-                                                  ? Colors.orange.withValues(alpha: 0.3) 
-                                                  : Colors.green.withValues(alpha: 0.3),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            )
-                                          ],
-                                        ),
-                                        child: Text(
-                                          plan['cashback_label'].toString(),
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              )
-                            ),
                           );
                         }),
                   ],
@@ -3132,6 +2955,7 @@ class _ElitePlanTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final Color? netColor;
+  final bool isShaking;
 
   const _ElitePlanTile({
     super.key,
@@ -3139,137 +2963,191 @@ class _ElitePlanTile extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.netColor,
+    this.isShaking = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = Theme.of(context).colorScheme.primary;
-    final network = (plan['network'] ?? '').toString().toLowerCase();
-    final capacity = _planDisplayTitle(plan, network);
-    final price = _planPriceValueFormatted(plan);
-    final validity = plan['validity']?.toString() ?? '30d';
+    final primary = netColor ?? Theme.of(context).colorScheme.primary;
 
-    final bool promoActive = plan['promo_active'] == true ||
-        plan['promo_active'] == 1 ||
-        plan['promo_active']?.toString().toLowerCase() == 'true';
-    final String? promoLabel = plan['promo_label']?.toString();
-    final String? cashbackLabel = plan['cashback_label']?.toString();
-    
+    final capacityRaw = _planCapacity(plan);
+    String capNumber = capacityRaw;
+    String capUnit = '';
+    final match = RegExp(r'^([\d.]+)(MB|GB|TB)$', caseSensitive: false).firstMatch(capacityRaw.trim());
+    if (match != null) {
+      capNumber = match.group(1)!;
+      capUnit = match.group(2)!.toUpperCase();
+    } else {
+      capNumber = capacityRaw;
+    }
+
+    final price = _planPrice(plan);
+    final validity = _planValidity(plan);
+    final promoActive = plan['promo_active'] == true || plan['promo_active'] == 1 || plan['promo_active']?.toString().toLowerCase() == 'true';
+    final promoLabel = plan['promo_label']?.toString();
+    final cashbackLabel = plan['cashback_label']?.toString();
+
     double? promoOldPrice;
     if (plan['promo_old_price'] != null) {
       promoOldPrice = double.tryParse(plan['promo_old_price'].toString());
     }
 
-    return GestureDetector(
+    final bgColor = selected 
+      ? (isDark ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0))
+      : (isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F9F9));
+      
+    final borderColor = selected 
+      ? primary
+      : (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE));
+
+    Widget tile = GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: selected
-              ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))
-              : (isDark ? const Color(0xFF111827) : Colors.white),
-          borderRadius: BorderRadius.circular(24),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected 
-                ? primary 
-                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-            width: 2.5,
+            color: borderColor,
+            width: selected ? 1.5 : 1.0,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isDark ? const Color(0xFF08101F) : const Color(0xFFE2E8F0),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            // 1. Capacity / Name
-            Text(
-              capacity,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            // 2. Price row (strikethrough previous price)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '₦$price',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: selected ? primary : Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                if (promoActive && promoOldPrice != null) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    '₦${_formatMoneyValue(promoOldPrice)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey,
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 12),
-            // 3. Validity & Promo discount labels
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              alignment: WrapAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    validity,
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                  ),
-                ),
-                 if (promoActive && promoLabel != null && promoLabel.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
-                      color: const Color(0xFF10B981).withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      promoLabel,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF10B981),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: RichText(
+                      text: TextSpan(
+                        text: capNumber,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : Colors.black87,
+                          letterSpacing: -0.5,
+                        ),
+                        children: [
+                          if (capUnit.isNotEmpty)
+                            TextSpan(
+                              text: capUnit,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.white70 : Colors.black54,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    validity,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '₦$price',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        if (promoOldPrice != null) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '₦${_formatMoneyValue(promoOldPrice)}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.white30 : Colors.black38,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (cashbackLabel != null || promoLabel != null) ...[
+                    const SizedBox(height: 6),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        cashbackLabel ?? promoLabel!,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF00BFA5),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
+            if (promoActive && promoOldPrice != null)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE53935),
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(9),
+                      bottomLeft: Radius.circular(6),
+                    ),
+                  ),
+                  child: const Text(
+                    '%',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
+
+    if (isShaking) {
+      return TweenAnimationBuilder<double>(
+        key: ValueKey('shake_$isShaking'),
+        tween: Tween(begin: 1.0, end: 0.0),
+        duration: const Duration(milliseconds: 400),
+        builder: (context, value, child) {
+          final offset = value > 0 ? math.sin(value * math.pi * 4) * 8 : 0.0;
+          return Transform.translate(
+            offset: Offset(offset, 0),
+            child: child,
+          );
+        },
+        child: tile,
+      );
+    }
+    
+    return tile;
   }
 }
 
@@ -3336,10 +3214,10 @@ class _PlanShimmerGrid extends StatelessWidget {
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.1,
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.7,
       ),
       itemCount: 6,
       itemBuilder: (context, index) => AnimatedOpacity(
