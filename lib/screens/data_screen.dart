@@ -1437,44 +1437,50 @@ class _DataScreenState extends State<DataScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    Text(
-                                      _planCapacity(plan),
-                                      style: TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w700,
-                                        color: isSelected ? netColor : (isDark ? Colors.white : Colors.black87),
-                                        letterSpacing: -0.5,
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        _planCapacity(plan),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w800,
+                                          color: isSelected ? netColor : (isDark ? Colors.white : Colors.black87),
+                                          letterSpacing: -0.5,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                                      textBaseline: TextBaseline.alphabetic,
-                                      children: [
-                                        Text(
-                                          '₦${_planPrice(plan)}',
-                                          style: TextStyle(
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
-                                          ),
-                                        ),
-                                        if (plan['promo_old_price'] != null) ...[
-                                          const SizedBox(width: 6),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                                        textBaseline: TextBaseline.alphabetic,
+                                        children: [
                                           Text(
-                                            '₦${plan['promo_old_price']}',
+                                            '₦${_planPrice(plan)}',
                                             style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w500,
-                                              color: isDark ? Colors.white.withValues(alpha: 0.35) : Colors.grey,
-                                              decoration: TextDecoration.lineThrough,
-                                              decorationColor: isDark ? Colors.red.withValues(alpha: 0.6) : Colors.red,
-                                              decorationThickness: 2,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                              color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
                                             ),
                                           ),
+                                          if (plan['promo_old_price'] != null) ...[
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              '₦${plan['promo_old_price']}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                                color: isDark ? Colors.white.withValues(alpha: 0.35) : Colors.grey,
+                                                decoration: TextDecoration.lineThrough,
+                                                decorationColor: isDark ? Colors.red.withValues(alpha: 0.6) : Colors.red,
+                                                decorationThickness: 2,
+                                              ),
+                                            ),
+                                          ],
                                         ],
-                                      ],
+                                      ),
                                     ),
                                     const SizedBox(height: 12),
                                     Row(
@@ -3499,7 +3505,9 @@ String _formatCapacityValue(dynamic raw) {
   final value = raw.toString().trim();
   if (value.isEmpty) return '';
 
-  final upper = value.toUpperCase();
+  var upper = value.toUpperCase();
+  upper = upper.replaceAll(RegExp(r'\s*\(\s*(GIFTING|SME|CG|CORPORATE|DIRECT|C\.G)\s*\)'), '');
+
   if (upper.contains('GB') || upper.contains('MB')) {
     return upper.replaceAll(' ', '');
   }
