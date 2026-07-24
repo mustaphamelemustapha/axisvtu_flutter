@@ -2993,25 +2993,57 @@ class _ElitePlanTile extends StatelessWidget {
       promoOldPrice = double.tryParse(plan['promo_old_price'].toString());
     }
 
-    final bgColor = selected 
-      ? (isDark ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0))
-      : (isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F9F9));
-      
-    final borderColor = selected 
-      ? primary
-      : (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE));
+    final unselectedGradient = isDark 
+      ? const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1F2937), Color(0xFF111827)],
+        )
+      : const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white, Color(0xFFF8FAFC)],
+        );
+
+    final selectedGradient = isDark
+      ? LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [primary.withValues(alpha: 0.25), const Color(0xFF0F172A)],
+        )
+      : LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [primary.withValues(alpha: 0.1), Colors.white],
+        );
 
     Widget tile = GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(10),
+          gradient: selected ? selectedGradient : unselectedGradient,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: borderColor,
+            color: selected 
+                ? primary 
+                : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
             width: selected ? 1.5 : 1.0,
           ),
+          boxShadow: selected ? [
+            BoxShadow(
+              color: primary.withValues(alpha: 0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
+            )
+          ] : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ],
         ),
         child: Stack(
           children: [
@@ -3088,14 +3120,21 @@ class _ElitePlanTile extends StatelessWidget {
                   ),
                   if (cashbackLabel != null || promoLabel != null) ...[
                     const SizedBox(height: 6),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        cashbackLabel ?? promoLabel!,
-                        style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF00BFA5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00BFA5).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          cashbackLabel ?? promoLabel!,
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF00BFA5),
+                          ),
                         ),
                       ),
                     ),
