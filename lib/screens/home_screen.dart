@@ -1977,8 +1977,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 32),
 
-            if (_activeCampaigns.isNotEmpty) ...[
-              ..._activeCampaigns.map((c) => _buildCampaignProgressCard(c)).toList(),
+            if (_activeCampaigns.any((c) => !c.isClaimed)) ...[
+              ..._activeCampaigns.where((c) => !c.isClaimed).map((c) => _buildCampaignProgressCard(c)).toList(),
               const SizedBox(height: 12),
             ],
 
