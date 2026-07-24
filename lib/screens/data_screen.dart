@@ -863,6 +863,7 @@ class _DataScreenState extends State<DataScreen> {
     setState(() {
       _invalidateRequestId();
       _network = value;
+      _selectedCategory = null;
       // Clear selection if it doesn't belong to the new network
       final plans = _plans.where((p) => p != null && (p as Map)['network']?.toString().toLowerCase() == value).toList();
       final current = _selectedPlanCode;
@@ -1193,7 +1194,7 @@ class _DataScreenState extends State<DataScreen> {
                   ],
                   
                   if (_network.isNotEmpty) ...[
-                    const Text('Select Data Type', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    const Text('Data Type', style: TextStyle(color: Colors.grey, fontSize: 12)),
                     const SizedBox(height: 8),
                     
                     // Custom Dropdown for Categories
@@ -1222,7 +1223,7 @@ class _DataScreenState extends State<DataScreen> {
                                   Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
                                   const Padding(
                                     padding: EdgeInsets.all(16),
-                                    child: Text('Select Data Type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                    child: Text('Data Type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                   ),
                                   ...cats.map((cat) => ListTile(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
@@ -1261,7 +1262,7 @@ class _DataScreenState extends State<DataScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              _selectedCategory ?? 'Select Data Type',
+                              _selectedCategory ?? 'Data Type',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: _selectedCategory != null ? FontWeight.bold : FontWeight.normal,
