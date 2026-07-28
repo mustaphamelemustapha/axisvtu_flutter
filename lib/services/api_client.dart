@@ -15,6 +15,7 @@ class ApiClient {
   
   // Fast memory cache for 0ms loading
   static final Map<String, dynamic> _memoryCache = {};
+  static final Map<String, DateTime> _cacheTimestamps = {};
 
   static Future<void> clearCache() async {
     _memoryCache.clear();
@@ -56,8 +57,13 @@ class ApiClient {
     // 1. Return memory cache immediately if available and not forced
     if (!forceRefresh && _memoryCache.containsKey(cacheKey)) {
       _log('API GET (Memory Cache): $uri');
-      // Kick off background refresh silently
-      _fetchAndCache(uri, path, cacheKey).ignore();
+      
+      final lastFetch = _cacheTimestamps[cacheKey];
+      final now = DateTime.now();
+      if (lastFetch == null || now.difference(lastFetch).inSeconds > 60) {
+        // Kick off background refresh silently
+        _fetchAndCache(uri, path, cacheKey).ignore();
+      }
       return _memoryCache[cacheKey];
     }
 
@@ -92,6 +98,7 @@ class ApiClient {
         
         // Save to memory
         _memoryCache[cacheKey] = data;
+        _cacheTimestamps[cacheKey] = DateTime.now();
         
         // Save to disk asynchronously
         SharedPreferences.getInstance().then((prefs) {
