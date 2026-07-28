@@ -956,6 +956,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 children: [
                   Row(
                     children: [
+                      if (Navigator.canPop(context))
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: InkWell(
+                            onTap: () => Navigator.pop(context),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(Icons.arrow_back_ios_new, size: 20, color: Theme.of(context).colorScheme.onSurface),
+                            ),
+                          ),
+                        ),
                       Container(
                         width: 42,
                         height: 42,
@@ -1019,6 +1038,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
             else
               Row(
                 children: [
+                  if (Navigator.canPop(context))
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: InkWell(
+                        onTap: () => Navigator.pop(context),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.arrow_back_ios_new, size: 20, color: Theme.of(context).colorScheme.onSurface),
+                        ),
+                      ),
+                    ),
                   Container(
                     width: 42,
                     height: 42,
