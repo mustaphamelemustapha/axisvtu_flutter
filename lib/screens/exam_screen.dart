@@ -136,7 +136,11 @@ class _ExamScreenState extends State<ExamScreen> {
           setState(() {
             _packages = list;
             if (_packages.isNotEmpty) {
-              _selectedPackage = _packages.first['code']?.toString();
+              final resultPkg = _packages.firstWhere(
+                (p) => (p['name']?.toString().toLowerCase().contains('result') ?? false),
+                orElse: () => _packages.first,
+              );
+              _selectedPackage = resultPkg['code']?.toString();
             }
             _loadingPackages = false;
           });
