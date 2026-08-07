@@ -96,12 +96,14 @@ class ServicesService {
 
   Future<Map<String, dynamic>> purchaseExam({
     required String exam,
+    String? examType,
     required int quantity,
     String? phoneNumber,
     String? clientRequestId,
   }) {
     return _client.post('/services/exam/purchase', {
       'exam': exam,
+      if (examType != null && examType.trim().isNotEmpty) 'exam_type': examType,
       'quantity': quantity,
       'phone_number': (phoneNumber == null || phoneNumber.trim().isEmpty)
           ? null
@@ -109,5 +111,9 @@ class ServicesService {
       if (clientRequestId != null && clientRequestId.trim().isNotEmpty)
         'client_request_id': clientRequestId.trim(),
     });
+  }
+
+  Future<Map<String, dynamic>> getExamPackages({required String exam}) {
+    return _client.get('/services/exam/packages?exam=$exam');
   }
 }

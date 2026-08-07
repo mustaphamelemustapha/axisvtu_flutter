@@ -72,6 +72,9 @@ class _ExamScreenState extends State<ExamScreen> {
   int _quantity = 1;
   List<String> _examTypes = const ['waec', 'neco', 'jamb'];
   bool _loading = false;
+  bool _loadingPackages = false;
+  List<Map<String, dynamic>> _packages = [];
+  String? _selectedPackage;
   String? _activeRequestId;
   bool _saveBeneficiary = true;
   List<Map<String, dynamic>> _beneficiaries = [];
@@ -111,8 +114,43 @@ class _ExamScreenState extends State<ExamScreen> {
             _exam = _examTypes.first;
           }
         });
+        _fetchPackages();
       }
     } catch (_) {}
+  }
+
+  Future<void> _fetchPackages() async {
+    final token = (context.read<SessionController>().token ?? '').trim();
+    if (token.isEmpty) return;
+    setState(() {
+      _loadingPackages = true;
+      _packages = [];
+      _selectedPackage = null;
+    });
+    try {
+      final res = await ServicesService(token: token).getExamPackages(exam: _exam);
+      final raw = res['packages'];
+      if (raw is List) {
+        final list = raw.map((e) => e as Map<String, dynamic>).toList();
+        if (mounted) {
+          setState(() {
+            _packages = list;
+            if (_packages.isNotEmpty) {
+              _selectedPackage = _packages.first['code']?.toString();
+            }
+            _loadingPackages = false;
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _packages = [];
+          _selectedPackage = null;
+          _loadingPackages = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadPreferences() async {
@@ -240,7 +278,10 @@ class _ExamScreenState extends State<ExamScreen> {
     HapticFeedback.mediumImpact();
     setState(() {
       if (_examTypes.contains(exam)) {
-        _exam = exam;
+        if (_exam != exam) {
+          _exam = exam;
+          _fetchPackages();
+        }
       }
       if (quantity != null && quantity >= 1 && quantity <= 10) {
         _quantity = quantity;
@@ -287,6 +328,7 @@ class _ExamScreenState extends State<ExamScreen> {
       _activeRequestId ??= buildRequestId("exam");
       final res = await ServicesService(token: token).purchaseExam(
         exam: _exam,
+        examType: _selectedPackage,
         quantity: _quantity,
         phoneNumber: phone,
         clientRequestId: _activeRequestId,
@@ -365,11 +407,19 @@ class _ExamScreenState extends State<ExamScreen> {
       builder: (context) => EpicPurchaseSummary(
         title: 'Confirm Exam PIN',
         subtitle: 'Please review your exam PIN request below',
-        amount: '$_quantity PIN(s)',
+        amount: (_selectedPackage != null && _packages.isNotEmpty)
+            ? '₦${((_packages.firstWhere((p) => p['code'].toString() == _selectedPackage, orElse: () => {'amount': 0.0})['amount'] ?? 0.0) * _quantity).toStringAsFixed(2)}'
+            : '$_quantity PIN(s)',
         primaryColor: _getExamColor(_exam),
         headerIcon: Icons.school_rounded,
         items: [
           SummaryItem(label: 'Exam Board', value: _exam.toUpperCase(), icon: Icons.assignment_rounded),
+          if (_selectedPackage != null && _packages.isNotEmpty)
+            SummaryItem(
+              label: 'Package',
+              value: _packages.firstWhere((p) => p['code'].toString() == _selectedPackage, orElse: () => {'name': _selectedPackage})['name'].toString(),
+              icon: Icons.confirmation_num_rounded,
+            ),
           SummaryItem(label: 'Quantity', value: '$_quantity', icon: Icons.numbers_rounded),
           if (phone.isNotEmpty) SummaryItem(label: 'Phone Number', value: phone, icon: Icons.phone_android_rounded),
         ],
@@ -408,6 +458,8 @@ class _ExamScreenState extends State<ExamScreen> {
       'Provider': 'MELE DATA',
       'Transaction Type': 'Exam PIN Purchase',
       'Exam Board': _exam.toUpperCase(),
+      if (_selectedPackage != null && _packages.isNotEmpty)
+        'Package': _packages.firstWhere((p) => p['code'].toString() == _selectedPackage, orElse: () => {'name': _selectedPackage})['name'].toString(),
       'Quantity': '$_quantity',
       'Reference': reference,
     };
@@ -515,9 +567,11 @@ class _ExamScreenState extends State<ExamScreen> {
       footer: StickyCheckoutBar(
         title: _exam.toUpperCase(),
         subtitle: 'Qty: $_quantity',
-        amount: '$_quantity Pins',
-        active: !_loading,
-        loading: _loading,
+        amount: (_selectedPackage != null && _packages.isNotEmpty)
+            ? '₦${((_packages.firstWhere((p) => p['code'].toString() == _selectedPackage, orElse: () => {'amount': 0.0})['amount'] ?? 0.0) * _quantity).toStringAsFixed(2)}'
+            : '$_quantity Pins',
+        active: !_loading && _packages.isNotEmpty,
+        loading: _loading || _loadingPackages,
         onBuy: _showAuthChoiceSheet,
         actionLabel: 'Confirm Order',
         icon: Icons.school_rounded,
@@ -538,7 +592,10 @@ class _ExamScreenState extends State<ExamScreen> {
                       onTap: () {
                         HapticFeedback.selectionClick();
                         _invalidateRequestId();
-                        setState(() => _exam = exam);
+                        if (_exam != exam) {
+                          setState(() => _exam = exam);
+                          _fetchPackages();
+                        }
                       },
                     ),
                   );
@@ -546,6 +603,61 @@ class _ExamScreenState extends State<ExamScreen> {
               ),
             ),
           ),
+          if (_loadingPackages)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_packages.isNotEmpty) ...[
+            ServiceSectionCard(
+              title: 'Service type',
+              child: DropdownButtonFormField<String>(
+                value: _selectedPackage,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Theme.of(context).cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                dropdownColor: Theme.of(context).cardColor,
+                icon: const Icon(Icons.chevron_right_rounded),
+                items: _packages.map((pkg) {
+                  return DropdownMenuItem<String>(
+                    value: pkg['code'].toString(),
+                    child: Text(pkg['name']?.toString() ?? pkg['code'].toString()),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  HapticFeedback.selectionClick();
+                  _invalidateRequestId();
+                  setState(() => _selectedPackage = val);
+                },
+              ),
+            ),
+            ServiceSectionCard(
+              title: 'Amount',
+              child: TextFormField(
+                initialValue: _selectedPackage != null
+                    ? '₦${(_packages.firstWhere((p) => p['code'].toString() == _selectedPackage)['amount'] ?? 0.0)}'
+                    : '',
+                key: ValueKey(_selectedPackage),
+                readOnly: true,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Theme.of(context).cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+            ),
+          ],
           ServiceSectionCard(
             title: 'Quantity',
             child: Row(
