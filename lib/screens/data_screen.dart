@@ -714,11 +714,11 @@ class _DataScreenState extends State<DataScreen> {
         ],
         onProceedPin: () {
           Navigator.pop(context);
-          if (mounted) _buy(authMethod: PurchaseAuthService.methodPin);
+          _buy(authMethod: PurchaseAuthService.methodPin);
         },
         onProceedBiometric: () {
           Navigator.pop(context);
-          if (mounted) _buy(authMethod: PurchaseAuthService.methodBiometric);
+          _buy(authMethod: PurchaseAuthService.methodBiometric);
         },
       ),
     );

@@ -24,17 +24,12 @@ class PurchaseAuthService {
 
     final service = TransactionPinService(token: token);
 
-    // Speed: Start status fetch in background but don't block UI immediately.
-    // We only block if we reach a point where we MUST know the status.
-    final statusFuture = service.statusOrNull().timeout(const Duration(seconds: 2), onTimeout: () => null);
-
     return _verifyFlow(
       context: context,
       service: service,
       reason: reason,
       pinLength: 4, 
       preferredMethod: preferredMethod,
-      statusFuture: statusFuture,
     );
   }
 
@@ -114,24 +109,12 @@ class PurchaseAuthService {
     required String reason,
     required int pinLength,
     required String preferredMethod,
-    Future<TransactionPinStatus?>? statusFuture,
   }) async {
     // 1. Check for Biometric Unlock configuration
     final bioEnabled = await BiometricService.isAppLockEnabled;
     final savedPin = await BiometricService.getPin();
     final availability = await BiometricService.getAvailability();
 
-    final canUseBiometric = bioEnabled && availability.ready && savedPin != null && savedPin.length == pinLength;
-
-    // Only block on checking if the PIN is set if we cannot use biometrics
-    if (!canUseBiometric && statusFuture != null) {
-      final status = await statusFuture;
-      if (status != null && !status.isSet) {
-        if (context.mounted) {
-          return _setupFlow(context: context, service: service, reason: reason, pinLength: status.pinLength);
-        }
-      }
-    }
 
     if (bioEnabled && availability.ready && context.mounted) {
       bool useBiometric = false;
@@ -188,7 +171,7 @@ class PurchaseAuthService {
             );
           }
         } else if (preferredMethod == methodBiometric) {
-          return false;
+          // Fall back to manual PIN entry if biometric fails or is cancelled
         }
       }
     }
@@ -385,11 +368,8 @@ class PurchaseAuthService {
         lower.contains('try again later')) {
       return 'Incorrect PIN, try again.';
     }
-    if (lower.contains('timed out') || lower.contains('timeout')) {
-      return 'Request timed out. Please try again.';
-    }
-    if (lower.contains('network') || lower.contains('connection')) {
-      return 'Check your connection and try again.';
+    if (lower.contains('timed out') || lower.contains('timeout') || lower.contains('network') || lower.contains('connection')) {
+      return 'Network unstable connection, please reconnect and try again.';
     }
     if (raw.startsWith('ApiException(')) {
       final idx = raw.indexOf(':');

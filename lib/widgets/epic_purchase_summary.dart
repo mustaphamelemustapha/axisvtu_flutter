@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -22,8 +23,8 @@ class EpicPurchaseSummary extends StatefulWidget {
   final Color primaryColor;
   final IconData headerIcon;
   final List<SummaryItem> items;
-  final VoidCallback onProceedPin;
-  final VoidCallback onProceedBiometric;
+  final FutureOr<void> Function() onProceedPin;
+  final FutureOr<void> Function() onProceedBiometric;
 
   const EpicPurchaseSummary({
     super.key,
@@ -252,9 +253,9 @@ class _EpicPurchaseSummaryState extends State<EpicPurchaseSummary> {
                       }
                     },
                     icon: Icon(
-                      _bioAvailable ? Icons.fingerprint_rounded : Icons.lock_outline_rounded,
-                      color: primary.computeLuminance() > 0.5 ? Colors.black : Colors.white,
-                    ),
+                            _bioAvailable ? Icons.fingerprint_rounded : Icons.lock_outline_rounded,
+                            color: primary.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+                          ),
                     label: Text(
                       _bioAvailable ? 'Confirm with Biometrics' : 'Confirm & Pay with PIN',
                       style: TextStyle(

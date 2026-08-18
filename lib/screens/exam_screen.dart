@@ -429,15 +429,11 @@ class _ExamScreenState extends State<ExamScreen> {
         ],
         onProceedPin: () {
           Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            _submit(authMethod: PurchaseAuthService.methodPin);
-          });
+          _submit(authMethod: PurchaseAuthService.methodPin);
         },
         onProceedBiometric: () {
           Navigator.pop(context);
-          Future.delayed(const Duration(milliseconds: 350), () {
-            _submit(authMethod: PurchaseAuthService.methodBiometric);
-          });
+          _submit(authMethod: PurchaseAuthService.methodBiometric);
         },
       ),
     );

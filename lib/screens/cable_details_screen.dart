@@ -243,7 +243,9 @@ class _CableDetailsScreenState extends State<CableDetailsScreen> {
     return 'Cable order failed.';
   }
 
-  Future<void> _submit({String authMethod = PurchaseAuthService.methodAuto}) async {
+  Future<void> _submit({
+    String authMethod = PurchaseAuthService.methodAuto,
+  }) async {
     if (_loading) return;
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) return;
