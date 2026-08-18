@@ -50,7 +50,11 @@ class TransactionPinService {
   }
 
   Future<void> verify(String pin) async {
-    await _client.post('/security/pin/verify', {'pin': pin});
+    await _client.post(
+      '/security/pin/verify',
+      {'pin': pin},
+      timeout: const Duration(seconds: 15),
+    );
   }
 
   Future<void> change({

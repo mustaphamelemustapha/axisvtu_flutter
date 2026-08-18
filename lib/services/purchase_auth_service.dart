@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/session.dart';
 import '../widgets/pin_entry_sheet.dart';
+import '../widgets/purchase_loading_overlay.dart';
 import 'api_client.dart';
 import 'transaction_pin_service.dart';
 import 'biometric_service.dart';
@@ -135,9 +136,14 @@ class PurchaseAuthService {
         if (success) {
           if (savedPin != null && savedPin.length == pinLength) {
             try {
+              if (context.mounted) {
+                PurchaseLoadingOverlay.show(context, title: 'Verifying biometric...');
+              }
               await service.verify(savedPin);
+              PurchaseLoadingOverlay.hide();
               return true;
             } on ApiException catch (e) {
+              PurchaseLoadingOverlay.hide();
               if (e.statusCode == 404 || e.message.toLowerCase().contains('not set')) {
                  await BiometricService.deletePin();
                  return _setupFlow(context: context, service: service, reason: reason, pinLength: pinLength);
@@ -157,6 +163,7 @@ class PurchaseAuthService {
                 return false;
               }
             } catch (e) {
+              PurchaseLoadingOverlay.hide();
               if (context.mounted) {
                 _showSnack(context, _friendlyError(e.toString()));
               }

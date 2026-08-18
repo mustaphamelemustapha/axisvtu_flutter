@@ -128,14 +128,15 @@ class ApiClient {
 
   Future<Map<String, dynamic>> post(
     String path,
-    Map<String, dynamic> body,
-  ) async {
+    Map<String, dynamic> body, {
+    Duration? timeout,
+  }) async {
     final uri = Uri.parse('$baseUrl$path');
     _log('API POST: $uri');
     try {
       final resp = await http
           .post(uri, headers: _headers(), body: jsonEncode(body))
-          .timeout(_timeout);
+          .timeout(timeout ?? _timeout);
       _log('API RESP [$path]: ${resp.statusCode}');
       return _decode(resp, path);
     } on TimeoutException catch (e) {
