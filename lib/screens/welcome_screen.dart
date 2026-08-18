@@ -325,7 +325,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               _Label('Full Name'),
                               _Input(
                                 controller: _regNameCtrl,
-                                hint: 'Mustapha Mele',
+                                hint: 'e.g. Mustapha Mele',
                                 keyboardType: TextInputType.name,
                               ),
                               const SizedBox(height: 12),
