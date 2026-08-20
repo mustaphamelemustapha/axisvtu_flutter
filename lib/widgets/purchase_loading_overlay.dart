@@ -11,6 +11,7 @@ class PurchaseLoadingOverlay {
     String title = 'Processing request',
   }) {
     hide();
+    FocusManager.instance.primaryFocus?.unfocus();
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
     if (overlay == null) return;
 
@@ -264,18 +265,13 @@ class _DynamicLoadingTextState extends State<_DynamicLoadingText> {
   @override
   Widget build(BuildContext context) {
     final dots = List.filled(_dotCount, '.').join();
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 240),
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
-      child: Text(
-        '${_messages[_messageIndex]}$dots',
-        key: ValueKey('$_messageIndex-$_dotCount'),
-        textAlign: TextAlign.center,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
-      ),
+    return Text(
+      '${_messages[_messageIndex]}$dots',
+      key: ValueKey('$_messageIndex-$_dotCount'),
+      textAlign: TextAlign.center,
+      style: Theme.of(
+        context,
+      ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
     );
   }
 }
