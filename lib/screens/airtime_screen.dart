@@ -931,7 +931,16 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
           ],
         );
       } else {
-        setState(() => _error = message);
+        _showResult(
+          status: 'failed',
+          subtitle: message,
+          fields: [
+            ReceiptField(label: 'Network', value: widget.network.toUpperCase()),
+            ReceiptField(label: 'Phone', value: widget.phone),
+            ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
+            ReceiptField(label: 'Failure', value: message),
+          ],
+        );
         _activeRequestId = null;
       }
     } finally {

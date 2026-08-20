@@ -51,12 +51,22 @@ class BiometricService {
 
   /// Retrieve the stored transaction PIN.
   static Future<String?> getPin() async {
-    return await _secureStorage.read(key: _securePinKey);
+    try {
+      return await _secureStorage.read(key: _securePinKey);
+    } catch (_) {
+      try {
+        return await const FlutterSecureStorage().read(key: _securePinKey);
+      } catch (_) {
+        return null;
+      }
+    }
   }
 
   /// Delete the stored transaction PIN.
   static Future<void> deletePin() async {
-    await _secureStorage.delete(key: _securePinKey);
+    try {
+      await _secureStorage.delete(key: _securePinKey);
+    } catch (_) {}
   }
 
   /// Check if the device hardware supports biometrics.

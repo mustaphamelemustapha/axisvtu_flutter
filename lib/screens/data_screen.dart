@@ -659,7 +659,14 @@ class _DataScreenState extends State<DataScreen> {
                                     Future.delayed(const Duration(milliseconds: 300), () {
                                       if (!mounted) return;
                                       setState(() => _selectedPlanCode = selectedCode);
-                                      _showSummaryModal();
+                                      final phone = _normalizePhone(_phoneCtrl.text);
+                                      if (phone.length >= 10) {
+                                        _showSummaryModal();
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Plan selected. Please enter a valid phone number to continue.')),
+                                        );
+                                      }
                                     });
                                   },
                           ),

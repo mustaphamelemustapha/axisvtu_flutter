@@ -142,7 +142,18 @@ class _ElectricityAmountScreenState extends State<ElectricityAmountScreen> {
           ],
         );
       } else {
-        setState(() => _error = message);
+        _showResult(
+          status: 'failed',
+          subtitle: message,
+          token: '',
+          fields: [
+            ReceiptField(label: 'Provider', value: widget.provider.name),
+            ReceiptField(label: 'Meter', value: widget.meterNumber),
+            ReceiptField(label: 'Name', value: widget.customerName),
+            ReceiptField(label: 'Amount', value: '₦${amount.toStringAsFixed(2)}'),
+            ReceiptField(label: 'Failure', value: message),
+          ],
+        );
         _activeRequestId = null;
       }
     } finally {
