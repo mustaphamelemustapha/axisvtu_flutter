@@ -75,6 +75,12 @@ class PushNotificationService {
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('Got a message whilst in the foreground!');
         debugPrint('Message data: ${message.data}');
+        
+        // Always refresh balance when a foreground push is received (wallet funding, tx success, etc)
+        if (session.isAuthenticated) {
+          session.refreshBalance();
+        }
+
         if (message.notification != null) {
           debugPrint('Message also contained a notification: ${message.notification}');
           final context = navigatorKey.currentContext;
