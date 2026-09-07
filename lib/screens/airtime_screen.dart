@@ -325,8 +325,8 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
       });
       return;
     }
-    if (amount < 50) {
-      setState(() => _error = 'Minimum airtime amount is ₦50.');
+    if (amount < 100) {
+      setState(() => _error = 'Minimum airtime amount is ₦100.');
       return;
     }
 
@@ -874,8 +874,8 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
 
     final amountText = _amountCtrl.text.replaceAll(',', '').trim();
     final amount = double.tryParse(amountText) ?? 0;
-    if (amount < 50) {
-      setState(() => _error = 'Minimum airtime amount is ₦50.');
+    if (amount < 100) {
+      setState(() => _error = 'Minimum airtime amount is ₦100.');
       return;
     }
 
@@ -955,8 +955,8 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
     final amountText = _amountCtrl.text.replaceAll(',', '').trim();
     final amount = double.tryParse(amountText) ?? 0;
     
-    if (amount < 50) {
-      setState(() => _error = 'Minimum airtime amount is ₦50.');
+    if (amount < 100) {
+      setState(() => _error = 'Minimum airtime amount is ₦100.');
       return;
     }
     
@@ -1191,7 +1191,7 @@ class _AirtimeAmountScreenState extends State<AirtimeAmountScreen> {
               
               // Allowed Limit
               Text(
-                'Allowed limit: ₦50 – ₦50,000',
+                'Allowed limit: ₦100 – ₦50,000',
                 style: TextStyle(
                   color: isDark ? Colors.white54 : Colors.grey,
                   fontSize: 13,
@@ -1531,7 +1531,7 @@ class _AirtimeAmountPickerState extends State<_AirtimeAmountPicker> {
           crossAxisSpacing: 10,
           childAspectRatio: 1.4,
           children: [
-            50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 15000, 20000
+            100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 15000, 20000
           ].map((v) {
             final label = v >= 1000 ? '₦${(v/1000).toStringAsFixed(0)}K' : '₦$v';
             return _PresetButton(
