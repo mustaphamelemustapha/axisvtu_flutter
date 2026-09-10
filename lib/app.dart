@@ -44,9 +44,22 @@ class AxisVTUApp extends StatelessWidget {
               final media = MediaQuery.of(context);
               // Use textScaleFactor for better compatibility
               final scale = media.textScaleFactor.clamp(0.95, 1.12);
+              
+              final session = context.watch<SessionController>();
+              Widget content = child ?? const SizedBox.shrink();
+              
+              if (session.isBootstrapped && session.isAuthenticated && session.isLocked) {
+                content = Stack(
+                  children: [
+                    content,
+                    const Positioned.fill(child: AppLockScreen()),
+                  ],
+                );
+              }
+              
               return MediaQuery(
                 data: media.copyWith(textScaleFactor: scale),
-                child: child ?? const SizedBox.shrink(),
+                child: content,
               );
             },
             routes: {
@@ -106,13 +119,6 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
       final session = context.read<SessionController>();
       if (session.isAuthenticated) {
         session.refreshBalance();
-        final pausedAt = _pausedTime;
-        if (pausedAt != null) {
-          final difference = DateTime.now().difference(pausedAt);
-          if (difference.inSeconds >= 2) {
-            session.lockForcefully();
-          }
-        }
       }
       _pausedTime = null;
     }
@@ -170,9 +176,6 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
     }
 
     if (session.isAuthenticated) {
-      if (session.isLocked) {
-        return const AppLockScreen();
-      }
       if (!session.hasSecurityPreference) {
         return const SecurityPreferenceScreen();
       }
