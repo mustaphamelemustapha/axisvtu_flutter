@@ -16,6 +16,8 @@ class ApiClient {
   // Fast memory cache for 0ms loading
   static final Map<String, dynamic> _memoryCache = {};
   static final Map<String, DateTime> _cacheTimestamps = {};
+  
+  static final StreamController<int> onUnauthorizedError = StreamController<int>.broadcast();
 
   static Future<void> clearCache() async {
     _memoryCache.clear();
@@ -349,6 +351,11 @@ class ApiClient {
               data['error'] ??
               'Request failed')
         : 'Request failed';
+        
+    if (resp.statusCode == 401) {
+      onUnauthorizedError.add(401);
+    }
+    
     throw ApiException(
       resp.statusCode,
       _friendlyMessage(resp.statusCode, _formatErrorMessage(message)),

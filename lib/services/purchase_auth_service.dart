@@ -358,8 +358,10 @@ class PurchaseAuthService {
   static String _friendlyError(String message, [int? statusCode]) {
     final raw = message.trim();
     final lower = raw.toLowerCase();
-    if (statusCode == 401 ||
-        statusCode == 403 ||
+    if (statusCode == 401) {
+      return 'Your session has expired. Please sign in again.';
+    }
+    if (statusCode == 403 ||
         statusCode == 423 ||
         statusCode == 429) {
       return 'Incorrect PIN, try again.';

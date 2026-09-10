@@ -13,9 +13,14 @@ import '../services/config_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class SessionController extends ChangeNotifier {
-  SessionController();
-
-  static const String lastIdentifierKey = 'axisvtu_last_identifier';
+  SessionController() {
+    ApiClient.onUnauthorizedError.stream.listen((_) {
+      if (isAuthenticated && !_isLocked) {
+        debugPrint('[Session] Global 401 intercepted. Locking session.');
+        lockForcefully();
+      }
+    });
+  }
   static const String _tokenKey = 'axisvtu_secure_token_v1';
   static const String _biometricTokenKey = 'axisvtu_biometric_token_v1';
   static const String _biometricUserKey = 'axisvtu_biometric_user';
