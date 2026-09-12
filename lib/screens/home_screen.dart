@@ -22,8 +22,6 @@ import '../widgets/epic_purchase_summary.dart';
 import '../widgets/fund_wallet_sheet.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/primary_button.dart';
-import '../widgets/quick_action_tile.dart';
-import '../widgets/transaction_card.dart';
 import '../widgets/startup_popup_dialog.dart';
 import 'notification_center_screen.dart';
 import '../widgets/theme_toggle_button.dart';
