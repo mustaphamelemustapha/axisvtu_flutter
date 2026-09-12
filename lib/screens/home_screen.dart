@@ -22,6 +22,9 @@ import '../widgets/epic_purchase_summary.dart';
 import '../widgets/fund_wallet_sheet.dart';
 import '../widgets/purchase_result_sheet.dart';
 import '../widgets/primary_button.dart';
+import '../widgets/quick_action_tile.dart';
+import '../widgets/transaction_card.dart';
+import '../widgets/startup_popup_dialog.dart';
 import 'notification_center_screen.dart';
 import '../widgets/theme_toggle_button.dart';
 import 'airtime_screen.dart';
@@ -61,6 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _cachedAccountsData;
   List<dynamic>? _cachedTransactionsData;
   List<Map<String, dynamic>>? _announcements;
+
+  static bool _hasShownStartupPopup = false;
+
   Set<String> _dismissedAnnouncementIds = {};
   int _activeAccountIndex = 0;
   String _activeToken = '';
@@ -128,6 +134,27 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('dismissed_announcements', _dismissedAnnouncementIds.toList());
+  }
+
+  void _checkStartupPopup() {
+    if (_hasShownStartupPopup || _announcements == null || _announcements!.isEmpty) return;
+    try {
+      final popup = _announcements!.firstWhere(
+        (a) => a['is_popup'] == true && !_dismissedAnnouncementIds.contains(a['id']?.toString()),
+        orElse: () => {},
+      );
+      if (popup.isNotEmpty) {
+        _hasShownStartupPopup = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            StartupPopupDialog.show(context, popup).then((_) {
+              // Optionally mark as dismissed if we want 'once ever' behavior
+              // But user asked for option 1 (once per session), so we don't save to prefs.
+            });
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _dismissUpdateBanner(String version) async {
@@ -213,6 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
               .whereType<Map>()
               .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
               .toList();
+          _checkStartupPopup();
         }
       } else {
         _loadCachedDashboard(dashboardKey);
@@ -454,6 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             )
             .toList();
+        _checkStartupPopup();
       }
     });
   }
@@ -524,6 +553,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _announcements = data;
       });
+      _checkStartupPopup();
       unawaited(
         DashboardSnapshotCache.save(
           dashboardKey,
@@ -4054,88 +4084,104 @@ class _RecentActivityTile extends StatelessWidget {
             ? const Color(0xFFF59E0B)
             : const Color(0xFFEF4444));
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: statusColor, size: 20),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    amount,
-                    style: TextStyle(
-                      color: isCredit ? const Color(0xFF16A34A) : Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      letterSpacing: -0.5,
-                    ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.05),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Icon(icon, color: statusColor, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (status == 'failed') ...[
-                        Icon(Icons.error_rounded, size: 12, color: Theme.of(context).colorScheme.error),
-                        const SizedBox(width: 4),
-                      ],
                       Text(
-                        date,
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      amount,
+                      style: TextStyle(
+                        color: isCredit ? const Color(0xFF16A34A) : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (status == 'failed') ...[
+                          Icon(Icons.error_rounded, size: 12, color: Theme.of(context).colorScheme.error),
+                          const SizedBox(width: 4),
+                        ],
+                        Text(
+                          date,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

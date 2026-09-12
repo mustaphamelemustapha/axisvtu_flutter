@@ -27,6 +27,7 @@ class SessionController extends ChangeNotifier {
   static const String _biometricPasswordKey = 'axisvtu_biometric_password';
   static const String _securityPrefKey = 'axisvtu_security_preference_v1';
   static const String _lastUserJsonKey = 'axisvtu_last_user_v1';
+  static const String lastIdentifierKey = 'axisvtu_last_identifier_v1';
   
   static const _secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),

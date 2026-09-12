@@ -14,42 +14,60 @@ class PurchaseAuthService {
   static const String methodPin = 'pin';
   static const String methodBiometric = 'biometric';
 
+  static bool _isVerifyingFlow = false;
+
   static Future<bool> authorizePin({
     required BuildContext context,
     String reason = 'purchase',
     String preferredMethod = methodAuto,
   }) async {
-    final session = context.read<SessionController>();
-    final token = (session.token ?? '').trim();
-    if (token.isEmpty) return false;
+    if (_isVerifyingFlow) return false;
+    _isVerifyingFlow = true;
 
-    final service = TransactionPinService(token: token);
+    try {
+      final session = context.read<SessionController>();
+      final token = (session.token ?? '').trim();
+      if (token.isEmpty) return false;
 
-    return _verifyFlow(
-      context: context,
-      service: service,
-      reason: reason,
-      pinLength: 4, 
-      preferredMethod: preferredMethod,
-    );
+      final service = TransactionPinService(token: token);
+
+      return await _verifyFlow(
+        context: context,
+        service: service,
+        reason: reason,
+        pinLength: 4, 
+        preferredMethod: preferredMethod,
+      );
+    } finally {
+      _isVerifyingFlow = false;
+    }
   }
+
+  static bool _isShowingSetupPin = false;
 
   static Future<bool> setupPin({
     required BuildContext context,
     String reason = 'account security',
     int pinLength = 4,
   }) async {
-    final session = context.read<SessionController>();
-    final token = (session.token ?? '').trim();
-    if (token.isEmpty) return false;
+    if (_isShowingSetupPin) return false;
+    _isShowingSetupPin = true;
+    
+    try {
+      final session = context.read<SessionController>();
+      final token = (session.token ?? '').trim();
+      if (token.isEmpty) return false;
 
-    final service = TransactionPinService(token: token);
-    return _setupFlow(
-      context: context,
-      service: service,
-      reason: reason,
-      pinLength: pinLength,
-    );
+      final service = TransactionPinService(token: token);
+      return await _setupFlow(
+        context: context,
+        service: service,
+        reason: reason,
+        pinLength: pinLength,
+      );
+    } finally {
+      _isShowingSetupPin = false;
+    }
   }
 
   static Future<bool> _setupFlow({
