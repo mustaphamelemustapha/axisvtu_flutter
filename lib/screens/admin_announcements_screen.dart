@@ -1,14 +1,17 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/admin_service.dart';
 import '../state/session.dart';
 import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/primary_button.dart';
-
 class AdminAnnouncementsScreen extends StatefulWidget {
   const AdminAnnouncementsScreen({super.key});
 
@@ -475,11 +478,14 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
   final _messageCtrl = TextEditingController();
   final _buttonLabelCtrl = TextEditingController();
   final _buttonLinkCtrl = TextEditingController();
+  final _imageUrlCtrl = TextEditingController();
   String _level = 'info';
   bool _isActive = true;
+  bool _isPopup = false;
   DateTime? _startsAt;
   DateTime? _endsAt;
   bool _submitting = false;
+  bool _uploadingImage = false;
 
   @override
   void initState() {
@@ -491,6 +497,8 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
       _isActive = widget.announcement!['is_active'] == true;
       _buttonLabelCtrl.text = widget.announcement!['button_label']?.toString() ?? '';
       _buttonLinkCtrl.text = widget.announcement!['button_link']?.toString() ?? '';
+      _imageUrlCtrl.text = widget.announcement!['image_url']?.toString() ?? '';
+      _isPopup = widget.announcement!['is_popup'] == true;
       if (widget.announcement!['starts_at'] != null) {
         _startsAt = DateTime.tryParse(widget.announcement!['starts_at'].toString())?.toLocal();
       }
@@ -506,6 +514,7 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
     _messageCtrl.dispose();
     _buttonLabelCtrl.dispose();
     _buttonLinkCtrl.dispose();
+    _imageUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -546,6 +555,39 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
     });
   }
 
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (pickedFile == null) return;
+
+    setState(() => _uploadingImage = true);
+    try {
+      final session = context.read<SessionController>();
+      final token = session.token;
+      if (token == null) throw Exception('Session expired');
+
+      final adminService = AdminService(token: token);
+      final res = await adminService.uploadAnnouncementImage(File(pickedFile.path));
+      
+      if (!mounted) return;
+      if (res['image_url'] != null) {
+        _imageUrlCtrl.text = res['image_url'].toString();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image uploaded successfully')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload image: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _uploadingImage = false);
+      }
+    }
+  }
+
   String _formatPickerLabel(DateTime? dt, String placeholder) {
     if (dt == null) return placeholder;
     return DateFormat('dd MMM yyyy, hh:mm a').format(dt.toLocal());
@@ -576,6 +618,7 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
       final adminService = AdminService(token: token);
       final buttonLabel = _buttonLabelCtrl.text.trim();
       final buttonLink = _buttonLinkCtrl.text.trim();
+      final imageUrl = _imageUrlCtrl.text.trim();
       if (widget.announcement != null) {
         final id = widget.announcement!['id'] as int;
         await adminService.updateAnnouncement(
@@ -588,6 +631,8 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
           endsAt: _endsAt,
           buttonLabel: buttonLabel.isEmpty ? null : buttonLabel,
           buttonLink: buttonLink.isEmpty ? null : buttonLink,
+          isPopup: _isPopup,
+          imageUrl: imageUrl.isEmpty ? null : imageUrl,
         );
       } else {
         await adminService.createAnnouncement(
@@ -599,6 +644,8 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
           endsAt: _endsAt,
           buttonLabel: buttonLabel.isEmpty ? null : buttonLabel,
           buttonLink: buttonLink.isEmpty ? null : buttonLink,
+          isPopup: _isPopup,
+          imageUrl: imageUrl.isEmpty ? null : imageUrl,
         );
       }
 
@@ -753,6 +800,22 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
                     prefixIcon: Icon(Icons.link_rounded),
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _imageUrlCtrl,
+                  maxLength: 500,
+                  decoration: InputDecoration(
+                    labelText: 'Image URL (Optional)',
+                    prefixIcon: const Icon(Icons.image_rounded),
+                    suffixIcon: IconButton(
+                      icon: _uploadingImage 
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.upload_rounded),
+                      onPressed: _uploadingImage ? null : _pickImage,
+                      tooltip: 'Upload from Gallery',
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 SwitchListTile.adaptive(
                   title: const Text('Active Immediately', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
@@ -763,6 +826,19 @@ class _CreateAnnouncementSheetState extends State<_CreateAnnouncementSheet> {
                   onChanged: (value) {
                     setState(() {
                       _isActive = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  title: const Text('Is Popup Banner', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                  subtitle: Text('Show as a large popup dialog on startup.', style: TextStyle(color: textDim, fontSize: 12)),
+                  value: _isPopup,
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: theme.colorScheme.primary,
+                  onChanged: (value) {
+                    setState(() {
+                      _isPopup = value;
                     });
                   },
                 ),

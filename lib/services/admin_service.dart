@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../config.dart';
 import 'api_client.dart';
 
@@ -58,6 +60,8 @@ class AdminService {
     DateTime? endsAt,
     String? buttonLabel,
     String? buttonLink,
+    bool isPopup = false,
+    String? imageUrl,
   }) async {
     final body = <String, dynamic>{
       'title': title,
@@ -68,6 +72,8 @@ class AdminService {
       'ends_at': endsAt?.toUtc().toIso8601String(),
       'button_label': buttonLabel,
       'button_link': buttonLink,
+      'is_popup': isPopup,
+      'image_url': imageUrl,
     };
     return _client.post('/notifications/broadcast/admin', body);
   }
@@ -83,6 +89,8 @@ class AdminService {
     DateTime? endsAt,
     String? buttonLabel,
     String? buttonLink,
+    bool? isPopup,
+    String? imageUrl,
   }) async {
     final body = <String, dynamic>{};
     if (title != null) body['title'] = title;
@@ -93,6 +101,8 @@ class AdminService {
     if (endsAt != null) body['ends_at'] = endsAt.toUtc().toIso8601String();
     if (buttonLabel != null) body['button_label'] = buttonLabel;
     if (buttonLink != null) body['button_link'] = buttonLink;
+    if (isPopup != null) body['is_popup'] = isPopup;
+    if (imageUrl != null) body['image_url'] = imageUrl;
     return _client.patch('/notifications/broadcast/admin/$id', body);
   }
 
@@ -141,5 +151,11 @@ class AdminService {
     if (amount != null) body['amount'] = amount;
     return _client.post('/admin/agent/stats/$agentId/manual-reward', body);
   }
+
+  /// Upload an announcement image
+  Future<Map<String, dynamic>> uploadAnnouncementImage(File file) async {
+    return _client.postMultipart('/notifications/broadcast/admin/upload-image', file: file, fileField: 'image');
+  }
 }
+
 
