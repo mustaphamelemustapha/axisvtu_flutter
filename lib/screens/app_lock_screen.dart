@@ -130,8 +130,19 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
     final token = (session.token ?? '').trim();
 
     try {
+      // 1. Instant Local Verification
+      final cachedPin = await BiometricService.getPin();
+      if (cachedPin != null && cachedPin == _pinCode) {
+        if (mounted) session.unlock();
+        return;
+      }
+
+      // 2. Fallback Network Verification
       final service = TransactionPinService(token: token);
       await service.verify(_pinCode);
+      
+      // If network verification succeeds, cache the correct PIN for future instant logins
+      await BiometricService.savePin(_pinCode);
       
       if (mounted) {
         session.unlock();
