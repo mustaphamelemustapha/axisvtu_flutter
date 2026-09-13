@@ -207,6 +207,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				931F1633DC91F4D9E7D9B89D /* [CP] Copy Pods Resources */,
+				4FAD1ECBBE25CD35BFE7006E /* Strip x86_64 from objective_c */,
 			);
 			buildRules = (
 			);
@@ -317,6 +318,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "export COPYFILE_DISABLE=1\nexport COPY_EXTENDED_ATTRIBUTES_DISABLE=1\n/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+		};
+		4FAD1ECBBE25CD35BFE7006E /* Strip x86_64 from objective_c */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Strip x86_64 from objective_c";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "FRAMEWORK_EXECUTABLE_PATH=\"${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/objective_c.framework/objective_c\"\nif [ -f \"$FRAMEWORK_EXECUTABLE_PATH\" ]; then\n    echo \"Stripping x86_64 from $FRAMEWORK_EXECUTABLE_PATH\"\n    lipo -remove x86_64 \"$FRAMEWORK_EXECUTABLE_PATH\" -o \"$FRAMEWORK_EXECUTABLE_PATH\" || true\nfi\n";
 		};
 		931F1633DC91F4D9E7D9B89D /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
