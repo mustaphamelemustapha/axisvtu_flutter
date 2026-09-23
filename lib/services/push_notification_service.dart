@@ -88,11 +88,13 @@ class PushNotificationService {
             final title = message.notification?.title ?? 'MELE DATA';
             final body = message.notification?.body ?? '';
             final soundType = message.data['sound_type'] as String?;
+            final imageUrl = message.notification?.android?.imageUrl ?? message.notification?.apple?.imageUrl;
             InteractiveNotificationBanner.show(
               context,
               title: title,
               message: body,
               soundType: soundType,
+              imageUrl: imageUrl,
             );
           }
         }

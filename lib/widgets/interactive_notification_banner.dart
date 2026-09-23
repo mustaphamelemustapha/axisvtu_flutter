@@ -10,12 +10,14 @@ class InteractiveNotificationBanner extends StatefulWidget {
     required this.title,
     required this.message,
     required this.logoAsset,
+    this.imageUrl,
     required this.onDismiss,
   });
 
   final String title;
   final String message;
   final String logoAsset;
+  final String? imageUrl;
   final VoidCallback onDismiss;
 
   static void show(
@@ -23,6 +25,7 @@ class InteractiveNotificationBanner extends StatefulWidget {
     required String title,
     required String message,
     String? soundType,
+    String? imageUrl,
     String logoAsset = 'assets/brand/meledata-icon.png',
   }) {
     // Generate tactile feedback to simulate native notification arrival
@@ -49,6 +52,7 @@ class InteractiveNotificationBanner extends StatefulWidget {
         title: title,
         message: message,
         logoAsset: logoAsset,
+        imageUrl: imageUrl,
         onDismiss: () {
           entry.remove();
         },
@@ -222,6 +226,20 @@ class _InteractiveNotificationBannerState extends State<InteractiveNotificationB
                                 height: 1.35,
                               ),
                             ),
+                            if (widget.imageUrl != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    widget.imageUrl!,
+                                    height: 140,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
