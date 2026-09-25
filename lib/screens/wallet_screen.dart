@@ -1486,7 +1486,8 @@ class _BankCard extends StatelessWidget {
     final isSterling = bankName.toLowerCase().contains('sterling');
     final isPaystack = bankName.toLowerCase().contains('paystack') || bankName.toLowerCase().contains('titan');
     final isPalmpay = bankName.toLowerCase().contains('palmpay');
-    final isBranded = isMoniepoint || isWema || isSterling || isPaystack || isPalmpay;
+    final is9PSB = bankName.toLowerCase().contains('9psb');
+    final isBranded = isMoniepoint || isWema || isSterling || isPaystack || isPalmpay || is9PSB;
     final useWhiteText = isBranded || isDark;
 
     final cardGradient = isMoniepoint

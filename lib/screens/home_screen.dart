@@ -1640,6 +1640,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               final isSterling = bank.toLowerCase().contains('sterling');
                               final isPaystack = bank.toLowerCase().contains('paystack') || bank.toLowerCase().contains('titan');
                               final isPalmpay = bank.toLowerCase().contains('palmpay');
+                              final is9PSB = bank.toLowerCase().contains('9psb');
 
                               final cardGradient = isMoniepoint
                                   ? const LinearGradient(
@@ -1671,7 +1672,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                                       begin: Alignment.topLeft,
                                                       end: Alignment.bottomRight,
                                                     )
-                                                  : LinearGradient(
+                                                  : is9PSB
+                                                      ? const LinearGradient(
+                                                          colors: [Color(0xFF002244), Color(0xFF004488), Color(0xFF0066CC)],
+                                                          begin: Alignment.topLeft,
+                                                          end: Alignment.bottomRight,
+                                                        )
+                                                      : LinearGradient(
                                                       colors: [
                                                         Colors.white.withValues(alpha: 0.02),
                                                         Colors.white.withValues(alpha: 0.04),
@@ -1690,7 +1697,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ? Colors.teal.withValues(alpha: 0.3)
                                               : isPalmpay
                                                   ? Colors.deepPurple.withValues(alpha: 0.3)
-                                                  : Colors.white.withValues(alpha: 0.05);
+                                                  : is9PSB
+                                                      ? Colors.blueAccent.withValues(alpha: 0.3)
+                                                      : Colors.white.withValues(alpha: 0.05);
 
                               final badgeBg = isMoniepoint
                                   ? Colors.blue.withValues(alpha: 0.15)
@@ -1702,7 +1711,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ? Colors.teal.withValues(alpha: 0.15)
                                               : isPalmpay
                                                   ? Colors.purple.withValues(alpha: 0.15)
-                                                  : Colors.white.withValues(alpha: 0.08);
+                                                  : is9PSB
+                                                      ? Colors.blue.withValues(alpha: 0.15)
+                                                      : Colors.white.withValues(alpha: 0.08);
 
                               final badgeText = isMoniepoint
                                   ? Colors.blue.shade300
@@ -1714,7 +1725,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ? Colors.teal.shade300
                                               : isPalmpay
                                                   ? Colors.purple.shade300
-                                                  : Colors.white.withValues(alpha: 0.5);
+                                                  : is9PSB
+                                                      ? Colors.blue.shade300
+                                                      : Colors.white.withValues(alpha: 0.5);
 
                               final routeName = isMoniepoint
                                   ? 'MONIEPOINT SECURE ROUTE'
@@ -1726,7 +1739,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ? 'PAYSTACK TITAN ROUTE'
                                               : isPalmpay
                                                   ? 'PALMPAY SECURE ROUTE'
-                                                  : 'AUTOMATED PAYMENTS';
+                                                  : is9PSB
+                                                      ? '9PSB AUTOMATED ROUTE'
+                                                      : 'AUTOMATED PAYMENTS';
 
                               final hasMonie = accounts.any((acc) => (acc['bank_name'] ?? '').toString().toLowerCase().contains('moniepoint'));
 
@@ -1882,7 +1897,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                 ? Colors.teal.shade300
                                                                 : (isPalmpay
                                                                     ? Colors.purple.shade300
-                                                                    : Colors.blue.withAlpha(230))))),
+                                                                    : (is9PSB
+                                                                        ? Colors.blue.shade300
+                                                                        : Colors.blue.withAlpha(230)))))),
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w800,
                                                 letterSpacing: 0.1,
