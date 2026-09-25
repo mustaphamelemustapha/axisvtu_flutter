@@ -55,10 +55,13 @@ class PushNotificationService {
       if (fcmToken != null && session.isAuthenticated) {
         await syncTokenWithBackend(fcmToken, session.token!);
         try {
-          await messaging.subscribeToTopic('all_users');
-          debugPrint("[PushNotification] Subscribed to broadcast topic: all_users");
+          // Unsubscribe from the old shared topic so we don't get MZDATA pushes
+          await messaging.unsubscribeFromTopic('all_users');
+          // Subscribe to the new MELE DATA exclusive topic
+          await messaging.subscribeToTopic('meledata_users');
+          debugPrint("[PushNotification] Subscribed to broadcast topic: meledata_users");
         } catch (topicExc) {
-          debugPrint("[PushNotification] Failed to subscribe to topic: $topicExc");
+          debugPrint("[PushNotification] Failed to manage topic subscriptions: $topicExc");
         }
       }
 
