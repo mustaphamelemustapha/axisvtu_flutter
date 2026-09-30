@@ -25,7 +25,7 @@ import '../widgets/purchase_result_sheet.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/startup_popup_dialog.dart';
 import 'notification_center_screen.dart';
-import '../widgets/theme_toggle_button.dart';
+import 'promo_screen.dart';
 import 'airtime_screen.dart';
 import 'cable_screen.dart';
 import 'data_screen.dart';
@@ -1268,7 +1268,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Container(
-      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF5F7FA),
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Stack(
         children: [
           Positioned.fill(
@@ -1350,7 +1350,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          ThemeToggleButton(size: 44),
+                          GestureDetector(
+                            onTap: () => _openScreen(const PromoScreen()),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFFF1F2),
+                                border: isDark ? null : Border.all(color: const Color(0xFFFFE4E6)),
+                              ),
+                              child: Icon(Icons.card_giftcard_rounded, color: isDark ? const Color(0xFFFDA4AF) : const Color(0xFFE11D48), size: 20),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -1480,6 +1492,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           future: _accountsFuture,
                           initialData: _cachedAccountsData,
                           builder: (context, snapshot) {
+                            if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
+                              return Container(
+                                height: 44,
+                                width: 180,
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              );
+                            }
                             final rawAccounts = (snapshot.data?['accounts'] as List?) ?? [];
                             if (rawAccounts.isEmpty) {
                               return GestureDetector(
