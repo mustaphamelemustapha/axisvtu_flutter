@@ -23,6 +23,7 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
   final _applicablePlanSizeCtrl = TextEditingController(text: 'ALL');
   
   bool _isPercentage = false;
+  bool _isFixedPrice = false;
   bool _isActive = true;
   String _applicableNetwork = 'ALL';
   String _targetAudience = 'ALL';
@@ -55,6 +56,7 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
         'description': _descCtrl.text.trim(),
         'discount_amount': double.parse(_discountCtrl.text.trim()),
         'is_percentage': _isPercentage,
+        'is_fixed_price': _isFixedPrice,
         'max_uses_per_user': int.parse(_maxUsesUserCtrl.text.trim()),
         'max_total_uses': int.parse(_maxUsesTotalCtrl.text.trim()),
         'is_active': _isActive,
@@ -121,6 +123,12 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
                       Switch(
                         value: _isPercentage,
                         onChanged: (val) => setState(() => _isPercentage = val),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Fixed Price?'),
+                      Switch(
+                        value: _isFixedPrice,
+                        onChanged: (val) => setState(() => _isFixedPrice = val),
                       ),
                     ],
                   ),
