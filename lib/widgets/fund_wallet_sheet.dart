@@ -13,6 +13,7 @@ class FundWalletSheet extends StatefulWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (context) => const FundWalletSheet(),
     );
   }
@@ -24,15 +25,16 @@ class FundWalletSheet extends StatefulWidget {
 class _FundWalletSheetState extends State<FundWalletSheet> {
   bool _loading = true;
   String? _error;
-  Map<String, dynamic>? _account;
+  List<Map<String, dynamic>> _accounts = [];
+  bool _showAccounts = true;
 
   @override
   void initState() {
     super.initState();
-    _loadAccount();
+    _loadAccounts();
   }
 
-  Future<void> _loadAccount() async {
+  Future<void> _loadAccounts() async {
     final token = (context.read<SessionController>().token ?? '').trim();
     if (token.isEmpty) {
       if (mounted) setState(() { _loading = false; _error = 'Not authenticated'; });
@@ -46,7 +48,6 @@ class _FundWalletSheetState extends State<FundWalletSheet> {
       if (raw.isNotEmpty) {
         final accounts = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
         
-        // Prioritize Moniepoint if available, otherwise first
         accounts.sort((a, b) {
           final aName = (a['bank_name'] ?? '').toString().toLowerCase();
           final bName = (b['bank_name'] ?? '').toString().toLowerCase();
@@ -57,7 +58,7 @@ class _FundWalletSheetState extends State<FundWalletSheet> {
 
         if (mounted) {
           setState(() {
-            _account = accounts.first;
+            _accounts = accounts;
             _loading = false;
           });
         }
@@ -81,200 +82,327 @@ class _FundWalletSheetState extends State<FundWalletSheet> {
     Share.share(text);
   }
 
+  String _formatAccountNumber(String value) {
+    final digits = value.replaceAll(RegExp(r'\s+'), '');
+    if (digits.isEmpty) return '';
+    if (digits.length == 10) {
+      return '${digits.substring(0, 4)} ${digits.substring(4, 8)} ${digits.substring(8)}';
+    }
+    return digits;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+    final cardColor = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2638) : Colors.white,
+        color: bgColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      padding: const EdgeInsets.all(24),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 48,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Text(
+                    'Close',
+                    style: TextStyle(color: Colors.blue.shade600, fontSize: 16),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Add money',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Share bank details to add money to this account',
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.white54 : Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Center(
-                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                Text(
+                  'Add Balance',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
                 ),
-              )
-            else ...[
-              _buildAccountCard(isDark),
-              const SizedBox(height: 24),
-              Row(
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.blue.withOpacity(0.1),
+                  ),
+                  child: Icon(Icons.add, color: Colors.blue.shade600, size: 20),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF334155) : Colors.white,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
                 children: [
                   Expanded(
-                    child: _buildButton(
-                      icon: Icons.copy_rounded,
-                      label: 'Copy',
-                      color: isDark ? const Color(0xFF2A344A) : const Color(0xFFF3F4F6),
-                      textColor: isDark ? Colors.blue.shade400 : Colors.blue.shade700,
-                      onTap: () => _copyToClipboard((_account?['account_number'] ?? '').toString()),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _showAccounts = true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _showAccounts ? Colors.blue.shade600 : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.account_balance, size: 16, color: _showAccounts ? Colors.white : Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Accounts',
+                              style: TextStyle(
+                                color: _showAccounts ? Colors.white : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
                   Expanded(
-                    child: _buildButton(
-                      icon: Icons.share_rounded,
-                      label: 'Share',
-                      color: Colors.blue.shade600,
-                      textColor: Colors.white,
-                      onTap: () {
-                        final bank = (_account?['bank_name'] ?? 'Bank').toString().toUpperCase();
-                        final accNum = (_account?['account_number'] ?? '').toString();
-                        final name = (_account?['account_name'] ?? '').toString().toUpperCase();
-                        _shareDetails(bank, accNum, name);
-                      },
+                    child: GestureDetector(
+                      onTap: () => setState(() => _showAccounts = false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: !_showAccounts ? Colors.blue.shade600 : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.credit_card, size: 16, color: !_showAccounts ? Colors.white : Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Cards',
+                              style: TextStyle(
+                                color: !_showAccounts ? Colors.white : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAccountCard(bool isDark) {
-    final rawBank = (_account?['bank_name'] ?? 'Bank').toString().trim();
-    final bankName = rawBank.toLowerCase().contains('titan') || rawBank.toLowerCase().contains('paystack')
-        ? 'PAYSTACK TITAN'
-        : rawBank.toLowerCase().contains('moniepoint')
-            ? 'MONIEPOINT MFB'
-            : rawBank.toLowerCase().contains('wema')
-                ? 'WEMA BANK'
-                : rawBank.toLowerCase().contains('sterling')
-                    ? 'STERLING BANK'
-                    : rawBank.toUpperCase();
-                    
-    final accountNumber = (_account?['account_number'] ?? '').toString();
-    
-    // Format account holder name nicely
-    final name = context.read<SessionController>().user?['full_name']?.toString() ?? 'User';
-    String rawName = (_account?['account_name'] ?? name).toString().trim();
-    final prefixPattern = RegExp(
-      r'^(?:MMTECHGLOBE|MELE DATA)(?:\s*[-\/:]\s*|\s+)?',
-      caseSensitive: false,
-    );
-    String cleanName = rawName.replaceFirst(prefixPattern, '').trim();
-    if (cleanName.isEmpty) cleanName = rawName;
-    final accountName = 'MMTECHGLOBE / $cleanName'.toUpperCase();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2A344A) : const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Text(
-            bankName,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white54 : Colors.grey.shade600,
-              letterSpacing: 1,
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            accountNumber,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            accountName,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white54 : Colors.grey.shade700,
-            ),
-            textAlign: TextAlign.center,
+          const SizedBox(height: 20),
+          Expanded(
+            child: _showAccounts ? _buildAccountsList(isDark, cardColor, textColor) : _buildCardsList(textColor),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required Color textColor,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: textColor, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+  Widget _buildAccountsList(bool isDark, Color cardColor, Color textColor) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(child: Text(_error!, style: const TextStyle(color: Colors.red)));
+    }
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.campaign, color: Color(0xFFD97706)),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Send money to any of the listed accounts via bank transfer, and it will reflect in your wallet.',
+                  style: TextStyle(color: Color(0xFF92400E), fontSize: 13, height: 1.4),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Icon(Icons.close, size: 16, color: const Color(0xFF92400E).withOpacity(0.5)),
+            ],
+          ),
         ),
+        const SizedBox(height: 20),
+        ...List.generate(_accounts.length, (index) {
+          return _buildBankCard(_accounts[index], index == 0, isDark, cardColor, textColor);
+        }),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  Widget _buildCardsList(Color textColor) {
+    return Center(
+      child: Text(
+        'Card funding coming soon.',
+        style: TextStyle(color: textColor.withOpacity(0.5)),
+      ),
+    );
+  }
+
+  Widget _buildBankCard(Map<String, dynamic> account, bool isRecommended, bool isDark, Color cardColor, Color textColor) {
+    final rawBank = (account['bank_name'] ?? 'Bank').toString().trim();
+    final bankName = rawBank.toLowerCase().contains('titan') || rawBank.toLowerCase().contains('paystack')
+        ? 'Paystack-Titan'
+        : rawBank.toLowerCase().contains('moniepoint')
+            ? 'Moniepoint MFB'
+            : rawBank;
+    final accountNumber = (account['account_number'] ?? '').toString();
+    final accountName = (account['account_name'] ?? '').toString();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white10 : Colors.grey.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.account_balance, color: textColor.withOpacity(0.7), size: 18),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                bankName,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+              const Spacer(),
+              if (isRecommended)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Recommended',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Add money via mobile or internet banking',
+            style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _formatAccountNumber(accountNumber),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.0,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _copyToClipboard(accountNumber),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.copy_rounded, color: Colors.blue.shade600, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Copy Number',
+                          style: TextStyle(color: Colors.blue.shade600, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _shareDetails(bankName, accountNumber, accountName),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.ios_share, color: Colors.white, size: 16),
+                        SizedBox(width: 8),
+                        Text(
+                          'Share Details',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          )
+        ],
       ),
     );
   }

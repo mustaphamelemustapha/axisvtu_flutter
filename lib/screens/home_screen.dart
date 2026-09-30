@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -76,10 +77,16 @@ class _HomeScreenState extends State<HomeScreen> {
   List<RewardCampaign> _activeCampaigns = [];
   bool _dismissedUpdateBanner = false;
   String _dismissedVersionStr = '';
+  
+  double? _previousBalance;
+  double _balanceDiff = 0.0;
+  bool _showBalanceDiff = false;
+  Timer? _balanceDiffTimer;
+  bool _readyForLiveUpdates = false;
 
   void _startRefreshTimer() {
     _refreshTimer?.cancel();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!mounted) return;
       final session = context.read<SessionController>();
       final token = (session.token ?? '').trim();
@@ -100,6 +107,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _readyForLiveUpdates = true);
+    });
     _loadBalancePreference();
     _loadDismissedAnnouncements();
     _startRefreshTimer();
@@ -1119,7 +1129,53 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+
+  Widget _buildTopServiceItem(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF334155) : bgColor,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x08000000),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: iconColor, size: 28),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF334155),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+    Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 360 || size.height < 760;
     final user = context.watch<SessionController>().user ?? {};
@@ -1143,9 +1199,28 @@ class _HomeScreenState extends State<HomeScreen> {
     final heroSoftText = isDark
         ? Colors.white.withValues(alpha: 0.84)
         : const Color(0xFF5B6B82);
-    final balance = _cachedWalletData != null
+    final currentBalance = _cachedWalletData != null
         ? _extractBalance(_cachedWalletData)
         : _extractBalance(user);
+
+    if (_readyForLiveUpdates && _previousBalance != null && _previousBalance != currentBalance) {
+      final diff = currentBalance - _previousBalance!;
+      if (diff.abs() > 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _balanceDiff = diff;
+            _showBalanceDiff = true;
+          });
+          _balanceDiffTimer?.cancel();
+          _balanceDiffTimer = Timer(const Duration(seconds: 2), () {
+            if (mounted) setState(() => _showBalanceDiff = false);
+          });
+        });
+      }
+    }
+    _previousBalance = currentBalance;
+    final balance = currentBalance;
 
     final services = <_HomeService>[
       _HomeService(
@@ -1192,7 +1267,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
 
-    return ConcentricCirclesBg(
+    return Container(
+      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF5F7FA),
       child: Stack(
         children: [
           Positioned.fill(
@@ -1201,1045 +1277,491 @@ class _HomeScreenState extends State<HomeScreen> {
               displacement: 18,
               edgeOffset: 10,
               child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-          children: [
-            // Floating Pill Header (Glassmorphic)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                      child: Container(
-                        padding: const EdgeInsets.only(left: 6, right: 16, top: 6, bottom: 6),
-                        decoration: BoxDecoration(
-                          color: (isDark ? const Color(0xFF0F172A) : Colors.white).withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.5),
-                            width: 1.5,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
+                children: [
+                  // Minimalist Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: profileImageUrl != null && profileImageUrl.isNotEmpty
+                                  ? DecorationImage(
+                                      image: NetworkImage(profileImageUrl),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            child: profileImageUrl != null && profileImageUrl.isNotEmpty ? null : Center(
+                              child: Text(
+                                initials,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
                           ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hi, ${name.split(" ").first}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                ),
+                              ),
+                              Text(
+                                'MELE DATA',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                              ],
+                            ),
+                            child: IconButton(
+                              icon: Icon(Icons.notifications_outlined, size: 22, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                              onPressed: _openNotificationsCenter,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ThemeToggleButton(size: 44),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Hero Balance Card (Amigo Lite Polish)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0x06000000),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
                             Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF2563EB),
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-                                  width: 2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Account Balance',
+                              style: TextStyle(
+                                color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: _toggleBalanceVisibility,
+                              child: Icon(
+                                _hideBalance ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                size: 20,
+                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TweenAnimationBuilder<double>(
+                          tween: Tween<double>(begin: 0, end: balance),
+                          duration: const Duration(milliseconds: 1200),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, value, child) {
+                            final rawBalance = NumberFormat('0.00').format(value);
+                            final parts = rawBalance.split('.');
+                            final whole = parts[0];
+                            final decimal = parts.length > 1 ? '.${parts[1]}' : '.00';
+                            
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  '₦',
+                                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                                 ),
-                                image: profileImageUrl != null && profileImageUrl.isNotEmpty
-                                    ? DecorationImage(
-                                        image: NetworkImage(profileImageUrl),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                                gradient: profileImageUrl != null && profileImageUrl.isNotEmpty ? null : LinearGradient(
-                                  colors: [
-                                    Theme.of(context).colorScheme.primary,
-                                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                                const SizedBox(width: 4),
+                                if (_hideBalance)
+                                  Text(
+                                    '••••••',
+                                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0A0F1D), letterSpacing: -1.5),
+                                  )
+                                else ...[
+                                  Text(
+                                    NumberFormat('#,##0').format(int.tryParse(whole) ?? 0),
+                                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0A0F1D), letterSpacing: -1.5),
+                                  ),
+                                  Text(
+                                    decimal,
+                                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
+                                  ),
+                                  if (_showBalanceDiff) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _balanceDiff > 0 ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            _balanceDiff > 0 ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                                            size: 12,
+                                            color: _balanceDiff > 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                          ),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            '${_balanceDiff > 0 ? '+' : '-'}₦${NumberFormat('#,##0').format(_balanceDiff.abs())}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w800,
+                                              color: _balanceDiff > 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        // Virtual Account Chip
+                        FutureBuilder<Map<String, dynamic>>(
+                          future: _accountsFuture,
+                          initialData: _cachedAccountsData,
+                          builder: (context, snapshot) {
+                            final rawAccounts = (snapshot.data?['accounts'] as List?) ?? [];
+                            if (rawAccounts.isEmpty) {
+                              return GestureDetector(
+                                onTap: _showAccountActivationDialog,
+                                child: Container(
+                                  height: 46,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F4F9),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.account_balance, size: 16, color: Color(0xFF64748B)),
+                                      const SizedBox(width: 8),
+                                      const Text('Tap to link BVN/NIN', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13)),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                            
+                            final accounts = List<Map<String, dynamic>>.from(rawAccounts.map((i) => Map<String, dynamic>.from(i as Map)));
+                            accounts.sort((a, b) {
+                              final aName = (a['bank_name'] ?? '').toString().toLowerCase();
+                              final bName = (b['bank_name'] ?? '').toString().toLowerCase();
+                              if (aName.contains('moniepoint') && !bName.contains('moniepoint')) return -1;
+                              if (!aName.contains('moniepoint') && bName.contains('moniepoint')) return 1;
+                              return 0;
+                            });
+
+                            final activeAccount = accounts.first;
+                            final bankName = (activeAccount['bank_name'] ?? 'Bank').toString().trim();
+                            final accountNumber = activeAccount['account_number'] ?? '';
+
+                            return GestureDetector(
+                              onTap: () => FundWalletSheet.show(context),
+                              child: Container(
+                                height: 44,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      bankName == 'Moniepoint' ? 'Moniepoint MFB' : bankName,
+                                      style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      accountNumber,
+                                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.6),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () => _copyAccountNumber(accountNumber),
+                                      child: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFF64748B)),
+                                    ),
                                   ],
                                 ),
                               ),
-                              child: profileImageUrl != null && profileImageUrl.isNotEmpty ? null : Center(
-                                child: Text(
-                                  initials,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 13,
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 24),
+                        // Quick Action Buttons Row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => FundWalletSheet.show(context),
+                                child: Container(
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E64F8),
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.add, color: Colors.white, size: 18),
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        'Balance',
+                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
                             ),
                             const SizedBox(width: 10),
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _greetingText(),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: heroSoftText.withValues(alpha: 0.8),
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen())),
+                                child: Container(
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1E64F8).withValues(alpha: 0.15) : const Color(0xFFEEF4FF),
+                                    borderRadius: BorderRadius.circular(22),
                                   ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Flexible(
-                                        child: Text(
-                                          name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w900,
-                                            color: heroText,
-                                            letterSpacing: -0.3,
-                                          ),
-                                        ),
-                                      ),
+                                      const Icon(Icons.send_rounded, size: 16, color: Color(0xFF1E64F8)),
                                       const SizedBox(width: 4),
-                                      if (role.toLowerCase() == 'reseller' || role.toLowerCase() == 'agent')
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: const Text(
-                                            'AGENT',
-                                            style: TextStyle(
-                                              fontSize: 8,
-                                              fontWeight: FontWeight.w900,
-                                              color: Color(0xFFD97706),
-                                            ),
-                                          ),
-                                        ),
+                                      const Text(
+                                        'Transfer',
+                                        style: TextStyle(color: Color(0xFF1E64F8), fontWeight: FontWeight.w700, fontSize: 13),
+                                      ),
                                     ],
                                   ),
-                                ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  // Feature placeholder
+                                },
+                                child: Container(
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F5F9),
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.payment_rounded, size: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Pay',
+                                        style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
+                      ],
                     ),
                   ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  if (_activeCampaigns.any((c) => !c.isClaimed)) ...[
+                    ..._activeCampaigns.where((c) => !c.isClaimed).map((c) => _buildCampaignProgressCard(c)).toList(),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Top Services Row Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0x04000000),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildTopServiceItem(
+                          context,
+                          label: 'Data',
+                          icon: Icons.wifi,
+                          iconColor: const Color(0xFF1D61F2),
+                          bgColor: const Color(0xFFEFF6FF),
+                          onTap: () => _openScreen(const DataScreen()),
+                        ),
+                        _buildTopServiceItem(
+                          context,
+                          label: 'Airtime',
+                          icon: Icons.sim_card_rounded,
+                          iconColor: const Color(0xFF16A34A),
+                          bgColor: const Color(0xFFF0FDF4),
+                          onTap: () => _openScreen(const AirtimeScreen()),
+                        ),
+                        _buildTopServiceItem(
+                          context,
+                          label: 'Electricity',
+                          icon: Icons.bolt_rounded,
+                          iconColor: const Color(0xFFEA580C),
+                          bgColor: const Color(0xFFFFF7ED),
+                          onTap: () => _openScreen(const ElectricityScreen()),
+                        ),
+                        _buildTopServiceItem(
+                          context,
+                          label: 'Cable TV',
+                          icon: Icons.tv_rounded,
+                          iconColor: const Color(0xFF7C3AED),
+                          bgColor: const Color(0xFFF5F3FF),
+                          onTap: () => _openScreen(const CableScreen()),
+                        ),
+                      ],
+                    ),
+                  ),
+
+            if (referralCode.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0x06000000), blurRadius: 15, offset: const Offset(0, 4)),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(22),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: (isDark ? const Color(0xFF0F172A) : Colors.white).withValues(alpha: 0.7),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.5),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: IconButton(
-                            onPressed: _openNotificationsCenter,
-                            icon: const Icon(Icons.notifications_outlined, size: 20),
-                            color: heroText,
-                          ),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.group_add_rounded, size: 16, color: Color(0xFF2563EB)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Invite friends & earn bonus',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    ThemeToggleButton(size: 44),
-                  ],
-                ),
-              ],
-            ),
-            (() {
-              final active = (_announcements ?? [])
-                  .where((a) {
-                    final id = a['id']?.toString() ?? a['message']?.toString() ?? '';
-                    final message = (a['message'] ?? a['text'] ?? '').toString();
-                    return message.isNotEmpty && !_dismissedAnnouncementIds.contains(id);
-                  })
-                  .toList();
-                  
-              if (active.isNotEmpty) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 20),
-                    ...active.map((a) => _buildAnnouncementBanner(a)),
-                    const SizedBox(height: 12),
-                  ],
-                );
-              }
-              return const SizedBox(height: 32);
-            })(),
-
-            _buildOptionalUpdateBanner(context.watch<SessionController>()),
-            
-            // THE MASTERPIECE: Floating Balance Section
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 10),
-                Text(
-                  'Total Balance',
-                  style: TextStyle(
-                    color: heroSoftText,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      '₦',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: heroText,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _hideBalance ? '••••' : NumberFormat('#,##0.00').format(balance),
-                      style: TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.5,
-                        color: heroText,
-                        height: 1.0,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: _toggleBalanceVisibility,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _hideBalance ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                          size: 18,
-                          color: heroSoftText,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                
-                // Action Pills
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: _buildActionPill(
-                        context,
-                        icon: Icons.add_rounded,
-                        label: 'Fund Wallet',
-                        onTap: () {
-                          FundWalletSheet.show(context);
-                        },
-                        primary: true,
-                        isDark: isDark,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildActionPill(
-                        context,
-                        icon: Icons.send_rounded,
-                        label: 'Transfer',
-                        onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen()));
-                        },
-                        primary: false,
-                        isDark: isDark,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            
-            // Ultra-Polished Account Bar
-                          FutureBuilder<Map<String, dynamic>>(
-                            future: _accountsFuture,
-                            initialData: _cachedAccountsData,
-                            builder: (context, snapshot) {
-                              final data = snapshot.data;
-                              final rawAccounts = (data?['accounts'] as List?) ?? [];
-                              
-                              if (rawAccounts.isEmpty) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return Container(
-                                    width: double.infinity,
-                                    height: 120,
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                      borderRadius: BorderRadius.circular(24),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                                          blurRadius: 15,
-                                          offset: const Offset(0, 5),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Center(
-                                      child: SizedBox(
-                                        height: 24,
-                                        width: 24,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue),
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(
-                                      color: Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.05),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                                        blurRadius: 15,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(6),
-                                            decoration: BoxDecoration(
-                                              color: Colors.blue.withValues(alpha: 0.2),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: const Icon(
-                                              Icons.auto_awesome,
-                                              size: 14,
-                                              color: Colors.blue,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            'ACTIVATE MONIEPOINT ROUTE',
-                                            style: TextStyle(
-                                              color: Colors.blue,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: 1.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Get a Dedicated Moniepoint Account ⚡',
-                                        style: TextStyle(
-                                          color: heroText,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Enjoy 100% automated deposits for instant wallet funding. Link your BVN or NIN to generate Wema, Sterling, and Moniepoint accounts in seconds.',
-                                        style: TextStyle(
-                                          color: heroSoftText,
-                                          fontSize: 11,
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        height: 44,
-                                        child: FilledButton(
-                                          onPressed: () {
-                                            _showAccountActivationDialog();
-                                          },
-                                          style: FilledButton.styleFrom(
-                                            backgroundColor: Colors.blue.shade600,
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            'Link BVN/NIN to Start',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-                              
-                              final accounts = List<Map<String, dynamic>>.from(
-                                rawAccounts.map((item) => Map<String, dynamic>.from(item as Map))
-                              );
-
-                              // Sort: prioritize Moniepoint first
-                              accounts.sort((a, b) {
-                                final aName = (a['bank_name'] ?? '').toString().toLowerCase();
-                                final bName = (b['bank_name'] ?? '').toString().toLowerCase();
-                                if (aName.contains('moniepoint') && !bName.contains('moniepoint')) return -1;
-                                if (!aName.contains('moniepoint') && bName.contains('moniepoint')) return 1;
-                                return 0;
-                              });
-
-                              final activeIndex = _activeAccountIndex.clamp(0, accounts.length - 1);
-                              final activeAccount = accounts[activeIndex];
-                              final rawBank = (activeAccount['bank_name'] ?? 'Bank').toString().trim();
-                              final bank = rawBank.toLowerCase().contains('titan') || rawBank.toLowerCase().contains('paystack')
-                                  ? 'PAYSTACK TITAN'
-                                  : rawBank.toLowerCase().contains('moniepoint')
-                                      ? 'MONIEPOINT MFB'
-                                      : rawBank.toLowerCase().contains('wema')
-                                          ? 'WEMA BANK'
-                                          : rawBank.toLowerCase().contains('sterling')
-                                              ? 'STERLING BANK'
-                                              : rawBank.toLowerCase().contains('palmpay')
-                                                  ? 'PALMPAY'
-                                                  : rawBank.toUpperCase();
-                              final number = activeAccount['account_number'] ?? '';
-                              
-                              // Format account holder name nicely
-                              String rawName = (activeAccount['account_name'] ?? name).toString().trim();
-                              final prefixPattern = RegExp(
-                                r'^(?:MMTECHGLOBE|MELE DATA)(?:\s*[-\/:]\s*|\s+)?',
-                                caseSensitive: false,
-                              );
-                              String cleanName = rawName.replaceFirst(prefixPattern, '').trim();
-                              if (cleanName.isEmpty) {
-                                cleanName = rawName;
-                              }
-                              final accountName = 'MMTECHGLOBE / $cleanName';
-
-                              final isMoniepoint = bank.toLowerCase().contains('moniepoint');
-                              final isWema = bank.toLowerCase().contains('wema');
-                              final isSterling = bank.toLowerCase().contains('sterling');
-                              final isPaystack = bank.toLowerCase().contains('paystack') || bank.toLowerCase().contains('titan');
-                              final isPalmpay = bank.toLowerCase().contains('palmpay');
-                              final is9PSB = bank.toLowerCase().contains('9psb');
-
-                              final cardGradient = isMoniepoint
-                                  ? const LinearGradient(
-                                      colors: [Color(0xFF070F24), Color(0xFF0F1E4A), Color(0xFF142966)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    )
-                                  : isWema
-                                      ? const LinearGradient(
-                                          colors: [Color(0xFF1F0825), Color(0xFF3B0C46), Color(0xFF5D1268)],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        )
-                                      : isSterling
-                                          ? const LinearGradient(
-                                              colors: [Color(0xFF1F090B), Color(0xFF4C0E11), Color(0xFF8B1E22)],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            )
-                                          : isPaystack
-                                              ? const LinearGradient(
-                                                  colors: [Color(0xFF031A18), Color(0xFF0A3C37), Color(0xFF105F56)],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                )
-                                              : isPalmpay
-                                                  ? const LinearGradient(
-                                                      colors: [Color(0xFF0A0F30), Color(0xFF1F124A), Color(0xFF361875)],
-                                                      begin: Alignment.topLeft,
-                                                      end: Alignment.bottomRight,
-                                                    )
-                                                  : is9PSB
-                                                      ? const LinearGradient(
-                                                          colors: [Color(0xFF002244), Color(0xFF004488), Color(0xFF0066CC)],
-                                                          begin: Alignment.topLeft,
-                                                          end: Alignment.bottomRight,
-                                                        )
-                                                      : LinearGradient(
-                                                      colors: [
-                                                        Colors.white.withValues(alpha: 0.02),
-                                                        Colors.white.withValues(alpha: 0.04),
-                                                      ],
-                                                      begin: Alignment.topLeft,
-                                                      end: Alignment.bottomRight,
-                                                    );
-
-                              final cardBorderColor = isMoniepoint
-                                  ? Colors.blue.withValues(alpha: 0.3)
-                                  : isWema
-                                      ? Colors.purple.withValues(alpha: 0.3)
-                                      : isSterling
-                                          ? Colors.red.withValues(alpha: 0.3)
-                                          : isPaystack
-                                              ? Colors.teal.withValues(alpha: 0.3)
-                                              : isPalmpay
-                                                  ? Colors.deepPurple.withValues(alpha: 0.3)
-                                                  : is9PSB
-                                                      ? Colors.blueAccent.withValues(alpha: 0.3)
-                                                      : Colors.white.withValues(alpha: 0.05);
-
-                              final badgeBg = isMoniepoint
-                                  ? Colors.blue.withValues(alpha: 0.15)
-                                  : isWema
-                                      ? Colors.purple.withValues(alpha: 0.15)
-                                      : isSterling
-                                          ? Colors.red.withValues(alpha: 0.15)
-                                          : isPaystack
-                                              ? Colors.teal.withValues(alpha: 0.15)
-                                              : isPalmpay
-                                                  ? Colors.purple.withValues(alpha: 0.15)
-                                                  : is9PSB
-                                                      ? Colors.blue.withValues(alpha: 0.15)
-                                                      : Colors.white.withValues(alpha: 0.08);
-
-                              final badgeText = isMoniepoint
-                                  ? Colors.blue.shade300
-                                  : isWema
-                                      ? Colors.purple.shade300
-                                      : isSterling
-                                          ? Colors.red.shade300
-                                          : isPaystack
-                                              ? Colors.teal.shade300
-                                              : isPalmpay
-                                                  ? Colors.purple.shade300
-                                                  : is9PSB
-                                                      ? Colors.blue.shade300
-                                                      : Colors.white.withValues(alpha: 0.5);
-
-                              final routeName = isMoniepoint
-                                  ? 'MONIEPOINT SECURE ROUTE'
-                                  : isWema
-                                      ? 'WEMA BANK AUTOMATED'
-                                      : isSterling
-                                          ? 'STERLING DEDICATED'
-                                          : isPaystack
-                                              ? 'PAYSTACK TITAN ROUTE'
-                                              : isPalmpay
-                                                  ? 'PALMPAY SECURE ROUTE'
-                                                  : is9PSB
-                                                      ? '9PSB AUTOMATED ROUTE'
-                                                      : 'AUTOMATED PAYMENTS';
-
-                              final hasMonie = accounts.any((acc) => (acc['bank_name'] ?? '').toString().toLowerCase().contains('moniepoint'));
-
-                              return Column(
-                                children: [
-                                  // Shuffle/Segment Selection Row
-                                  if (accounts.length > 1) ...[
-                                    SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: List.generate(accounts.length, (idx) {
-                                          final acc = accounts[idx];
-                                          final isM = (acc['bank_name'] ?? '').toString().toLowerCase().contains('moniepoint');
-                                          final isSel = activeIndex == idx;
-                                          return GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                _activeAccountIndex = idx;
-                                              });
-                                            },
-                                            child: Container(
-                                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: isSel
-                                                    ? (isM ? Colors.blue.withValues(alpha: 0.15) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15))
-                                                    : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03),
-                                                borderRadius: BorderRadius.circular(10),
-                                                border: Border.all(
-                                                  color: isSel
-                                                      ? (isM ? Colors.blue.withValues(alpha: 0.4) : Theme.of(context).colorScheme.primary.withValues(alpha: 0.4))
-                                                      : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  if (isM) ...[
-                                                    Icon(Icons.auto_awesome, size: 10, color: Colors.blue.shade300),
-                                                    const SizedBox(width: 4),
-                                                  ],
-                                                  Text(
-                                                    (acc['bank_name'] ?? 'Bank').toString(),
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.w900,
-                                                      color: isSel
-                                                          ? (isM ? Colors.blue.shade300 : Theme.of(context).colorScheme.primary)
-                                                          : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.5),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        }),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                        decoration: BoxDecoration(
-                                          gradient: cardGradient,
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(
-                                            color: Colors.white.withValues(alpha: 0.25),
-                                            width: 1.5,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.15),
-                                              blurRadius: 20,
-                                              offset: const Offset(0, 8),
-                                            ),
-                                          ],
-                                        ),
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text(
-                                                    'BANK NAME',
-                                                    style: TextStyle(
-                                                      color: Colors.white.withValues(alpha: 0.5),
-                                                      fontSize: 9,
-                                                      fontWeight: FontWeight.w900,
-                                                      letterSpacing: 1.0,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  FittedBox(
-                                                    fit: BoxFit.scaleDown,
-                                                    alignment: Alignment.centerLeft,
-                                                    child: Text(
-                                                      bank,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 24,
-                                                        fontWeight: FontWeight.w900,
-                                                        letterSpacing: -0.2,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: badgeBg,
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                routeName,
-                                                style: TextStyle(
-                                                  color: badgeText,
-                                                  fontSize: 8,
-                                                  fontWeight: FontWeight.w900,
-                                                  letterSpacing: 0.5,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: FittedBox(
-                                            fit: BoxFit.scaleDown,
-                                            child: Text(
-                                              accountName,
-                                              style: TextStyle(
-                                                color: isMoniepoint
-                                                    ? Colors.blue.shade300
-                                                    : (isWema
-                                                        ? Colors.purple.shade300
-                                                        : (isSterling
-                                                            ? Colors.red.shade300
-                                                            : (isPaystack
-                                                                ? Colors.teal.shade300
-                                                                : (isPalmpay
-                                                                    ? Colors.purple.shade300
-                                                                    : (is9PSB
-                                                                        ? Colors.blue.shade300
-                                                                        : Colors.blue.withAlpha(230)))))),
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 0.1,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Expanded(
-                                              child: FittedBox(
-                                                fit: BoxFit.scaleDown,
-                                                alignment: Alignment.centerLeft,
-                                                child: Text(
-                                                  number.toString(),
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 22,
-                                                    fontWeight: FontWeight.w800,
-                                                    letterSpacing: 2,
-                                                    fontFeatures: [FontFeature.tabularFigures()],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            Material(
-                                              color: Colors.transparent,
-                                              child: InkWell(
-                                                onTap: () => _copyAccountNumber(number.toString()),
-                                                borderRadius: BorderRadius.circular(8),
-                                                child: Container(
-                                                  padding: const EdgeInsets.all(8),
-                                                  child: Icon(
-                                                    Icons.copy_rounded,
-                                                    size: 16,
-                                                    color: Colors.white.withValues(alpha: 0.6),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                                  // Breathtaking Moniepoint Upsell inside accounts list if they don't have Moniepoint yet
-                                  if (!hasMonie) ...[
-                                    const SizedBox(height: 12),
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withValues(alpha: 0.05),
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: Border.all(
-                                          color: Colors.blue.withValues(alpha: 0.15),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.auto_awesome, size: 16, color: Colors.blue),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                const Text(
-                                                  'MONIEPOINT ROUTE AVAILABLE',
-                                                  style: TextStyle(
-                                                    color: Colors.blue,
-                                                    fontSize: 9,
-                                                    fontWeight: FontWeight.w900,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  'Add Moniepoint for zero-delay instant wallet deposits! Link your BVN/NIN now.',
-                                                  style: TextStyle(
-                                                    color: Colors.white.withValues(alpha: 0.7),
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              _showAccountActivationDialog();
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.blue.shade600,
-                                              foregroundColor: Colors.white,
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              minimumSize: Size.zero,
-                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                            ),
-                                            child: const Text(
-                                              'Add',
-                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              );
-                            },
-                          ),
-
-            const SizedBox(height: 32),
-
-            if (_activeCampaigns.any((c) => !c.isClaimed)) ...[
-              ..._activeCampaigns.where((c) => !c.isClaimed).map((c) => _buildCampaignProgressCard(c)).toList(),
-              const SizedBox(height: 12),
-            ],
-
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quick Services',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        'Tap to start a new transaction',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: heroSoftText.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final columns = constraints.maxWidth < 430 ? 3 : 4;
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: services.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      mainAxisExtent: compact ? 98 : 104,
-                    ),
-                    itemBuilder: (context, index) {
-                      final item = services[index];
-                      return _ServiceCard(item: item);
-                    },
-                  );
-                },
-              ),
-            ),
-            if (referralCode.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.08),
-                  ),
-                  boxShadow: AxisShadows.softGlow,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.stars_rounded,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Referral Program',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'REFERRAL LINK',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              SelectableText(
-                                'https://meledata.ng/register?ref=$referralCode',
-                                maxLines: 1,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        InkWell(
-                          onTap: () async {
-                            await Clipboard.setData(ClipboardData(text: 'https://meledata.ng/register?ref=$referralCode'));
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Referral link copied!'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        HapticFeedback.lightImpact();
+                        final referralLink = "https://meledata.ng/register?ref=$referralCode";
+                        final shareMessage = "Hey! Buy cheap data, airtime, and utility top-ups instantly on MELE DATA. Register using my link: $referralLink";
+                        
+                        try {
+                          await Share.share(
+                            shareMessage,
+                            subject: "Join MELE DATA",
+                          );
+                        } catch (e) {
+                          await Clipboard.setData(ClipboardData(text: referralLink));
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text("Referral link copied to clipboard!"),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              duration: const Duration(seconds: 2),
                             ),
-                            child: Icon(
-                              Icons.copy_rounded,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Divider(
-                      height: 1,
-                      color: Theme.of(context).dividerColor.withValues(alpha: isDark ? 0.08 : 0.05),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'REFERRAL CODE',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              SelectableText(
-                                referralCode,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        InkWell(
-                          onTap: () async {
-                            await Clipboard.setData(ClipboardData(text: referralCode));
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Referral code copied!'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.copy_rounded,
-                                  size: 14,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Copy Code',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        minimumSize: const Size(0, 36),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      ),
+                      child: const Text('Share Link', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ),

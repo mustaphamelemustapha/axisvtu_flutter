@@ -14,7 +14,7 @@ class ThemeToggleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeController>();
-    final isDark = theme.isDark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
     final label = isDark ? 'Dark' : 'Light';
     final bgColor = isDark ? const Color(0xFF101A2A) : const Color(0xFFF9FBFF);
