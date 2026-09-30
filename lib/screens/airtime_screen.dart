@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../models/promo.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -39,7 +40,8 @@ Color _getNetworkColor(String network, [BuildContext? context]) {
 }
 
 class AirtimeScreen extends StatefulWidget {
-  const AirtimeScreen({super.key});
+  final UserPromo? initialPromo;
+  const AirtimeScreen({super.key, this.initialPromo});
 
   @override
   State<AirtimeScreen> createState() => _AirtimeScreenState();
@@ -91,6 +93,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   bool _beneficiariesEnabled = true;
   bool _smartSuggestionEnabled = true;
   String? _error;
+  UserPromo? _appliedPromo;
   List<String> _networks = const ['mtn', 'glo', 'airtel', '9mobile'];
   List<String> _recentNumbers = [];
   List<String> _suggestions = [];
@@ -108,6 +111,10 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
   @override
   void initState() {
     super.initState();
+    _appliedPromo = widget.initialPromo;
+    if (_appliedPromo != null && _appliedPromo!.promoCode.applicableNetwork != 'ALL') {
+      _network = _appliedPromo!.promoCode.applicableNetwork.toLowerCase();
+    }
     _phoneCtrl.addListener(_onPhoneChanged);
     _amountCtrl.addListener(_invalidateRequestId);
     _loadCatalog();
@@ -350,6 +357,7 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
         phoneNumber: phone,
         amount: amount,
         clientRequestId: _activeRequestId,
+        userPromoId: _appliedPromo?.id,
       );
       final status = _resolveResultStatus(res);
       if (!mounted) return;

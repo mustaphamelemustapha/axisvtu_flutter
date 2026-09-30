@@ -5,6 +5,8 @@ import '../models/promo.dart';
 import '../services/promo_service.dart';
 import 'package:intl/intl.dart';
 import '../theme/axis_tokens.dart';
+import 'data_screen.dart';
+import 'airtime_screen.dart';
 
 class PromoScreen extends StatefulWidget {
   const PromoScreen({super.key});
@@ -316,6 +318,10 @@ class _PromoScreenState extends State<PromoScreen> {
                           return _buildPromoCard(
                             title: promo.promoCode.code,
                             subtitle: promo.promoCode.description ?? 'Special discount code.',
+                            actionLabel: isUsed ? null : 'Use Now',
+                            onAction: isUsed ? null : () {
+                              _showUsePromoOptions(context, promo);
+                            },
                             statusLabel: isUsed ? 'Used' : 'Ready to use',
                             statusColor: isUsed ? subtitleColor : const Color(0xFF16A34A),
                             statusBgColor: isUsed 
@@ -345,6 +351,7 @@ class _PromoScreenState extends State<PromoScreen> {
     required String title,
     required String subtitle,
     String? actionLabel,
+    VoidCallback? onAction,
     required String statusLabel,
     required Color statusColor,
     required Color statusBgColor,
@@ -378,18 +385,21 @@ class _PromoScreenState extends State<PromoScreen> {
                 ),
               ),
               if (actionLabel != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    actionLabel,
-                    style: const TextStyle(
-                      color: Color(0xFF3B82F6),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                GestureDetector(
+                  onTap: onAction,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      actionLabel,
+                      style: const TextStyle(
+                        color: Color(0xFF3B82F6),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -440,6 +450,59 @@ class _PromoScreenState extends State<PromoScreen> {
           fontWeight: FontWeight.w700,
         ),
       ),
+    );
+  }
+
+  void _showUsePromoOptions(BuildContext context, UserPromo promo) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (c) {
+        final isDark = Theme.of(c).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Use Promo For?',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ListTile(
+                  leading: const Icon(Icons.data_usage_rounded, color: Color(0xFF3B82F6)),
+                  title: const Text('Buy Data', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () async {
+                    Navigator.pop(c);
+                    await Navigator.push(context, MaterialPageRoute(builder: (_) => DataScreen(initialPromo: promo)));
+                    _fetchPromos();
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.phone_in_talk_rounded, color: Color(0xFF10B981)),
+                  title: const Text('Buy Airtime', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () async {
+                    Navigator.pop(c);
+                    await Navigator.push(context, MaterialPageRoute(builder: (_) => AirtimeScreen(initialPromo: promo)));
+                    _fetchPromos();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

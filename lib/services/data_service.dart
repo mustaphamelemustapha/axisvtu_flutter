@@ -41,6 +41,7 @@ class DataService {
     required String phoneNumber,
     required bool ported,
     String? clientRequestId,
+    int? userPromoId,
   }) async {
     return _client.post('/data/purchase', {
       'plan_code': planCode,
@@ -48,6 +49,7 @@ class DataService {
       'ported_number': ported,
       if (clientRequestId != null && clientRequestId.trim().isNotEmpty)
         'client_request_id': clientRequestId.trim(),
+      if (userPromoId != null) 'user_promo_id': userPromoId,
     });
   }
 }

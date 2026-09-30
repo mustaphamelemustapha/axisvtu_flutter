@@ -20,9 +20,12 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
   final _discountCtrl = TextEditingController();
   final _maxUsesUserCtrl = TextEditingController(text: '1');
   final _maxUsesTotalCtrl = TextEditingController(text: '100');
+  final _applicablePlanSizeCtrl = TextEditingController(text: 'ALL');
   
   bool _isPercentage = false;
   bool _isActive = true;
+  String _applicableNetwork = 'ALL';
+  String _targetAudience = 'ALL';
   bool _isLoading = false;
 
   @override
@@ -32,6 +35,7 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
     _discountCtrl.dispose();
     _maxUsesUserCtrl.dispose();
     _maxUsesTotalCtrl.dispose();
+    _applicablePlanSizeCtrl.dispose();
     super.dispose();
   }
 
@@ -54,6 +58,9 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
         'max_uses_per_user': int.parse(_maxUsesUserCtrl.text.trim()),
         'max_total_uses': int.parse(_maxUsesTotalCtrl.text.trim()),
         'is_active': _isActive,
+        'applicable_network': _applicableNetwork,
+        'applicable_plan_size': _applicablePlanSizeCtrl.text.trim(),
+        'target_audience': _targetAudience,
       });
 
       if (mounted) {
@@ -140,6 +147,34 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _applicableNetwork,
+                decoration: const InputDecoration(labelText: 'Applicable Network', border: OutlineInputBorder()),
+                items: ['ALL', 'MTN', 'GLO', 'AIRTEL', '9MOBILE']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _applicableNetwork = val);
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _applicablePlanSizeCtrl,
+                decoration: const InputDecoration(labelText: 'Applicable Plan Size (e.g. 1GB or ALL)', border: OutlineInputBorder()),
+                textCapitalization: TextCapitalization.characters,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _targetAudience,
+                decoration: const InputDecoration(labelText: 'Target Audience', border: OutlineInputBorder()),
+                items: ['ALL', 'NEW_USERS']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e == 'ALL' ? 'All Users' : 'New Users Only')))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _targetAudience = val);
+                },
               ),
               const SizedBox(height: 16),
               Row(

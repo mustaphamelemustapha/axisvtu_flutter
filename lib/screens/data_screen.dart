@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../models/promo.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -42,7 +43,8 @@ Color _globalGetNetworkColor(String network, [BuildContext? context]) {
 }
 
 class DataScreen extends StatefulWidget {
-  const DataScreen({super.key});
+  final UserPromo? initialPromo;
+  const DataScreen({super.key, this.initialPromo});
 
   @override
   State<DataScreen> createState() => _DataScreenState();
@@ -102,6 +104,7 @@ class _DataScreenState extends State<DataScreen> {
   String? _shakingPlanCode;
   String? _selectedCategory;
   String? _selectedPlanCode;
+  UserPromo? _appliedPromo;
   List<dynamic> _plans = [];
 
   bool _loadingPlans = true;
@@ -129,6 +132,10 @@ class _DataScreenState extends State<DataScreen> {
   @override
   void initState() {
     super.initState();
+    _appliedPromo = widget.initialPromo;
+    if (_appliedPromo != null && _appliedPromo!.promoCode.applicableNetwork != 'ALL') {
+      _network = _appliedPromo!.promoCode.applicableNetwork.toLowerCase();
+    }
     _phoneCtrl.addListener(_onPhoneChanged);
     _loadRecentNumbers();
     _loadPreferences();
@@ -765,6 +772,7 @@ class _DataScreenState extends State<DataScreen> {
         phoneNumber: normalizedPhone,
         ported: _ported,
         clientRequestId: _activeRequestId,
+        userPromoId: _appliedPromo?.id,
       );
       if (!mounted) return;
       await _saveRecentNumber(normalizedPhone);

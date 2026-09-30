@@ -8,6 +8,9 @@ class PromoCode {
   final DateTime? expiresAt;
   final bool isActive;
   final DateTime createdAt;
+  final String applicableNetwork;
+  final String applicablePlanSize;
+  final String targetAudience;
 
   PromoCode({
     required this.id,
@@ -19,6 +22,9 @@ class PromoCode {
     this.expiresAt,
     required this.isActive,
     required this.createdAt,
+    this.applicableNetwork = "ALL",
+    this.applicablePlanSize = "ALL",
+    this.targetAudience = "ALL",
   });
 
   factory PromoCode.fromJson(Map<String, dynamic> json) {
@@ -32,6 +38,9 @@ class PromoCode {
       expiresAt: json['expires_at'] != null ? DateTime.parse(json['expires_at']) : null,
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
+      applicableNetwork: json['applicable_network'] ?? "ALL",
+      applicablePlanSize: json['applicable_plan_size'] ?? "ALL",
+      targetAudience: json['target_audience'] ?? "ALL",
     );
   }
 }

@@ -17,6 +17,7 @@ class ServicesService {
     required String phoneNumber,
     required double amount,
     String? clientRequestId,
+    int? userPromoId,
   }) {
     return _client.post('/services/airtime/purchase', {
       'network': network,
@@ -24,6 +25,7 @@ class ServicesService {
       'amount': amount,
       if (clientRequestId != null && clientRequestId.trim().isNotEmpty)
         'client_request_id': clientRequestId.trim(),
+      if (userPromoId != null) 'user_promo_id': userPromoId,
     });
   }
 
