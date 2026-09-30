@@ -516,7 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _reloadDashboard(String token, String dashboardKey) {
     final service = WalletService(token: token);
     final txService = TransactionsService(token: token);
-    _walletFuture = service.getWallet();
+    _walletFuture = service.getWallet(forceRefresh: true);
     _accountsFuture = service.getBankAccounts();
     _transactionsFuture = txService.getTransactions();
     _notificationsFuture = _loadNotifications(token);
