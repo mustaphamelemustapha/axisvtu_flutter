@@ -9,7 +9,7 @@ class PromoService {
   final ApiClient _apiClient;
 
   PromoService({required this.token})
-      : _apiClient = ApiClient(baseUrl: Config.apiBaseUrl, token: token);
+      : _apiClient = ApiClient(baseUrl: AppConfig.baseUrl, token: token);
 
   Future<List<UserPromo>> getMyPromos() async {
     final response = await _apiClient.get('/promos/me');

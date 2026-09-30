@@ -41,7 +41,7 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final session = context.read<Session>();
+      final session = context.read<SessionController>();
       final token = session.token;
       if (token == null) throw Exception("Not authenticated");
 
@@ -155,9 +155,9 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
               SizedBox(
                 width: double.infinity,
                 child: PrimaryButton(
-                  text: 'Create Promo',
+                  label: 'Create Promo',
                   onPressed: _isLoading ? null : _createPromo,
-                  isLoading: _isLoading,
+                  loading: _isLoading,
                 ),
               ),
             ],

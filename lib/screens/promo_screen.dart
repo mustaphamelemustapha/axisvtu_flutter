@@ -17,7 +17,7 @@ class _PromoScreenState extends State<PromoScreen> {
   final _codeController = TextEditingController();
   
   PromoService get _promoService {
-    final token = context.read<Session>().token;
+    final token = context.read<SessionController>().token;
     if (token == null) throw Exception("Not authenticated");
     return PromoService(token: token);
   }
@@ -339,7 +339,6 @@ class _PromoScreenState extends State<PromoScreen> {
         ),
       ),
     );
-  }
   }
 
   Widget _buildPromoCard({
