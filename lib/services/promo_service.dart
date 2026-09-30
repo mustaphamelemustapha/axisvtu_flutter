@@ -5,30 +5,28 @@ import '../models/promo.dart';
 import 'api_client.dart';
 
 class PromoService {
-  final ApiClient _apiClient = ApiClient();
+  final String token;
+  final ApiClient _apiClient;
+
+  PromoService({required this.token})
+      : _apiClient = ApiClient(baseUrl: Config.apiBaseUrl, token: token);
 
   Future<List<UserPromo>> getMyPromos() async {
     final response = await _apiClient.get('/promos/me');
     
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      return data.map((json) => UserPromo.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load promos');
-    }
+    // ApiClient returns a Map. If it was a list, it's wrapped in {'data': [...]}.
+    final List<dynamic> data = response is List ? response : (response['data'] ?? []);
+    return data.map((json) => UserPromo.fromJson(json)).toList();
   }
 
   Future<UserPromo> claimPromo(String code) async {
+    // ApiClient.post returns the decoded JSON Map and throws ApiException on error.
     final response = await _apiClient.post(
       '/promos/claim',
-      body: {'code': code},
+      {'code': code},
     );
 
-    if (response.statusCode == 200) {
-      return UserPromo.fromJson(json.decode(response.body));
-    } else {
-      final error = json.decode(response.body);
-      throw Exception(error['detail'] ?? 'Failed to claim promo code');
-    }
+    return UserPromo.fromJson(response);
   }
 }
+

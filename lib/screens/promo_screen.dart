@@ -1,3 +1,5 @@
+import 'package:provider/provider.dart';
+import '../state/session.dart';
 import 'package:flutter/material.dart';
 import '../models/promo.dart';
 import '../services/promo_service.dart';
@@ -13,7 +15,12 @@ class PromoScreen extends StatefulWidget {
 
 class _PromoScreenState extends State<PromoScreen> {
   final _codeController = TextEditingController();
-  final _promoService = PromoService();
+  
+  PromoService get _promoService {
+    final token = context.read<Session>().token;
+    if (token == null) throw Exception("Not authenticated");
+    return PromoService(token: token);
+  }
   
   String _errorText = '';
   bool _isLoading = false;

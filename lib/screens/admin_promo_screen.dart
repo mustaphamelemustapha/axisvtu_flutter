@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/admin_service.dart';
-import '../state/session_controller.dart';
-import '../widgets/buttons.dart';
-import '../widgets/inputs.dart';
+import '../state/session.dart';
+import '../widgets/primary_button.dart';
 
 class AdminPromoScreen extends StatefulWidget {
   static const String route = '/admin/promos';
@@ -42,7 +41,7 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final session = context.read<SessionController>();
+      final session = context.read<Session>();
       final token = session.token;
       if (token == null) throw Exception("Not authenticated");
 
@@ -85,24 +84,24 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AxisTextField(
+              TextFormField(
                 controller: _codeCtrl,
-                label: 'Promo Code (e.g. LAUNCH20)',
+                decoration: const InputDecoration(labelText: 'Promo Code (e.g. LAUNCH20)', border: OutlineInputBorder()),
                 textCapitalization: TextCapitalization.characters,
                 validator: (val) => val == null || val.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              AxisTextField(
+              TextFormField(
                 controller: _descCtrl,
-                label: 'Description',
+                decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
-                    child: AxisTextField(
+                    child: TextFormField(
                       controller: _discountCtrl,
-                      label: 'Discount Amount',
+                      decoration: const InputDecoration(labelText: 'Discount Amount', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
                       validator: (val) => val == null || val.isEmpty ? 'Required' : null,
                     ),
@@ -124,18 +123,18 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: AxisTextField(
+                    child: TextFormField(
                       controller: _maxUsesUserCtrl,
-                      label: 'Max uses per user',
+                      decoration: const InputDecoration(labelText: 'Max uses per user', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
                       validator: (val) => val == null || val.isEmpty ? 'Required' : null,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: AxisTextField(
+                    child: TextFormField(
                       controller: _maxUsesTotalCtrl,
-                      label: 'Total max uses',
+                      decoration: const InputDecoration(labelText: 'Total max uses', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
                       validator: (val) => val == null || val.isEmpty ? 'Required' : null,
                     ),
@@ -156,7 +155,7 @@ class _AdminPromoScreenState extends State<AdminPromoScreen> {
               SizedBox(
                 width: double.infinity,
                 child: PrimaryButton(
-                  label: 'Create Promo',
+                  text: 'Create Promo',
                   onPressed: _isLoading ? null : _createPromo,
                   isLoading: _isLoading,
                 ),
