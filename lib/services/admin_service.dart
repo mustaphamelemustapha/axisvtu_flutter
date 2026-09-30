@@ -156,6 +156,11 @@ class AdminService {
   Future<Map<String, dynamic>> uploadAnnouncementImage(File file) async {
     return _client.postMultipart('/notifications/broadcast/admin/upload-image', file: file, fileField: 'image');
   }
+
+  /// Create a new promo code (Admin)
+  Future<Map<String, dynamic>> createPromo(Map<String, dynamic> payload) async {
+    return _client.post('/promos/admin/create', payload);
+  }
 }
 
 

@@ -29,6 +29,7 @@ import 'security_screen.dart';
 import 'admin_announcements_screen.dart';
 import 'agent_dashboard_screen.dart';
 import 'admin_agent_screen.dart';
+import 'admin_promo_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -955,6 +956,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _ProfileTile(label: 'Manage Announcements', icon: Icons.campaign_rounded, onTap: () => Navigator.push(context, FastRoute(page: const AdminAnnouncementsScreen()))),
                 if (session.isAdmin)
                   _ProfileTile(label: 'Manage Agents', icon: Icons.support_agent_rounded, onTap: () => Navigator.push(context, FastRoute(page: const AdminAgentScreen()))),
+                if (session.isAdmin)
+                  _ProfileTile(label: 'Manage Promos', icon: Icons.local_activity_rounded, onTap: () => Navigator.push(context, FastRoute(page: const AdminPromoScreen()))),
                 if (role == 'reseller' || role == 'agent')
                   _ProfileTile(label: 'Agent Dashboard', icon: Icons.analytics_rounded, onTap: () => Navigator.push(context, FastRoute(page: const AgentDashboardScreen()))),
               ]),
