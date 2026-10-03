@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -63,7 +64,7 @@ class _ShellScreenState extends State<ShellScreen> {
             FilledButton(
               onPressed: () async {
                 Navigator.pop(context);
-                final url = Platform.isIOS ? session.appStoreUrl : session.playStoreUrl;
+                final url = (!kIsWeb && Platform.isIOS) ? session.appStoreUrl : session.playStoreUrl;
                 final uri = Uri.parse(url);
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -83,7 +84,10 @@ class _ShellScreenState extends State<ShellScreen> {
 
   Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
     final isSelected = _index == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
+    final activeColor = colorScheme.primary;
+    final inactiveColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
     
     return GestureDetector(
       onTap: () {
@@ -95,11 +99,13 @@ class _ShellScreenState extends State<ShellScreen> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 20.0 : 12.0, 
-          vertical: 8.0
+          horizontal: isSelected ? 18.0 : 12.0, 
+          vertical: 6.0
         ),
         decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary.withValues(alpha: 0.15) : Colors.transparent,
+          color: isSelected
+              ? activeColor.withValues(alpha: isDark ? 0.22 : 0.12)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -113,17 +119,17 @@ class _ShellScreenState extends State<ShellScreen> {
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon,
                 key: ValueKey<bool>(isSelected),
-                color: isSelected ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.5),
-                size: 26,
+                color: isSelected ? activeColor : inactiveColor,
+                size: 24,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 250),
               style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? activeColor : inactiveColor,
                 fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
               ),
               child: Text(label),
@@ -136,6 +142,7 @@ class _ShellScreenState extends State<ShellScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final screens = [
       HomeScreen(onNavigateTab: _goToTab),
       const ServicesScreen(),
@@ -150,27 +157,43 @@ class _ShellScreenState extends State<ShellScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Container(
-            height: 64,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(32),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0x0C000000),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                )
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
-                _buildNavItem(1, Icons.grid_view_rounded, Icons.grid_view_outlined, 'Services'),
-                _buildNavItem(2, Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'History'),
-                _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
-              ],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                height: 64,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF1E293B).withValues(alpha: 0.88)
+                      : Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withValues(alpha: 0.35)
+                          : const Color(0x10000000),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
+                    _buildNavItem(1, Icons.grid_view_rounded, Icons.grid_view_outlined, 'Services'),
+                    _buildNavItem(2, Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'History'),
+                    _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

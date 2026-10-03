@@ -10,13 +10,15 @@ import '../config.dart';
 import '../state/session.dart';
 import '../widgets/interactive_notification_banner.dart';
 
+import 'package:flutter/foundation.dart';
+
 class PushNotificationService {
   static const _pushNotificationsKey = 'axis_profile_push_notifications_v1';
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   static Future<void> initialize(SessionController session) async {
-    // Support Android and iOS push notifications
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    // Web is handled via FCM Web or skipped; dart:io Platform crashes on web
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       debugPrint("[PushNotification] Disabled for unsupported platforms.");
       return;
     }

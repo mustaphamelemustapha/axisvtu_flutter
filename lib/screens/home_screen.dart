@@ -115,7 +115,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _startRefreshTimer();
     Future.delayed(Duration.zero, () {
       if (mounted) {
-        _initialSecurityCheck();
         final session = context.read<SessionController>();
         if (session.isAuthenticated && session.user == null) {
           session.syncProfileIfNeeded();
@@ -175,26 +174,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _initialSecurityCheck() async {
-    final session = context.read<SessionController>();
-    final token = (session.token ?? '').trim();
-    if (token.isEmpty) return;
-
-    final service = TransactionPinService(token: token);
-    try {
-      final status = await service.statusOrNull();
-      if (!mounted) return;
-
-      if (status != null && !status.isSet) {
-        // Show the setup flow proactively for new/web users
-        await PurchaseAuthService.setupPin(
-          context: context,
-          reason: 'account security',
-          pinLength: status.pinLength,
-        );
-      }
-    } catch (_) {
-      // Silently fail to avoid blocking the home screen
-    }
+    // PIN setup is handled during account registration and at purchase time.
+    // Intrusive popup on home screen is disabled.
   }
 
   @override

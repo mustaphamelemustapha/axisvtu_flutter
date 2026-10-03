@@ -339,7 +339,7 @@ class SessionController extends ChangeNotifier {
     String email,
     String phone,
     String password,
-    {String? referralCode}
+    {String? referralCode, String? state, String? pin}
   ) async {
     _setLoading(true);
     try {
@@ -350,6 +350,8 @@ class SessionController extends ChangeNotifier {
         phone: phone,
         password: password,
         referralCode: referralCode,
+        state: state,
+        pin: pin,
       );
       _token = _extractToken(data);
       _user = _extractUser(data);
@@ -591,6 +593,18 @@ class SessionController extends ChangeNotifier {
 
   void updateUser(Map<String, dynamic> user) {
     _user = user;
+    notifyListeners();
+  }
+
+  Future<void> updateUserField(String key, dynamic value) async {
+    if (_user == null) return;
+    final updated = Map<String, dynamic>.from(_user!);
+    updated[key] = value;
+    _user = updated;
+    _lastUser = updated;
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastUserJsonKey, jsonEncode(updated));
     notifyListeners();
   }
 

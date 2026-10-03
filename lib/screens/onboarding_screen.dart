@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../utils/fast_route.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -39,7 +40,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     await OnboardingScreen.markSeen();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      FastRoute(page: WelcomeScreen(initialIsLogin: isLogin)),
+      FastRoute(page: const WelcomeScreen()),
     );
   }
 
@@ -57,19 +58,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _dot(int index, ThemeData theme) {
     final active = _page == index;
-    final primary = theme.colorScheme.primary;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeOutCubic,
       margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: active ? 28 : 8,
-      height: 8,
+      width: active ? 24 : 6,
+      height: 6,
       decoration: BoxDecoration(
-        color: active ? primary : primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(999),
-        boxShadow: active
-            ? [BoxShadow(color: primary.withValues(alpha: 0.3), blurRadius: 8, spreadRadius: 1)]
-            : null,
+        color: active ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(3),
       ),
     );
   }
@@ -172,14 +169,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             height: 200,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
                               border: Border.all(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                                width: 2,
+                                color: Colors.white.withValues(alpha: 0.2),
+                                width: 1.5,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                  color: const Color(0xFF2563EB).withValues(alpha: 0.15),
                                   blurRadius: 40,
                                   spreadRadius: 10,
                                 ),
@@ -188,7 +189,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             child: Icon(
                               slideData[index]['icon'] as IconData,
                               size: 90,
-                              color: theme.colorScheme.primary,
+                              color: Colors.white,
+                              shadows: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -198,31 +206,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
               
-              // Bottom Floating Card
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                  decoration: BoxDecoration(
-                    color: theme.cardTheme.color,
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.3 : 0.05),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
-                        blurRadius: 30,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
+              // Bottom Sheet Style Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                  border: Border(
+                    top: BorderSide(color: Color(0xFFF1F5F9), width: 1.0),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x0A0F172A),
+                      blurRadius: 24,
+                      offset: Offset(0, -6),
+                    ),
+                  ],
+                ),
                   child: Column(
                     children: [
                       // Text Content (Animated)
                       SizedBox(
-                        height: 110,
+                        height: 135,
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 400),
                           switchInCurve: Curves.easeOutCubic,
@@ -245,22 +251,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               Text(
                                 slideData[_page]['title'] as String,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
                                   letterSpacing: -0.5,
-                                  color: theme.colorScheme.onSurface,
+                                  color: const Color(0xFF0F172A),
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              Text(
-                                slideData[_page]['body'] as String,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  height: 1.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  slideData[_page]['body'] as String,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF64748B),
+                                  ),
                                 ),
                               ),
                             ],
@@ -320,7 +329,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ],
                   ),
                 ),
-              ),
             ],
           ),
         ),

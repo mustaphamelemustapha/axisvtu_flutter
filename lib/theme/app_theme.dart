@@ -136,6 +136,7 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      brightness: brightness,
       colorScheme: scheme,
       fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
       visualDensity: VisualDensity.standard,

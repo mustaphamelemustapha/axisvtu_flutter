@@ -49,11 +49,14 @@ class _PrimaryButtonState extends State<PrimaryButton> {
     return SizedBox(
       width: double.infinity,
       child: Listener(
-        onPointerDown: _enabled ? (_) => setState(() => _pressed = true) : null,
+        onPointerDown: _enabled ? (_) {
+          HapticFeedback.heavyImpact();
+          setState(() => _pressed = true);
+        } : null,
         onPointerUp: _enabled ? (_) => setState(() => _pressed = false) : null,
         onPointerCancel: _enabled ? (_) => setState(() => _pressed = false) : null,
         child: AnimatedScale(
-          scale: _pressed ? 0.98 : 1.0,
+          scale: _pressed ? 0.92 : 1.0,
           duration: AxisDurations.fast,
           curve: Curves.easeOut,
           child: Container(
@@ -68,13 +71,13 @@ class _PrimaryButtonState extends State<PrimaryButton> {
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                         )
-                      : LinearGradient(
-                          colors: [
-                            primary,
-                            primary.withValues(alpha: 0.82),
-                          ],
+                      : const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFFF97316), // Premium Orange
+                            Color(0xFF3B82F6), // Premium Blue
+                          ],
                         ))
                   : null,
               color: _enabled ? null : theme.disabledColor.withValues(alpha: 0.12),
@@ -82,10 +85,10 @@ class _PrimaryButtonState extends State<PrimaryButton> {
               boxShadow: [
                 if (_enabled)
                   BoxShadow(
-                    color: (widget.isPremium ? const Color(0xFFF97316) : primary)
-                        .withValues(alpha: isDark ? 0.28 : 0.2),
+                    color: (widget.isPremium ? const Color(0xFFF97316) : const Color(0xFF3B82F6))
+                        .withValues(alpha: isDark ? 0.35 : 0.25),
                     blurRadius: 16,
-                    offset: const Offset(0, 8),
+                    offset: const Offset(0, 6),
                   ),
               ],
             ),

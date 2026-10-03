@@ -7,8 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'state/session.dart';
 import 'state/theme_controller.dart';
 import 'theme/app_theme.dart';
-import 'screens/register_screen.dart';
-import 'screens/reset_password_screen.dart';
 import 'screens/reset_pin_screen.dart';
 import 'screens/shell_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -17,7 +15,9 @@ import 'screens/splash_screen.dart';
 import 'screens/force_update_screen.dart';
 import 'screens/security_preference_screen.dart';
 import 'screens/app_lock_screen.dart';
-import 'screens/quick_auth_screen.dart';
+import 'screens/auth_password_screen.dart';
+import 'screens/set_pin_screen.dart';
+import 'screens/signup_wizard_screen.dart';
 import 'services/push_notification_service.dart';
 
 class AxisVTUApp extends StatelessWidget {
@@ -65,10 +65,12 @@ class AxisVTUApp extends StatelessWidget {
             routes: {
               '/splash': (_) => const SplashScreen(),
               WelcomeScreen.route: (_) => const WelcomeScreen(),
-               RegisterScreen.route: (_) => const RegisterScreen(),
+              '/register': (_) => const WelcomeScreen(),
               ShellScreen.route: (_) => const ShellScreen(),
               SecurityPreferenceScreen.route: (_) => const SecurityPreferenceScreen(),
-              QuickAuthScreen.route: (_) => const QuickAuthScreen(),
+              AuthPasswordScreen.route: (_) => const AuthPasswordScreen(identifier: ''),
+              SetPinScreen.route: (_) => const SetPinScreen(),
+              SignupWizardScreen.route: (_) => const SignupWizardScreen(phone: ''),
             },
             home: const AppEntryGate(),
           );
@@ -109,18 +111,13 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
     super.dispose();
   }
 
-  DateTime? _pausedTime;
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _pausedTime = DateTime.now();
-    } else if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed) {
       final session = context.read<SessionController>();
       if (session.isAuthenticated) {
         session.refreshBalance();
       }
-      _pausedTime = null;
     }
   }
 
@@ -153,14 +150,6 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
       if (isPinReset) {
         return ResetPinScreen(token: token);
       }
-
-      final isPasswordReset = flow == 'password' ||
-          path.contains('reset-password') ||
-          path.contains('password/reset');
-
-      if (isPasswordReset) {
-        return ResetPasswordScreen(token: token);
-      }
     }
 
     final session = context.watch<SessionController>();
@@ -186,7 +175,18 @@ class _AppEntryGateState extends State<AppEntryGate> with WidgetsBindingObserver
       return const OnboardingScreen();
     }
     if (session.lastUser != null) {
-      return const QuickAuthScreen();
+      final phone = (session.lastUser?['phone_number'] ??
+              session.lastUser?['phone'] ??
+              session.lastUser?['email'] ??
+              '')
+          .toString();
+      if (phone.isNotEmpty) {
+        return AuthPasswordScreen(
+          identifier: phone,
+          autoPromptBiometrics: true,
+        );
+      }
+      return const WelcomeScreen();
     }
     return const WelcomeScreen();
   }

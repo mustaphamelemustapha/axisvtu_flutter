@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeController extends ChangeNotifier {
-  static const _themeModeKey = 'axis_theme_mode_v2'; // changed key to reset to system
+  static const _themeModeKey = 'axis_theme_mode_v4'; // fresh key defaulting strictly to system
 
   ThemeMode _mode = ThemeMode.system;
   bool _loaded = false;
@@ -13,6 +13,7 @@ class ThemeController extends ChangeNotifier {
   }
 
   ThemeMode get mode => _mode;
+  bool get isSystem => _mode == ThemeMode.system;
 
   Future<void> _load() async {
     try {
@@ -25,7 +26,9 @@ class ThemeController extends ChangeNotifier {
       } else {
         _mode = ThemeMode.system;
       }
-    } catch (_) {}
+    } catch (_) {
+      _mode = ThemeMode.system;
+    }
     _loaded = true;
     notifyListeners();
   }
@@ -37,11 +40,26 @@ class ThemeController extends ChangeNotifier {
     } catch (_) {}
   }
 
-  void toggle() {
-    // If it's system, we assume we toggle to something explicitly (e.g., light if system is currently dark, but we don't have context here)
-    // We will just cycle: system -> light -> dark -> system
+  void setThemeMode(ThemeMode newMode) {
+    _mode = newMode;
+    notifyListeners();
+    if (_loaded) {
+      unawaited(_persist());
+    }
+  }
+
+  void resetToSystem() {
+    setThemeMode(ThemeMode.system);
+  }
+
+  void toggle({Brightness? currentBrightness}) {
     if (_mode == ThemeMode.system) {
-      _mode = ThemeMode.light;
+      // Switch to the opposite of current brightness
+      if (currentBrightness == Brightness.dark) {
+        _mode = ThemeMode.light;
+      } else {
+        _mode = ThemeMode.dark;
+      }
     } else if (_mode == ThemeMode.light) {
       _mode = ThemeMode.dark;
     } else {

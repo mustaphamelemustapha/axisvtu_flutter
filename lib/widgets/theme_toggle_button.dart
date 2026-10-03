@@ -16,7 +16,7 @@ class ThemeToggleButton extends StatelessWidget {
     final theme = context.watch<ThemeController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
-    final label = isDark ? 'Dark' : 'Light';
+    final label = theme.isSystem ? 'Auto' : (isDark ? 'Dark' : 'Light');
     final bgColor = isDark ? const Color(0xFF101A2A) : const Color(0xFFF9FBFF);
     final borderColor = isDark
         ? const Color(0xFF2A3A52)
@@ -35,7 +35,7 @@ class ThemeToggleButton extends StatelessWidget {
           child: InkWell(
             onTap: () {
               HapticFeedback.selectionClick();
-              context.read<ThemeController>().toggle();
+              context.read<ThemeController>().toggle(currentBrightness: Theme.of(context).brightness);
             },
             borderRadius: BorderRadius.circular(AxisRadii.xl),
             child: Ink(

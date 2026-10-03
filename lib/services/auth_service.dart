@@ -30,6 +30,8 @@ class AuthService {
     required String phone,
     required String password,
     String? referralCode,
+    String? state,
+    String? pin,
   }) async {
     final code = referralCode?.trim() ?? '';
     final body = {
@@ -38,6 +40,8 @@ class AuthService {
       'phone_number': phone.trim(),
       'password': password,
       if (code.isNotEmpty) 'referral_code': code,
+      if (state != null && state.isNotEmpty) 'state': state.trim(),
+      if (pin != null && pin.isNotEmpty) 'pin': pin.trim(),
     };
     final data = await _client.post('/auth/register', body);
     return data;
@@ -50,6 +54,7 @@ class AuthService {
   Future<Map<String, dynamic>> updateProfile({
     String? fullName,
     String? phoneNumber,
+    String? state,
   }) async {
     final body = <String, dynamic>{};
     if (fullName != null) {
@@ -57,6 +62,9 @@ class AuthService {
     }
     if (phoneNumber != null) {
       body['phone_number'] = phoneNumber.trim();
+    }
+    if (state != null) {
+      body['state'] = state.trim();
     }
     return _client.patch('/auth/me', body);
   }
