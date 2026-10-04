@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,6 +15,7 @@ import '../widgets/state_select_sheet.dart';
 import 'auth_password_screen.dart';
 import 'shell_screen.dart';
 import 'welcome_screen.dart';
+import '../widgets/concentric_circles_bg.dart';
 
 class SignupWizardScreen extends StatefulWidget {
   final String phone;
@@ -44,6 +47,10 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
   final FocusNode _passwordFocus = FocusNode();
   final FocusNode _pinFocus = FocusNode();
   final FocusNode _confirmPinFocus = FocusNode();
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _referralFocus = FocusNode();
+  final FocusNode _stateFocus = FocusNode();
 
   // UI state
   bool _obscurePassword = true;
@@ -61,6 +68,10 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
     _passwordFocus.addListener(() => setState(() {}));
     _pinFocus.addListener(() => setState(() {}));
     _confirmPinFocus.addListener(() => setState(() {}));
+    _nameFocus.addListener(() => setState(() {}));
+    _emailFocus.addListener(() => setState(() {}));
+    _referralFocus.addListener(() => setState(() {}));
+    _stateFocus.addListener(() => setState(() {}));
   }
 
   @override
@@ -75,6 +86,10 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
     _passwordFocus.dispose();
     _pinFocus.dispose();
     _confirmPinFocus.dispose();
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _referralFocus.dispose();
+    _stateFocus.dispose();
     super.dispose();
   }
 
@@ -213,15 +228,15 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
         builder: (ctx) => AlertDialog(
           backgroundColor: const Color(0xFF0F172A),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Account Exists', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          title: Text('Account Exists', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w700)),
           content: Text(
             'The phone number ${widget.phone} is already registered. Would you like to log in?',
-            style: const TextStyle(color: Colors.white70),
+            style: GoogleFonts.plusJakartaSans(color: Colors.white70),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+              child: Text('Cancel', style: GoogleFonts.plusJakartaSans(color: Colors.white60)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -258,10 +273,9 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF070B14) : const Color(0xFFF8FAFC),
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-        child: SafeArea(
+        child: ConcentricCirclesBg(
           child: Column(
             children: [
               // Top Bar with Back button and Step indicator
@@ -282,7 +296,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     const Spacer(),
                     Text(
                       'Step ${_currentStep + 1} of 4',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         color: isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF64748B),
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -300,7 +314,9 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                   children: List.generate(4, (index) {
                     final isCompleted = index <= _currentStep;
                     return Expanded(
-                      child: Container(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOutCubic,
                         height: 4,
                         margin: EdgeInsets.only(right: index < 3 ? 6 : 0),
                         decoration: BoxDecoration(
@@ -324,10 +340,10 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                   physics: const NeverScrollableScrollPhysics(), // Only navigate through buttons
                   onPageChanged: (page) => setState(() => _currentStep = page),
                   children: [
-                    _buildStep1Password(isDark),
-                    _buildStep2Pin(isDark),
-                    _buildStep3NameAndEmail(isDark),
-                    _buildStep4State(isDark),
+                    _buildStep1Password(isDark).animate().fadeIn(duration: 400.ms, curve: Curves.easeOut).slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOutQuint),
+                    _buildStep2Pin(isDark).animate().fadeIn(duration: 400.ms, curve: Curves.easeOut).slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOutQuint),
+                    _buildStep3NameAndEmail(isDark).animate().fadeIn(duration: 400.ms, curve: Curves.easeOut).slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOutQuint),
+                    _buildStep4State(isDark).animate().fadeIn(duration: 400.ms, curve: Curves.easeOut).slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOutQuint),
                   ],
                 ),
               ),
@@ -364,20 +380,20 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
           const SizedBox(height: 24),
           Text(
             'Create password',
-            style: TextStyle(
+            style: GoogleFonts.plusJakartaSans(
               color: isDark ? Colors.white : const Color(0xFF0F172A),
               fontSize: 30,
               fontWeight: FontWeight.w900,
-              letterSpacing: -0.6,
+              letterSpacing: -1.0,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Choose a strong password to protect your MELE DATA wallet and transactions.',
-            style: TextStyle(
+            style: GoogleFonts.plusJakartaSans(
               color: isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF475569),
               fontSize: 14,
-              height: 1.45,
+              height: 1.5,
             ),
           ),
           const SizedBox(height: 28),
@@ -388,7 +404,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
               children: [
                 Text(
                   'PASSWORD',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     color: isDark ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF64748B),
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -401,15 +417,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                   height: 56,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: _passwordFocus.hasFocus && !isDark
-                        ? const [
-                            BoxShadow(
-                              color: Color(0x1F2563EB),
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : [],
+                    boxShadow: _passwordFocus.hasFocus ? [BoxShadow(color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.25 : 0.12), blurRadius: 12, spreadRadius: 2)] : [],
                   ),
                   child: TextField(
                     controller: _passwordCtrl,
@@ -420,7 +428,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     onSubmitted: (_) {
                       if (isValid) _nextStep();
                     },
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -428,7 +436,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     cursorColor: const Color(0xFF2563EB),
                     decoration: InputDecoration(
                       hintText: 'Minimum 8 characters',
-                      hintStyle: TextStyle(
+                      hintStyle: GoogleFonts.plusJakartaSans(
                         color: isDark ? Colors.white.withValues(alpha: 0.28) : const Color(0xFF94A3B8),
                         fontSize: 14,
                       ),
@@ -488,7 +496,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
               const SizedBox(width: 6),
               Text(
                 'At least 8 characters (${password.length}/8)',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   color: isValid ? const Color(0xFF10B981) : (isDark ? Colors.white54 : const Color(0xFF64748B)),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -535,20 +543,20 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
           const SizedBox(height: 24),
           Text(
             'Set transaction PIN',
-            style: TextStyle(
+            style: GoogleFonts.plusJakartaSans(
               color: isDark ? Colors.white : const Color(0xFF0F172A),
               fontSize: 30,
               fontWeight: FontWeight.w900,
-              letterSpacing: -0.6,
+              letterSpacing: -1.0,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Enter a 4-digit numeric PIN for authorizing purchases and wallet transfers.',
-            style: TextStyle(
+            style: GoogleFonts.plusJakartaSans(
               color: isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF475569),
               fontSize: 14,
-              height: 1.45,
+              height: 1.5,
             ),
           ),
           const SizedBox(height: 28),
@@ -559,7 +567,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
               children: [
                 Text(
                   'NEW 4-DIGIT PIN',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     color: isDark ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF64748B),
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -572,15 +580,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                   height: 56,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: _pinFocus.hasFocus && !isDark
-                        ? const [
-                            BoxShadow(
-                              color: Color(0x1F2563EB),
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : [],
+                    boxShadow: _pinFocus.hasFocus ? [BoxShadow(color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.25 : 0.12), blurRadius: 12, spreadRadius: 2)] : [],
                   ),
                   child: TextField(
                     controller: _pinCtrl,
@@ -590,7 +590,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     maxLength: 4,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     onChanged: (_) => setState(() {}),
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
@@ -600,7 +600,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     decoration: InputDecoration(
                       counterText: '',
                       hintText: '••••',
-                      hintStyle: TextStyle(
+                      hintStyle: GoogleFonts.plusJakartaSans(
                         color: isDark ? Colors.white24 : const Color(0xFF94A3B8),
                         letterSpacing: 8,
                       ),
@@ -641,7 +641,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                 const SizedBox(height: 20),
                 Text(
                   'CONFIRM 4-DIGIT PIN',
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     color: isDark ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF64748B),
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -654,15 +654,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                   height: 56,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: _confirmPinFocus.hasFocus && !isDark
-                        ? const [
-                            BoxShadow(
-                              color: Color(0x1F2563EB),
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : [],
+                    boxShadow: _confirmPinFocus.hasFocus ? [BoxShadow(color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.25 : 0.12), blurRadius: 12, spreadRadius: 2)] : [],
                   ),
                   child: TextField(
                     controller: _confirmPinCtrl,
@@ -675,7 +667,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     onSubmitted: (_) {
                       if (isMatch) _nextStep();
                     },
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
@@ -685,7 +677,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     decoration: InputDecoration(
                       counterText: '',
                       hintText: '••••',
-                      hintStyle: TextStyle(
+                      hintStyle: GoogleFonts.plusJakartaSans(
                         color: isDark ? Colors.white24 : const Color(0xFF94A3B8),
                         letterSpacing: 8,
                       ),
@@ -725,13 +717,13 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                 ),
                 if (showMismatch) ...[
                   const SizedBox(height: 10),
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.error_outline_rounded, color: Color(0xFFF43F5E), size: 14),
-                      SizedBox(width: 6),
+                      const Icon(Icons.error_outline_rounded, color: Color(0xFFF43F5E), size: 14),
+                      const SizedBox(width: 6),
                       Text(
                         'PINs do not match',
-                        style: TextStyle(color: Color(0xFFF43F5E), fontSize: 12, fontWeight: FontWeight.w600),
+                        style: GoogleFonts.plusJakartaSans(color: const Color(0xFFF43F5E), fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -766,20 +758,20 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
         children: [
           Text(
             "What's your name?",
-            style: TextStyle(
+            style: GoogleFonts.plusJakartaSans(
               color: isDark ? Colors.white : const Color(0xFF0F172A),
               fontSize: 30,
               fontWeight: FontWeight.w900,
-              letterSpacing: -0.6,
+              letterSpacing: -1.0,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'We use your name and email for your transaction receipts and password recovery.',
-            style: TextStyle(
+            style: GoogleFonts.plusJakartaSans(
               color: isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF475569),
               fontSize: 14,
-              height: 1.45,
+              height: 1.5,
             ),
           ),
           const SizedBox(height: 28),
@@ -792,7 +784,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                 children: [
                   Text(
                     'FULL NAME',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       color: isDark ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF64748B),
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -800,48 +792,43 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: 56, padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF0A101D) : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isDark ? Colors.white12 : const Color(0xFFCBD5E1),
+                        color: _nameFocus.hasFocus ? const Color(0xFF2563EB) : (isDark ? Colors.white12 : const Color(0xFFCBD5E1)),
+                        width: _nameFocus.hasFocus ? 1.5 : 1.0,
                       ),
-                      boxShadow: isDark
-                          ? null
-                          : [
-                              BoxShadow(
-                                color: const Color(0xFF94A3B8).withValues(alpha: 0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                      boxShadow: _nameFocus.hasFocus ? [BoxShadow(color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.25 : 0.12), blurRadius: 12, spreadRadius: 2)] : [],
                     ),
                     child: TextField(
                       controller: _nameCtrl,
+                      focusNode: _nameFocus,
                       textCapitalization: TextCapitalization.words,
                       onChanged: (_) => setState(() {}),
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                       decoration: InputDecoration(
                         hintText: 'e.g. Mustapha Mele',
-                        hintStyle: TextStyle(
+                        hintStyle: GoogleFonts.plusJakartaSans(
                           color: isDark ? Colors.white.withValues(alpha: 0.28) : const Color(0xFF94A3B8),
                           fontSize: 14,
                         ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
                   Text(
                     'EMAIL ADDRESS (REQUIRED)',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       color: isDark ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF64748B),
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -849,28 +836,23 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: 56, padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF0A101D) : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: _emailInlineError != null
                             ? const Color(0xFFE11D48)
-                            : (isDark ? Colors.white12 : const Color(0xFFCBD5E1)),
+                            : _emailFocus.hasFocus ? const Color(0xFF2563EB) : (isDark ? Colors.white12 : const Color(0xFFCBD5E1)),
+                        width: _emailFocus.hasFocus ? 1.5 : 1.0,
                       ),
-                      boxShadow: isDark
-                          ? null
-                          : [
-                              BoxShadow(
-                                color: const Color(0xFF94A3B8).withValues(alpha: 0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                      boxShadow: _emailFocus.hasFocus ? [BoxShadow(color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.25 : 0.12), blurRadius: 12, spreadRadius: 2)] : [],
                     ),
                     child: TextField(
                       controller: _emailCtrl,
+                      focusNode: _emailFocus,
                       keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
                       onChanged: (_) {
@@ -883,19 +865,19 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                       onSubmitted: (_) {
                         if (canContinue) _nextStep();
                       },
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                       decoration: InputDecoration(
                         hintText: 'e.g. name@example.com',
-                        hintStyle: TextStyle(
+                        hintStyle: GoogleFonts.plusJakartaSans(
                           color: isDark ? Colors.white.withValues(alpha: 0.28) : const Color(0xFF94A3B8),
                           fontSize: 14,
                         ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                     ),
                   ),
@@ -908,7 +890,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                         Expanded(
                           child: Text(
                             _emailInlineError!,
-                            style: const TextStyle(color: Color(0xFFF43F5E), fontSize: 12, fontWeight: FontWeight.w600),
+                            style: GoogleFonts.plusJakartaSans(color: const Color(0xFFF43F5E), fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
@@ -921,7 +903,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                       onTap: () => setState(() => _showReferralField = true),
                       child: Text(
                         'Have a referral code?',
-                        style: TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           color: Theme.of(context).colorScheme.primary,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -931,7 +913,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                   else ...[
                     Text(
                       'REFERRAL CODE (OPTIONAL)',
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         color: isDark ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF64748B),
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
@@ -939,40 +921,35 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      height: 56, padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF0A101D) : Colors.white,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isDark ? Colors.white12 : const Color(0xFFCBD5E1),
+                          color: _referralFocus.hasFocus ? const Color(0xFF2563EB) : (isDark ? Colors.white12 : const Color(0xFFCBD5E1)),
+                          width: _referralFocus.hasFocus ? 1.5 : 1.0,
                         ),
-                        boxShadow: isDark
-                            ? null
-                            : [
-                                BoxShadow(
-                                  color: const Color(0xFF94A3B8).withValues(alpha: 0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                        boxShadow: _referralFocus.hasFocus ? [BoxShadow(color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.25 : 0.12), blurRadius: 12, spreadRadius: 2)] : [],
                       ),
                       child: TextField(
                         controller: _referralCtrl,
+                        focusNode: _referralFocus,
                         textCapitalization: TextCapitalization.characters,
-                        style: TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           color: isDark ? Colors.white : const Color(0xFF0F172A),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
                         decoration: InputDecoration(
                           hintText: 'Enter referral code',
-                          hintStyle: TextStyle(
+                          hintStyle: GoogleFonts.plusJakartaSans(
                             color: isDark ? Colors.white.withValues(alpha: 0.28) : const Color(0xFF94A3B8),
                             fontSize: 14,
                           ),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                       ),
                     ),
@@ -1009,53 +986,48 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
             children: [
               Text(
                 'Select your state',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                   fontSize: 30,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -0.6,
+                  letterSpacing: -1.0,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Choose your state of residence. Required for localized network deals.',
-                style: TextStyle(
+                style: GoogleFonts.plusJakartaSans(
                   color: isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF475569),
                   fontSize: 14,
-                  height: 1.45,
+                  height: 1.5,
                 ),
               ),
               const SizedBox(height: 16),
               // Search input
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: 56, padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isDark ? Colors.white12 : const Color(0xFFCBD5E1),
+                    color: _stateFocus.hasFocus ? const Color(0xFF2563EB) : (isDark ? Colors.white12 : const Color(0xFFCBD5E1)),
+                    width: _stateFocus.hasFocus ? 1.5 : 1.0,
                   ),
-                  boxShadow: isDark
-                      ? null
-                      : [
-                          BoxShadow(
-                            color: const Color(0xFF94A3B8).withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                  boxShadow: _stateFocus.hasFocus ? [BoxShadow(color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.25 : 0.12), blurRadius: 12, spreadRadius: 2)] : [],
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.search_rounded, size: 20, color: isDark ? Colors.white54 : const Color(0xFF64748B)),
+                    Icon(Icons.search_rounded, size: 20, color: _stateFocus.hasFocus ? const Color(0xFF2563EB) : (isDark ? Colors.white54 : const Color(0xFF64748B))),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
+                        focusNode: _stateFocus,
                         onChanged: (q) => setState(() => _stateSearchQuery = q),
-                        style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontSize: 14),
+                        style: GoogleFonts.plusJakartaSans(color: isDark ? Colors.white : const Color(0xFF0F172A), fontSize: 14),
                         decoration: InputDecoration(
                           hintText: 'Search state (e.g. Lagos, Kano)...',
-                          hintStyle: TextStyle(
+                          hintStyle: GoogleFonts.plusJakartaSans(
                             color: isDark ? Colors.white.withValues(alpha: 0.35) : const Color(0xFF94A3B8),
                             fontSize: 14,
                           ),
@@ -1113,7 +1085,7 @@ class _SignupWizardScreenState extends State<SignupWizardScreen> {
                     children: [
                       Text(
                         stateName,
-                        style: TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                           color: isSelected

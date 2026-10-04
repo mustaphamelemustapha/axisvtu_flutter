@@ -25,6 +25,7 @@ import 'about_screen.dart';
 import 'referral_screen.dart';
 import 'senior_men_board_screen.dart';
 import 'security_screen.dart';
+import 'lockscreen_settings_screen.dart';
 import 'admin_announcements_screen.dart';
 import 'agent_dashboard_screen.dart';
 import 'admin_agent_screen.dart';
@@ -983,6 +984,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.notifications_none_rounded,
                   trailing: Switch.adaptive(value: _pushNotifications, onChanged: (value) => _togglePushPreference(value), activeColor: Theme.of(context).colorScheme.primary),
                   onTap: () => _togglePushPreference(!_pushNotifications),
+                ),
+                _ProfileTile(
+                  label: 'Lockscreen',
+                  icon: Icons.lock_outline_rounded,
+                  onTap: () => Navigator.push(
+                    context,
+                    FastRoute(page: const LockscreenSettingsScreen()),
+                  ),
                 ),
                 _ProfileTile(
                   label: 'Security', 

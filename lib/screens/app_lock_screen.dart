@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../state/session.dart';
-import '../widgets/auth_backdrop.dart';
+import '../widgets/concentric_circles_bg.dart';
 import '../services/api_client.dart';
 import '../services/biometric_service.dart';
 import '../services/transaction_pin_service.dart';
@@ -85,7 +86,15 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
         reason: 'Authenticate to unlock MELE DATA',
       );
       if (success && mounted) {
-        context.read<SessionController>().unlock();
+        final session = context.read<SessionController>();
+        final ok = await session.loginWithBiometrics();
+        if (mounted) {
+          if (ok) {
+            session.unlock();
+          } else {
+            setState(() => _errorMessage = 'Session expired. Tap "Use Password" to log in again.');
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -133,7 +142,18 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
       // 1. Instant Local Verification
       final cachedPin = await BiometricService.getPin();
       if (cachedPin != null && cachedPin == _pinCode) {
-        if (mounted) session.unlock();
+        final ok = await session.loginWithBiometrics();
+        if (mounted) {
+          if (ok) {
+            session.unlock();
+          } else {
+            setState(() {
+              _errorMessage = 'Session expired. Tap "Use Password" to log in again.';
+              _isVerifyingPin = false;
+              _pinCode = '';
+            });
+          }
+        }
         return;
       }
 
@@ -169,259 +189,204 @@ class _AppLockScreenState extends State<AppLockScreen> with SingleTickerProvider
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF070B12) : const Color(0xFFF8FAFC),
-      body: AuthBackdrop(
-        showBrandText: false,
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
+      body: ConcentricCirclesBg(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        children: [
+                          const SizedBox(height: 60),
+                          
+                          // Logo matching Amigo's rounded square
+                          Center(
+                            child: Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF131B2E) : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: isDark ? [] : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.04),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Hero(
+                                  tag: 'axis-logo',
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    width: 44,
+                                    height: 44,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
 
-            // Premium Animated Scanner/Lock Icon
-            if (_hasBiometrics) ...[
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: 84,
-                      height: 84,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                            blurRadius: 24,
-                            spreadRadius: 4,
+                          // Main Lock Title
+                          Text(
+                            'MELE DATA is locked',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 22,
+                              color: isDark ? Colors.white : SlateColors.shade900,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          
+                          // Subtitle or Error Message
+                          if (_errorMessage != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.error.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                _errorMessage!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: theme.colorScheme.error,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            )
+                          else
+                            Text(
+                              'Enter your PIN to unlock.',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: isDark ? SlateColors.shade400 : SlateColors.shade500,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+
+                          const SizedBox(height: 32),
+
+                          // PIN Indicator Dots with Shake Animation
+                          AnimatedBuilder(
+                            animation: _shakeAnimation,
+                            builder: (context, child) {
+                              return Transform.translate(
+                                offset: Offset(_shakeAnimation.value, 0.0),
+                                child: child,
+                              );
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(4, (index) {
+                                final active = index < _pinCode.length;
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                                  width: 14,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: active
+                                        ? (isDark ? Colors.white : SlateColors.shade900)
+                                        : (isDark ? Colors.white24 : SlateColors.shade200),
+                                  ),
+                                );
+                              }),
+                            ),
                           ),
                         ],
                       ),
-                      child: Center(
-                        child: _checkingBiometrics
-                            ? SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: theme.colorScheme.primary,
+
+                      // Keypad section
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _KeypadButton(number: '1', onTap: () => _handleKeyPress('1')),
+                                _KeypadButton(number: '2', onTap: () => _handleKeyPress('2')),
+                                _KeypadButton(number: '3', onTap: () => _handleKeyPress('3')),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _KeypadButton(number: '4', onTap: () => _handleKeyPress('4')),
+                                _KeypadButton(number: '5', onTap: () => _handleKeyPress('5')),
+                                _KeypadButton(number: '6', onTap: () => _handleKeyPress('6')),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _KeypadButton(number: '7', onTap: () => _handleKeyPress('7')),
+                                _KeypadButton(number: '8', onTap: () => _handleKeyPress('8')),
+                                _KeypadButton(number: '9', onTap: () => _handleKeyPress('9')),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Biometric Action button
+                                _KeypadIconButton(
+                                  icon: Icons.face_retouching_natural_rounded,
+                                  color: const Color(0xFF3B82F6),
+                                  onTap: _hasBiometrics ? _triggerBiometrics : null,
                                 ),
-                              )
-                            : Icon(
-                                Icons.lock_person_rounded,
-                                size: 38,
-                                color: theme.colorScheme.primary,
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_checkingBiometrics)
-                      Text(
-                        'Verifying Biometrics...',
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
-                        ),
-                      )
-                    else
-                      Text(
-                        'Face/Touch ID Enabled',
-                        style: TextStyle(
-                          color: isDark ? Colors.white54 : SlateColors.shade500,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                                _KeypadButton(number: '0', onTap: () => _handleKeyPress('0')),
+                                // Delete / Backspace button
+                                _KeypadIconButton(
+                                  icon: Icons.backspace_outlined,
+                                  onTap: _handleBackspace,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-            ],
 
-            // Main Lock Title
-            Text(
-              'Unlock Mele Data',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 22,
-                letterSpacing: -0.5,
-                color: isDark ? Colors.white : SlateColors.shade900,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            
-            // Subtitle or Error Message
-            if (_errorMessage != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _errorMessage!,
-                  style: TextStyle(
-                    color: theme.colorScheme.error,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              )
-            else
-              Text(
-                'Enter your 4-digit PIN code to continue',
-                style: TextStyle(
-                  color: isDark ? SlateColors.shade400 : SlateColors.shade500,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-
-            // PIN Indicator Dots with Shake Animation
-            AnimatedBuilder(
-              animation: _shakeAnimation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(_shakeAnimation.value, 0.0),
-                  child: child,
-                );
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (index) {
-                  final active = index < _pinCode.length;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: active
-                          ? (isDark ? Colors.white : const Color(0xFF3B82F6))
-                          : Colors.transparent,
-                      border: Border.all(
-                        color: isDark ? Colors.white54 : const Color(0xFF3B82F6).withValues(alpha: 0.5),
-                        width: 2,
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Premium Custom Passcode Numeric Keypad ( Translucent glass keys )
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 44),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _KeypadButton(number: '1', label: '', onTap: () => _handleKeyPress('1')),
-                      _KeypadButton(number: '2', label: 'A B C', onTap: () => _handleKeyPress('2')),
-                      _KeypadButton(number: '3', label: 'D E F', onTap: () => _handleKeyPress('3')),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _KeypadButton(number: '4', label: 'G H I', onTap: () => _handleKeyPress('4')),
-                      _KeypadButton(number: '5', label: 'J K L', onTap: () => _handleKeyPress('5')),
-                      _KeypadButton(number: '6', label: 'M N O', onTap: () => _handleKeyPress('6')),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _KeypadButton(number: '7', label: 'P Q R S', onTap: () => _handleKeyPress('7')),
-                      _KeypadButton(number: '8', label: 'T U V', onTap: () => _handleKeyPress('8')),
-                      _KeypadButton(number: '9', label: 'W X Y Z', onTap: () => _handleKeyPress('9')),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Biometric Action button
-                      _KeypadIconButton(
-                        icon: Icons.fingerprint_rounded,
-                        onTap: _hasBiometrics ? _triggerBiometrics : null,
-                      ),
-                      _KeypadButton(number: '0', label: '', onTap: () => _handleKeyPress('0')),
-                      // Delete / Backspace button
-                      _KeypadIconButton(
-                        icon: Icons.backspace_rounded,
-                        onTap: _handleBackspace,
+                      // Bottom Actions
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: TextButton(
+                          onPressed: () {
+                            context.read<SessionController>().logout();
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: isDark ? Colors.white54 : SlateColors.shade500,
+                          ),
+                          child: Text(
+                            'Sign out instead',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Bottom Actions (Sign Out & Use Password)
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        context.read<SessionController>().logout();
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: isDark ? Colors.white38 : SlateColors.shade400,
-                      ),
-                      child: const Text(
-                        'Sign Out',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        context.read<SessionController>().logout();
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: isDark ? Colors.white38 : SlateColors.shade400,
-                      ),
-                      child: const Text(
-                        'Use Password',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -438,12 +403,10 @@ class _ShakeTween extends Tween<double> {
 class _KeypadButton extends StatelessWidget {
   const _KeypadButton({
     required this.number,
-    required this.label,
     required this.onTap,
   });
 
   final String number;
-  final String label;
   final VoidCallback onTap;
 
   @override
@@ -453,41 +416,30 @@ class _KeypadButton extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
-        width: 76,
-        height: 76,
+        width: 82,
+        height: 82,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : SlateColors.shade100,
-          border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : SlateColors.shade200,
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              number,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : SlateColors.shade900,
-              ),
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
+          boxShadow: isDark ? [] : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            if (label.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white38 : SlateColors.shade500,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
           ],
+        ),
+        child: Center(
+          child: Text(
+            number,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 32,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : SlateColors.shade900,
+            ),
+          ),
         ),
       ),
     );
@@ -498,10 +450,12 @@ class _KeypadButton extends StatelessWidget {
 class _KeypadIconButton extends StatelessWidget {
   const _KeypadIconButton({
     required this.icon,
+    this.color,
     this.onTap,
   });
 
   final IconData icon;
+  final Color? color;
   final VoidCallback? onTap;
 
   @override
@@ -510,23 +464,20 @@ class _KeypadIconButton extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     if (onTap == null) {
-      return const SizedBox(width: 76, height: 76);
+      return const SizedBox(width: 82, height: 82);
     }
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 76,
-        height: 76,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isDark ? Colors.white.withValues(alpha: 0.04) : SlateColors.shade50,
-        ),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 82,
+        height: 82,
         child: Center(
           child: Icon(
             icon,
-            size: 24,
-            color: isDark ? Colors.white54 : SlateColors.shade600,
+            size: 32,
+            color: color ?? (isDark ? Colors.white54 : SlateColors.shade600),
           ),
         ),
       ),

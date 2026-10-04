@@ -327,11 +327,11 @@ class _AuthPasswordScreenState extends State<AuthPasswordScreen> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: _passwordFocusNode.hasFocus
-                                    ? const [
+                                    ? [
                                         BoxShadow(
-                                          color: Color(0x1F2563EB),
-                                          blurRadius: 8,
-                                          spreadRadius: 2,
+                                          color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.25 : 0.12),
+                                          blurRadius: 12,
+                                          spreadRadius: 3,
                                         ),
                                       ]
                                     : [],

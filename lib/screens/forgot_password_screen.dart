@@ -44,6 +44,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _otpCtrl.selection = TextSelection.collapsed(offset: 6);
       }
       setState(() {});
+      if (_otpCtrl.text.length == 6 && !_loading && _step == 0) {
+        _handleVerifyOTP();
+      }
     });
     _passCtrl.addListener(() => setState(() {}));
     _confirmPassCtrl.addListener(() => setState(() {}));
@@ -103,14 +106,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _error = null;
     });
 
-    // We don't verify OTP immediately; we verify it when they submit the new password.
-    // So just move to step 1.
-    if (mounted) {
-      setState(() {
-        _loading = false;
-        _step = 1;
-        _error = null;
-      });
+    try {
+      await PasswordService().verifyResetToken(
+        identifier: widget.identifier,
+        otp: otp,
+      );
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _step = 1;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Invalid or expired code. Please try again.';
+        });
+      }
     }
   }
 
@@ -134,7 +148,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       await PasswordService().resetPassword(
-        phoneNumber: widget.identifier,
+        identifier: widget.identifier,
         otp: _otpCtrl.text,
         newPassword: p1,
       );
@@ -224,7 +238,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               final isActive = index == text.length || (index == 5 && text.length == 6);
               final char = hasChar ? text[index] : '';
 
-              return Container(
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
                 width: 48,
                 height: 56,
                 alignment: Alignment.center,
@@ -339,145 +355,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 32),
 
                     // Step Content
-                    if (_step == 0) ...[
-                      // Verify it's you
-                      Text(
-                        'Verify it\'s you',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                          color: theme.colorScheme.onSurface,
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      switchInCurve: Curves.easeOutQuint,
+                      switchOutCurve: Curves.easeInQuint,
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.05, 0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Enter the 6-digit code we sent to ${widget.identifier}.',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      _buildOtpBoxes(isDark),
-
-                      const SizedBox(height: 32),
-                      PrimaryButton(
-                        label: 'Verify',
-                        onPressed: _otpCtrl.text.length == 6 ? _handleVerifyOTP : null,
-                        loading: _loading,
-                        icon: Icons.check_rounded,
-                        isPremium: true,
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          GestureDetector(
-                            onTap: _handleResend,
-                            child: Text(
-                              _countdown > 0 ? 'Resend code in $_formattedTime' : 'Resend code',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: _countdown > 0 ? const Color(0xFF64748B) : const Color(0xFF2563EB),
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: Text(
-                              'Back to login',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF64748B),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ] else ...[
-                      // New Password
-                      Text(
-                        'New password',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Choose a new password for your account.',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Pass 1
-                      _buildPasswordField(
-                        controller: _passCtrl,
-                        hint: 'New password',
-                        obscure: _obscure1,
-                        onToggle: () => setState(() => _obscure1 = !_obscure1),
-                        isDark: isDark,
-                      ),
-                      const SizedBox(height: 16),
-                      // Pass 2
-                      _buildPasswordField(
-                        controller: _confirmPassCtrl,
-                        hint: 'Confirm new password',
-                        obscure: _obscure2,
-                        onToggle: () => setState(() => _obscure2 = !_obscure2),
-                        isDark: isDark,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Use at least 6 characters.',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-
-                      if (_error != null) ...[
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Icon(Icons.error_outline_rounded, size: 16, color: theme.colorScheme.error),
-                            const SizedBox(width: 8),
-                            Text(
-                              _error!,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      const SizedBox(height: 32),
-                      PrimaryButton(
-                        label: 'Update password',
-                        onPressed: _passCtrl.text.isNotEmpty && _confirmPassCtrl.text.isNotEmpty
-                            ? _handleUpdatePassword
-                            : null,
-                        loading: _loading,
-                        icon: Icons.check_rounded,
-                        isPremium: true,
-                      ),
-                    ],
+                      child: _step == 0 ? _buildOtpStep(isDark) : _buildPasswordStep(isDark),
+                    ),
                   ],
                 ),
               ),
@@ -485,6 +378,181 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildOtpStep(bool isDark) {
+    return Column(
+      key: const ValueKey(0),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Verify it's you
+        Text(
+          'Verify it\'s you',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Enter the 6-digit code we sent to ${widget.identifier}.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(height: 24),
+        
+        _buildOtpBoxes(isDark),
+
+        if (_error != null) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(Icons.error_outline_rounded, size: 16, color: theme.colorScheme.error),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _error!,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+
+        const SizedBox(height: 32),
+        PrimaryButton(
+          label: 'Verify',
+          onPressed: _otpCtrl.text.length == 6 ? _handleVerifyOTP : null,
+          loading: _loading,
+          icon: Icons.check_rounded,
+          isPremium: true,
+        ),
+        
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: _handleResend,
+              child: Text(
+                _countdown > 0 ? 'Resend code in $_formattedTime' : 'Resend code',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _countdown > 0 ? const Color(0xFF64748B) : const Color(0xFF2563EB),
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Text(
+                'Back to login',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordStep(bool isDark) {
+    return Column(
+      key: const ValueKey(1),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // New Password
+        Text(
+          'New password',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Choose a new password for your account.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(height: 24),
+        // Pass 1
+        _buildPasswordField(
+          controller: _passCtrl,
+          hint: 'New password',
+          obscure: _obscure1,
+          onToggle: () => setState(() => _obscure1 = !_obscure1),
+          isDark: isDark,
+        ),
+        const SizedBox(height: 16),
+        // Pass 2
+        _buildPasswordField(
+          controller: _confirmPassCtrl,
+          hint: 'Confirm new password',
+          obscure: _obscure2,
+          onToggle: () => setState(() => _obscure2 = !_obscure2),
+          isDark: isDark,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Use at least 6 characters.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+
+        if (_error != null) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(Icons.error_outline_rounded, size: 16, color: theme.colorScheme.error),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _error!,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+
+        const SizedBox(height: 32),
+        PrimaryButton(
+          label: 'Update password',
+          onPressed: _passCtrl.text.isNotEmpty && _confirmPassCtrl.text.isNotEmpty
+              ? _handleUpdatePassword
+              : null,
+          loading: _loading,
+          icon: Icons.check_rounded,
+          isPremium: true,
+        ),
+      ],
     );
   }
 
