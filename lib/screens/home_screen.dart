@@ -1515,34 +1515,231 @@ class _HomeScreenState extends State<HomeScreen> {
                             });
 
                             final activeAccount = accounts.first;
-                            final bankName = (activeAccount['bank_name'] ?? 'Bank').toString().trim();
-                            final accountNumber = activeAccount['account_number'] ?? '';
+                            final rawBankName = (activeAccount['bank_name'] ?? 'Bank').toString().trim();
+                            final bankNameLower = rawBankName.toLowerCase();
+                            final displayBankName = (bankNameLower.contains('9psb') || bankNameLower.contains('9 payment'))
+                                ? '9 Payment Service Bank (9PSB)'
+                                : (bankNameLower.contains('safehaven') || bankNameLower.contains('safe haven'))
+                                    ? 'Safehaven Microfinance Bank'
+                                    : (bankNameLower.contains('moniepoint') || bankNameLower.contains('monnify'))
+                                        ? 'Moniepoint Microfinance Bank'
+                                        : (bankNameLower.contains('palmpay')
+                                            ? 'PalmPay'
+                                            : (bankNameLower.contains('titan') || bankNameLower.contains('paystack'))
+                                                ? 'Titan Trust Bank'
+                                                : (bankNameLower.contains('paga') || bankNameLower.contains('aspfiy') || bankNameLower.contains('aspify'))
+                                                    ? 'Paga'
+                                                    : (bankNameLower.contains('wema')
+                                                        ? 'Wema Bank'
+                                                        : (bankNameLower.contains('sterling')
+                                                            ? 'Sterling Bank'
+                                                            : rawBankName)));
+                            final accountNumber = (activeAccount['account_number'] ?? '').toString().trim();
+                            final formattedNumber = _formatAccountNumber(accountNumber);
+                            final accountHolderName = (activeAccount['account_name'] ?? '').toString().trim();
 
                             return GestureDetector(
                               onTap: () => FundWalletSheet.show(context),
                               child: Container(
-                                height: 44,
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.70) : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                child: Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      bankName == 'Moniepoint' ? 'Moniepoint MFB' : bankName,
-                                      style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13),
+                                    // Row 1: Header Badge + View All
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.account_balance_rounded,
+                                                size: 13,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'AUTO-FUND ACCOUNT',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w800,
+                                                  letterSpacing: 0.5,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              accounts.length > 1 ? 'View all (${accounts.length})' : 'Instant credit',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark ? const Color(0xFF38BDF8) : Theme.of(context).colorScheme.primary,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 2),
+                                            Icon(
+                                              Icons.chevron_right_rounded,
+                                              size: 15,
+                                              color: isDark ? const Color(0xFF38BDF8) : Theme.of(context).colorScheme.primary,
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
-                                    const Spacer(),
-                                    Text(
-                                      accountNumber,
-                                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.6),
+                                    const SizedBox(height: 8),
+
+                                    // Row 2: Full Bank Name
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'BANK: ',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w900,
+                                            color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            displayBankName,
+                                            style: TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w800,
+                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () => _copyAccountNumber(accountNumber),
-                                      child: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFF64748B)),
+                                    const SizedBox(height: 8),
+
+                                    // Row 3: Account Number & Copy Button
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'ACCOUNT NUMBER:',
+                                                style: TextStyle(
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 1),
+                                              Text(
+                                                formattedNumber.isNotEmpty ? formattedNumber : accountNumber,
+                                                style: TextStyle(
+                                                  fontSize: 19,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 1.5,
+                                                  fontFamily: 'monospace',
+                                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            onTap: () => _copyAccountNumber(accountNumber),
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Ink(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                              decoration: BoxDecoration(
+                                                color: isDark ? const Color(0xFF334155) : const Color(0xFFEFF6FF),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: isDark ? const Color(0xFF475569) : const Color(0xFFBFDBFE),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.copy_rounded,
+                                                    size: 13,
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                  ),
+                                                  const SizedBox(width: 5),
+                                                  Text(
+                                                    'Copy',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: Theme.of(context).colorScheme.primary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
+
+                                    // Row 4: Account Name if present
+                                    if (accountHolderName.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'NAME: ',
+                                            style: TextStyle(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w800,
+                                              color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Text(
+                                              accountHolderName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark ? Colors.white70 : const Color(0xFF334155),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -3427,7 +3624,25 @@ class _TopUpSheetState extends State<_TopUpSheet> {
                 );
               }
               final item = accounts.first;
-              final bank = item['bank_name'] ?? 'Bank';
+              final rawBank = (item['bank_name'] ?? 'Bank').toString().trim();
+              final rawLower = rawBank.toLowerCase();
+              final bank = (rawLower.contains('9psb') || rawLower.contains('9 payment'))
+                  ? '9 Payment Service Bank (9PSB)'
+                  : (rawLower.contains('safehaven') || rawLower.contains('safe haven'))
+                      ? 'Safehaven Microfinance Bank'
+                      : (rawLower.contains('moniepoint') || rawLower.contains('monnify'))
+                          ? 'Moniepoint Microfinance Bank'
+                          : rawLower.contains('palmpay')
+                              ? 'PalmPay'
+                              : (rawLower.contains('titan') || rawLower.contains('paystack'))
+                                  ? 'Titan Trust Bank'
+                                  : (rawLower.contains('paga') || rawLower.contains('aspfiy') || rawLower.contains('aspify'))
+                                      ? 'Paga'
+                                      : (rawLower.contains('wema')
+                                          ? 'Wema Bank'
+                                          : (rawLower.contains('sterling')
+                                              ? 'Sterling Bank'
+                                              : rawBank));
               final number = item['account_number'] ?? '';
               final accName = item['account_name'] ?? widget.name;
 
@@ -3444,40 +3659,82 @@ class _TopUpSheetState extends State<_TopUpSheet> {
                     ),
                     child: Column(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.verified_user_rounded, size: 14, color: Colors.blue),
-                            const SizedBox(width: 6),
-                            Text(
-                              bank.toString().toUpperCase(),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.2,
-                                color: Theme.of(context).colorScheme.primary,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'BANK NAME',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.0,
+                            color: muted,
+                            fontSize: 10,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          bank,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 16,
+                          ),
                         ),
                         const SizedBox(height: 16),
+                        Text(
+                          'ACCOUNT NUMBER',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.0,
+                            color: muted,
+                            fontSize: 10,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         GestureDetector(
                           onTap: () => widget.onCopy(number.toString()),
                           child: Text(
                             widget.formatNumber(number.toString()),
                             style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900,
                               letterSpacing: 2,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 14),
+                        Text(
+                          'ACCOUNT NAME',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.0,
+                            color: muted,
+                            fontSize: 10,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
                         Text(
                           accName.toString(),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                         ),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "Select '$bank' in your banking app",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                       ],
                     ),
                   ),

@@ -817,20 +817,27 @@ class _WalletScreenState extends State<WalletScreen> {
                 final activeIndex = _activeAccountIndex.clamp(0, accounts.length - 1);
                 final account = accounts[activeIndex];
                 final isPlaceholder = account['isPlaceholder'] == true;
-                final rawBank = (account['bank_name'] ?? 'Paystack-Titan')
+                final rawBank = (account['bank_name'] ?? 'Bank')
                     .toString()
                     .trim();
-                final bankName = rawBank.toLowerCase().contains('titan') || rawBank.toLowerCase().contains('paystack')
-                    ? 'Paystack Titan'
-                    : rawBank.toLowerCase().contains('moniepoint')
-                        ? 'Moniepoint MFB'
-                        : rawBank.toLowerCase().contains('wema')
-                            ? 'Wema Bank'
-                            : rawBank.toLowerCase().contains('sterling')
-                                ? 'Sterling Bank'
-                                : rawBank.toLowerCase().contains('palmpay')
-                                    ? 'PalmPay'
-                                    : rawBank;
+                final rawLower = rawBank.toLowerCase();
+                final bankName = (rawLower.contains('9psb') || rawLower.contains('9 payment'))
+                    ? '9 Payment Service Bank (9PSB)'
+                    : (rawLower.contains('safehaven') || rawLower.contains('safe haven'))
+                        ? 'Safehaven Microfinance Bank'
+                        : (rawLower.contains('moniepoint') || rawLower.contains('monnify'))
+                            ? 'Moniepoint Microfinance Bank'
+                            : rawLower.contains('palmpay')
+                                ? 'PalmPay'
+                                : (rawLower.contains('titan') || rawLower.contains('paystack'))
+                                    ? 'Titan Trust Bank'
+                                    : (rawLower.contains('paga') || rawLower.contains('aspfiy') || rawLower.contains('aspify'))
+                                        ? 'Paga'
+                                        : rawLower.contains('wema')
+                                            ? 'Wema Bank'
+                                            : rawLower.contains('sterling')
+                                                ? 'Sterling Bank'
+                                                : rawBank;
                 final accountNumber = (account['account_number'] ?? '')
                     .toString()
                     .trim();
@@ -1481,13 +1488,15 @@ class _BankCard extends StatelessWidget {
     final compact = MediaQuery.sizeOf(context).height < 760;
     final displayNumber = _formatAccountNumber(accountNumber);
 
-    final isMoniepoint = bankName.toLowerCase().contains('moniepoint');
-    final isWema = bankName.toLowerCase().contains('wema');
-    final isSterling = bankName.toLowerCase().contains('sterling');
-    final isPaystack = bankName.toLowerCase().contains('paystack') || bankName.toLowerCase().contains('titan');
-    final isPalmpay = bankName.toLowerCase().contains('palmpay');
-    final is9PSB = bankName.toLowerCase().contains('9psb');
-    final isBranded = isMoniepoint || isWema || isSterling || isPaystack || isPalmpay || is9PSB;
+    final lowerBank = bankName.toLowerCase();
+    final isMoniepoint = lowerBank.contains('moniepoint') || lowerBank.contains('monnify');
+    final isWema = lowerBank.contains('wema');
+    final isSterling = lowerBank.contains('sterling');
+    final isPaystack = lowerBank.contains('paystack') || lowerBank.contains('titan');
+    final isPalmpay = lowerBank.contains('palmpay');
+    final is9PSB = lowerBank.contains('9psb') || lowerBank.contains('9 payment');
+    final isSafehaven = lowerBank.contains('safehaven') || lowerBank.contains('safe haven');
+    final isBranded = isMoniepoint || isWema || isSterling || isPaystack || isPalmpay || is9PSB || isSafehaven;
     final useWhiteText = isBranded || isDark;
 
     final cardGradient = isMoniepoint
@@ -1520,6 +1529,18 @@ class _BankCard extends StatelessWidget {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           )
+                        : isSafehaven
+                            ? const LinearGradient(
+                                colors: [Color(0xFF04201B), Color(0xFF0A3D34), Color(0xFF115C4E)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                        : is9PSB
+                            ? const LinearGradient(
+                                colors: [Color(0xFF1E1F07), Color(0xFF35380E), Color(0xFF4E5416)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
                         : isDark
                             ? const LinearGradient(
                                 colors: [Color(0xFF101A2A), Color(0xFF162338)],
@@ -1542,7 +1563,11 @@ class _BankCard extends StatelessWidget {
                     ? Colors.teal.withValues(alpha: 0.3)
                     : isPalmpay
                         ? Colors.deepPurple.withValues(alpha: 0.3)
-                        : Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.10 : 0.08);
+                        : isSafehaven
+                            ? Colors.teal.withValues(alpha: 0.3)
+                            : is9PSB
+                                ? Colors.amber.withValues(alpha: 0.3)
+                                : Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.10 : 0.08);
 
     final shadowColor = isMoniepoint
         ? Colors.blue
@@ -1554,7 +1579,11 @@ class _BankCard extends StatelessWidget {
                     ? Colors.teal
                     : isPalmpay
                         ? Colors.deepPurple
-                        : Theme.of(context).colorScheme.primary;
+                        : isSafehaven
+                            ? Colors.teal
+                            : is9PSB
+                                ? Colors.amber
+                                : Theme.of(context).colorScheme.primary;
 
     final accentColor = isMoniepoint
         ? Colors.blue.shade300
@@ -1566,7 +1595,11 @@ class _BankCard extends StatelessWidget {
                     ? Colors.teal.shade300
                     : isPalmpay
                         ? Colors.purple.shade300
-                        : Theme.of(context).colorScheme.primary;
+                        : isSafehaven
+                            ? Colors.teal.shade300
+                            : is9PSB
+                                ? Colors.amber.shade300
+                                : Theme.of(context).colorScheme.primary;
 
     return Container(
       padding: EdgeInsets.all(compact ? 12 : 16),
@@ -1626,17 +1659,16 @@ class _BankCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        bankName.toUpperCase(),
-                        style: TextStyle(
-                          color: useWhiteText ? Colors.white : Colors.black,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.2,
-                          fontSize: 25,
-                        ),
+                    Text(
+                      bankName,
+                      maxLines: 2,
+                      overflow: TextOverflow.visible,
+                      style: TextStyle(
+                        color: useWhiteText ? Colors.white : Colors.black,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                        fontSize: compact ? 16 : 18,
+                        height: 1.15,
                       ),
                     ),
                   ],
