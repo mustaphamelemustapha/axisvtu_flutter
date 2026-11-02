@@ -1,9 +1,13 @@
+import '../config.dart';
+
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:ui';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoActivityIndicator, CupertinoSliverRefreshControl, RefreshIndicatorMode;
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
@@ -40,7 +44,7 @@ import 'wallet_screen.dart';
 import '../widgets/concentric_circles_bg.dart';
 import '../services/agent_service.dart';
 import '../models/agent_models.dart';
-import '../widgets/mele_data_loader.dart';
+import '../widgets/dynamic_brand_loader.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -64,6 +68,20 @@ class _HomeScreenState extends State<HomeScreen> {
   List<dynamic>? _cachedTransactionsData;
   List<Map<String, dynamic>>? _announcements;
 
+  List<Map<String, dynamic>> _getCachedBankAccountsList() {
+    final raw = (_cachedAccountsData?['accounts'] as List?) ?? [];
+    final isMeleData = BrandConfig.current.brand == AppBrand.meleData;
+    return List<Map<String, dynamic>>.from(
+      raw.map((i) => Map<String, dynamic>.from(i as Map)),
+    ).where((acc) {
+      if (isMeleData) {
+        final name = (acc['bank_name'] ?? '').toString().toLowerCase();
+        return !name.contains('paga') && !name.contains('aspfiy');
+      }
+      return true;
+    }).toList();
+  }
+
   static bool _hasShownStartupPopup = false;
 
   Set<String> _dismissedAnnouncementIds = {};
@@ -86,16 +104,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _startRefreshTimer() {
     _refreshTimer?.cancel();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (!mounted) return;
       final session = context.read<SessionController>();
       final token = (session.token ?? '').trim();
       final dashboardKey =
           DashboardSnapshotCache.identityFromUser(session.user) ?? token;
       if (token.isNotEmpty && dashboardKey.isNotEmpty) {
-        _reloadDashboard(token, dashboardKey);
+        _checkWalletUpdateSilently(token, dashboardKey);
       }
     });
+  }
+
+  void _checkWalletUpdateSilently(String token, String dashboardKey) {
+    if (!mounted || dashboardKey != _activeDashboardKey) return;
+    final service = WalletService(token: token);
+    service.getWallet(forceRefresh: true).then((data) {
+      if (!mounted || dashboardKey != _activeDashboardKey) return;
+      final newMap = _asMap(data);
+      final newBalance = _extractBalance(newMap);
+      final oldBalance = _extractBalance(_cachedWalletData ?? const {});
+      
+      // If balance changed (e.g. money funded), trigger full reload
+      if ((newBalance - oldBalance).abs() > 0.001) {
+        _reloadDashboard(token, dashboardKey, forceRefresh: true);
+      } else {
+        // Keep cached wallet updated without disturbing transaction futures or UI
+        _cachedWalletData = newMap;
+        unawaited(DashboardSnapshotCache.save(dashboardKey, wallet: data));
+      }
+    }).catchError((_) {});
   }
 
   @override
@@ -143,11 +181,42 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setStringList('dismissed_announcements', _dismissedAnnouncementIds.toList());
   }
 
+  bool _isAnnouncementPopup(Map<String, dynamic> a) {
+    final raw = a['is_popup'];
+    final isExplicitPopup = raw == true || raw == 1 || raw == 'true' || raw == '1';
+    final hasImage = (a['image_url'] ?? '').toString().trim().isNotEmpty;
+    return isExplicitPopup || (hasImage && raw != false && raw != 0 && raw != 'false' && raw != '0');
+  }
+
+  bool _isAnnouncementOutdatedUpdateNotice(Map<String, dynamic> a) {
+    final title = (a['title'] ?? '').toString().toLowerCase();
+    final message = (a['message'] ?? a['text'] ?? '').toString().toLowerCase();
+    final link = (a['button_link'] ?? '').toString().toLowerCase();
+    final isUpdateNotice = title.contains('update') ||
+        message.contains('update your app') ||
+        link.contains('play.google.com') ||
+        link.contains('apps.apple.com') ||
+        link == 'store';
+
+    if (isUpdateNotice) {
+      final session = context.read<SessionController>();
+      // If user is already on latest version and no update is required or optional, suppress update announcement!
+      if (!session.optionalUpdateAvailable && !session.updateRequired) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   void _checkStartupPopup() {
     if (_hasShownStartupPopup || _announcements == null || _announcements!.isEmpty) return;
+    final session = context.read<SessionController>();
+    if (session.isLocked) return;
     try {
       final popup = _announcements!.firstWhere(
-        (a) => a['is_popup'] == true && !_dismissedAnnouncementIds.contains(a['id']?.toString()),
+        (a) => _isAnnouncementPopup(a) &&
+               !_dismissedAnnouncementIds.contains(a['id']?.toString()) &&
+               !_isAnnouncementOutdatedUpdateNotice(a),
         orElse: () => {},
       );
       if (popup.isNotEmpty) {
@@ -155,8 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             StartupPopupDialog.show(context, popup).then((_) {
-              // Optionally mark as dismissed if we want 'once ever' behavior
-              // But user asked for option 1 (once per session), so we don't save to prefs.
+              // Dialog dismissed
             });
           }
         });
@@ -209,33 +277,39 @@ class _HomeScreenState extends State<HomeScreen> {
         _cachedTransactionsData = null;
       }
       _activeDashboardKey = dashboardKey;
-      _reloadDashboard(token, dashboardKey);
+      _reloadDashboard(token, dashboardKey, forceRefresh: tickChanged);
       
       // Load from high-speed in-memory static cache synchronously on the very first frame to prevent UI flickering!
-      final memCached = DashboardSnapshotCache.loadSync(dashboardKey);
-      if (memCached != null) {
-        _cachedWalletData = _asMap(memCached['wallet']);
-        _cachedAccountsData = _asMap(memCached['accounts']);
-        final memTransactions = memCached['transactions'];
-        if (memTransactions is List) {
-          _cachedTransactionsData = memTransactions
-              .whereType<Map>()
-              .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
-              .toList();
+      if (!tickChanged && _cachedTransactionsData == null) {
+        final memCached = DashboardSnapshotCache.loadSync(dashboardKey);
+        if (memCached != null) {
+          _cachedWalletData = _asMap(memCached['wallet']);
+          _cachedAccountsData = _asMap(memCached['accounts']);
+          final memTransactions = memCached['transactions'];
+          if (memTransactions is List) {
+            _cachedTransactionsData = memTransactions
+                .whereType<Map>()
+                .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
+                .toList();
+          }
+          final memAnnouncements = memCached['announcements'];
+          if (memAnnouncements is List) {
+            _announcements = memAnnouncements
+                .whereType<Map>()
+                .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
+                .toList();
+            _checkStartupPopup();
+          }
+        } else {
+          _loadCachedDashboard(dashboardKey);
         }
-        final memAnnouncements = memCached['announcements'];
-        if (memAnnouncements is List) {
-          _announcements = memAnnouncements
-              .whereType<Map>()
-              .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
-              .toList();
-          _checkStartupPopup();
-        }
-      } else {
-        _loadCachedDashboard(dashboardKey);
       }
       
       _activeToken = token;
+    }
+
+    if (!session.isLocked && _announcements != null && _announcements!.isNotEmpty) {
+      _checkStartupPopup();
     }
 
     final user = session.user ?? {};
@@ -326,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Agent Benefits in MELE DATA:',
+                    'Agent Benefits in ${AppConfig.appName}:',
                     style: TextStyle(
                       color: textPrimary,
                       fontSize: 15,
@@ -344,14 +418,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   _benefitItem(
                     icon: Icons.group_add_rounded,
                     title: 'Register an Agent',
-                    description: 'Onboard POS agents who sell mobile data. Once an agent becomes active (sells 50GB+), you earn ₦2,000 per agent. There’s no limit, earn as much as you want.',
+                    description: 'Onboard POS agents who sell mobile data and earn commissions on their transactions automatically. Build your agent network with ease.',
                     isDark: isDark,
                   ),
                   const SizedBox(height: 12),
                   _benefitItem(
                     icon: Icons.share_rounded,
                     title: 'Referrals',
-                    description: 'Invite someone to join MELE DATA using your referral code. Every time they buy data, you earn a commission automatically.',
+                    description: 'Invite someone to join ${AppConfig.appName} using your referral code. Every time they buy data, you earn a commission automatically.',
                     isDark: isDark,
                   ),
                   const SizedBox(height: 12),
@@ -426,8 +500,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _launchSupport() async {
-    final phone = '+2348141114647';
-    final url = Uri.parse('https://wa.me/${phone.replaceAll('+', '')}');
+    final phone = AppConfig.supportWhatsApp;
+    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final url = Uri.parse('https://wa.me/$cleanPhone');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -481,7 +556,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       barrierDismissible: true,
       builder: (context) {
-        return _MELEDATAAccountActivationDialog(
+        return _KULLOMADATAAccountActivationDialog(
           onActivated: () {
             if (!mounted) return;
             final token = (context.read<SessionController>().token ?? '').trim();
@@ -494,13 +569,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _reloadDashboard(String token, String dashboardKey) {
+  void _reloadDashboard(String token, String dashboardKey, {bool forceRefresh = false}) {
     final service = WalletService(token: token);
     final txService = TransactionsService(token: token);
     _walletFuture = service.getWallet(forceRefresh: true);
-    _accountsFuture = service.getBankAccounts();
-    _transactionsFuture = txService.getTransactions();
-    _notificationsFuture = _loadNotifications(token);
+    _accountsFuture = service.getBankAccounts(forceRefresh: forceRefresh);
+    _transactionsFuture = txService.getTransactions(forceRefresh: true);
+    _notificationsFuture = _loadNotifications(token, forceRefresh: forceRefresh);
     _walletFuture!.then((data) {
       if (!mounted || dashboardKey != _activeDashboardKey) return;
       setState(() {
@@ -527,7 +602,9 @@ class _HomeScreenState extends State<HomeScreen> {
             (item) => item.map((k, v) => MapEntry(k.toString(), v)),
           )
           .toList();
-      _cachedTransactionsData = normalized;
+      setState(() {
+        _cachedTransactionsData = normalized;
+      });
       unawaited(
         DashboardSnapshotCache.save(
           dashboardKey,
@@ -594,7 +671,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ) ??
         token;
     setState(() {
-      _reloadDashboard(token, dashboardKey);
+      _reloadDashboard(token, dashboardKey, forceRefresh: true);
     });
     try {
       await Future.wait([
@@ -602,6 +679,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _accountsFuture!,
         _transactionsFuture ?? Future.value(<dynamic>[]),
         _notificationsFuture ?? Future.value(<Map<String, dynamic>>[]),
+        Future.delayed(const Duration(milliseconds: 650)),
       ]);
     } catch (e) {
       if (mounted) {
@@ -610,9 +688,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _loadNotifications(String token) async {
+  Future<List<Map<String, dynamic>>> _loadNotifications(String token, {bool forceRefresh = false}) async {
     try {
-      final rows = await NotificationsService(token: token).getBroadcasts();
+      final rows = await NotificationsService(token: token).getBroadcasts(forceRefresh: forceRefresh);
       return rows
           .whereType<Map>()
           .map((item) => item.map((k, v) => MapEntry(k.toString(), v)))
@@ -623,26 +701,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _copyAccountNumber(String value) async {
-    if (value.trim().isEmpty) return;
-    await Clipboard.setData(ClipboardData(text: value));
+    final cleanDigits = value.replaceAll(RegExp(r'\s+'), '').trim();
+    if (cleanDigits.isEmpty) return;
+    HapticFeedback.selectionClick();
+    await Clipboard.setData(ClipboardData(text: cleanDigits));
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Account number copied')));
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Account number copied! Transfer here to fund your wallet instantly.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   String _formatAccountNumber(String value) {
-    final digits = value.replaceAll(RegExp(r'\s+'), '');
-    if (digits.isEmpty) return '';
-    if (digits.length == 10) {
-      return '${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}';
-    }
-    final buffer = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && i % 4 == 0) buffer.write(' ');
-      buffer.write(digits[i]);
-    }
-    return buffer.toString();
+    return value.replaceAll(RegExp(r'\s+'), '').trim();
   }
 
   String _formatNaira(dynamic value) {
@@ -668,7 +742,71 @@ class _HomeScreenState extends State<HomeScreen> {
     return (tx['tx_type'] ?? 'transaction').toString().trim().toLowerCase();
   }
 
-  bool _txIsCredit(Map<String, dynamic> tx) => _txTypeOf(tx) == 'wallet_fund';
+  bool _txIsCredit(Map<String, dynamic> tx) {
+    final type = _txTypeOf(tx);
+    final failure = (tx['failure_reason'] ?? '').toString().trim().toLowerCase();
+    final ref = (tx['reference'] ?? '').toString().trim().toUpperCase();
+
+    String ledger = '';
+    final meta = tx['meta'];
+    if (meta is Map) {
+      ledger = (meta['ledger_description'] ?? '').toString().trim().toLowerCase();
+    }
+
+    // Explicit debits must never be counted as credit
+    if (failure.contains('debit') || ledger.contains('debit')) {
+      return false;
+    }
+
+    const creditTypes = {
+      'wallet_fund',
+      'wallet_funding',
+      'fund',
+      'funding',
+      'topup',
+      'top_up',
+      'admin_credit',
+      'agent_reward',
+      'deposit',
+      'credit',
+      'refund',
+      'cashback',
+      'bonus',
+      'referral_bonus',
+      'transfer_in',
+      'receive',
+    };
+    if (creditTypes.contains(type)) {
+      return true;
+    }
+
+    if (failure.contains('credit') ||
+        failure.contains('fund') ||
+        failure.contains('deposit') ||
+        failure.contains('reward') ||
+        failure.contains('refund') ||
+        failure.contains('bonus') ||
+        ledger.contains('credit') ||
+        ledger.contains('fund') ||
+        ledger.contains('deposit') ||
+        ledger.contains('reward') ||
+        ledger.contains('refund') ||
+        ledger.contains('bonus')) {
+      return true;
+    }
+
+    if (ref.startsWith('FUND_') ||
+        ref.startsWith('DEP_') ||
+        ref.startsWith('TOP_') ||
+        ref.startsWith('CREDIT_') ||
+        ref.startsWith('MONNIFY_') ||
+        ref.startsWith('PAYSTACK_') ||
+        ref.startsWith('FLW_')) {
+      return true;
+    }
+
+    return false;
+  }
 
   Color _txStatusColor(BuildContext context, String status) {
     final s = status.toLowerCase();
@@ -687,9 +825,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _txTitleFor(Map<String, dynamic> tx) {
+    if (_txIsCredit(tx)) {
+      final type = _txTypeOf(tx);
+      if (type == 'agent_reward') return 'Agent Reward';
+      if (type == 'admin_credit') return 'Admin Credit';
+      final failure = (tx['failure_reason'] ?? '').toString().trim().toLowerCase();
+      if (failure.contains('admin credit')) return 'Admin Credit';
+      if (failure.contains('reward')) return 'Agent Reward';
+      if (failure.contains('refund')) return 'Refund Credit';
+      if (failure.contains('bonus')) return 'Bonus Credit';
+      return 'Credit Added';
+    }
     return switch (_txTypeOf(tx)) {
       'data' => 'Data Bundle',
-      'wallet_fund' => 'Credit Added',
       'airtime' => 'Mobile Airtime',
       'cable' => 'TV Subscription',
       'electricity' => 'Power Token',
@@ -886,170 +1034,328 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAnnouncementBanner(Map<String, dynamic> announcement) {
-    final id = announcement['id']?.toString() ?? announcement['message']?.toString() ?? '';
+  Future<void> _openAnnouncementLink(String rawLink) async {
+    String link = rawLink.trim();
+    if (link.isEmpty) return;
+
+    // Smart store detection: automatically routes to Play Store on Android and App Store on iOS
+    final isStoreLink = link.contains('play.google.com') ||
+        link.contains('apps.apple.com') ||
+        link.toLowerCase() == 'store';
+
+    if (isStoreLink) {
+      final session = context.read<SessionController>();
+      if (Platform.isIOS) {
+        link = session.appStoreUrl.isNotEmpty
+            ? session.appStoreUrl
+            : (AppConfig.appStoreLink.isNotEmpty
+                ? AppConfig.appStoreLink
+                : 'https://apps.apple.com/ng/app/mele-data/id6779367547');
+      } else {
+        link = session.playStoreUrl.isNotEmpty
+            ? session.playStoreUrl
+            : (AppConfig.playStoreLink.isNotEmpty
+                ? AppConfig.playStoreLink
+                : 'https://play.google.com/store/apps/details?id=com.mmtech.axisvtu');
+      }
+    }
+
+    if (!link.startsWith('http://') &&
+        !link.startsWith('https://') &&
+        !link.startsWith('tel:') &&
+        !link.startsWith('mailto:')) {
+      link = 'https://$link';
+    }
+    final uri = Uri.tryParse(link);
+    if (uri != null) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _showAnnouncementDialog(Map<String, dynamic> announcement) {
     final title = announcement['title']?.toString() ?? 'Announcement';
     final message = (announcement['message'] ?? announcement['text'] ?? '').toString();
+    final imageUrl = (announcement['image_url'] ?? '').toString().trim();
+    final buttonLabel = announcement['button_label']?.toString() ?? '';
+    final buttonLink = announcement['button_link']?.toString() ?? '';
+    final hasButton = buttonLabel.isNotEmpty && buttonLink.isNotEmpty;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          title: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.campaign_rounded, color: Color(0xFF2563EB), size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title.isNotEmpty ? title : 'Announcement',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (imageUrl.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      imageUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.5,
+                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            if (hasButton)
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await _openAnnouncementLink(buttonLink);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      buttonLabel,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_outward_rounded, size: 14),
+                  ],
+                ),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: TextButton.styleFrom(
+                foregroundColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              ),
+              child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAnnouncementBanner(Map<String, dynamic> announcement) {
+    final id = announcement['id']?.toString() ?? announcement['message']?.toString() ?? '';
+    final title = announcement['title']?.toString() ?? '';
+    final message = (announcement['message'] ?? announcement['text'] ?? '').toString().trim();
     
-    if (message.isEmpty || _dismissedAnnouncementIds.contains(id)) {
+    if (message.isEmpty || _dismissedAnnouncementIds.contains(id) || _isAnnouncementOutdatedUpdateNotice(announcement)) {
       return const SizedBox.shrink();
     }
 
     final buttonLabel = announcement['button_label']?.toString() ?? '';
     final buttonLink = announcement['button_link']?.toString() ?? '';
     final hasButton = buttonLabel.isNotEmpty && buttonLink.isNotEmpty;
-
     final level = (announcement['level'] ?? 'info').toString().toLowerCase();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Default color maps for 'info'
-    List<Color> gradientColors = const [
-      Color(0xFF60A5FA), // Blue 400
-      Color(0xFF3B82F6), // Blue 500
-    ];
-    Color textPrimaryColor = const Color(0xFF1E3A8A); // Blue 900
-    Color textSecondaryColor = const Color(0xFF1E40AF); // Blue 800
-    IconData iconData = Icons.info_outline_rounded;
-    Color iconColor = const Color(0xFF1E3A8A);
-    Color closeBtnBg = const Color(0xFF1E3A8A).withOpacity(0.08);
-    Color shadowColor = const Color(0xFF3B82F6).withOpacity(0.18);
+    final List<Color> iconGradient;
+    final Color accentColor;
+    final IconData iconData;
 
-    if (level == 'success') {
-      gradientColors = const [
-        Color(0xFF34D399), // Emerald 400
-        Color(0xFF10B981), // Emerald 500
-      ];
-      textPrimaryColor = const Color(0xFF064E3B); // Emerald 950
-      textSecondaryColor = const Color(0xFF065F46); // Emerald 900
-      iconData = Icons.check_circle_outline_rounded;
-      iconColor = const Color(0xFF064E3B);
-      closeBtnBg = const Color(0xFF064E3B).withOpacity(0.08);
-      shadowColor = const Color(0xFF10B981).withOpacity(0.18);
-    } else if (level == 'warning') {
-      gradientColors = const [
-        Color(0xFFFBBF24), // Amber 400
-        Color(0xFFF59E0B), // Amber 500
-      ];
-      textPrimaryColor = const Color(0xFF451A03); // Amber 950
-      textSecondaryColor = const Color(0xFF78350F); // Amber 900
+    if (level == 'warning') {
+      iconGradient = const [Color(0xFFF59E0B), Color(0xFFD97706)];
+      accentColor = const Color(0xFFD97706);
       iconData = Icons.warning_amber_rounded;
-      iconColor = const Color(0xFF451A03);
-      closeBtnBg = const Color(0xFF451A03).withOpacity(0.08);
-      shadowColor = const Color(0xFFF59E0B).withOpacity(0.18);
     } else if (level == 'critical') {
-      gradientColors = const [
-        Color(0xFFF87171), // Red 400
-        Color(0xFFEF4444), // Red 500
-      ];
-      textPrimaryColor = const Color(0xFF7F1D1D); // Red 950
-      textSecondaryColor = const Color(0xFF991B1B); // Red 900
-      iconData = Icons.gpp_bad_outlined;
-      iconColor = const Color(0xFF7F1D1D);
-      closeBtnBg = const Color(0xFF7F1D1D).withOpacity(0.08);
-      shadowColor = const Color(0xFFEF4444).withOpacity(0.18);
+      iconGradient = const [Color(0xFFEF4444), Color(0xFFDC2626)];
+      accentColor = const Color(0xFFDC2626);
+      iconData = Icons.error_outline_rounded;
+    } else if (level == 'success') {
+      iconGradient = const [Color(0xFF10B981), Color(0xFF059669)];
+      accentColor = const Color(0xFF10B981);
+      iconData = Icons.check_circle_outline_rounded;
+    } else {
+      // Default info
+      iconGradient = const [Color(0xFF3B82F6), Color(0xFF1D4ED8)];
+      accentColor = const Color(0xFF2563EB);
+      iconData = Icons.campaign_rounded;
     }
-    
+
+    final displayTitle = (title.isNotEmpty && title.toLowerCase() != 'announcement') ? title : '';
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+          width: 1.2,
         ),
-        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: shadowColor,
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (!hasButton) ...[
-              Icon(
-                iconData,
-                color: iconColor,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (title.isNotEmpty && title != 'Announcement')
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: textPrimaryColor,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                        letterSpacing: -0.2,
-                      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showAnnouncementDialog(announcement),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Glowing Icon Squircle
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: iconGradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  if (title.isNotEmpty && title != 'Announcement') const SizedBox(height: 4),
-                  Text(
-                    message,
-                    style: TextStyle(
-                      color: textSecondaryColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      height: 1.4,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(iconData, color: Colors.white, size: 16),
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (displayTitle.isNotEmpty)
+                        Text(
+                          displayTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                            letterSpacing: -0.1,
+                          ),
+                        ),
+                      Text(
+                        message,
+                        maxLines: displayTitle.isNotEmpty ? 1 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11.5,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (hasButton) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _openAnnouncementLink(buttonLink),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: accentColor.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            buttonLabel,
+                            style: TextStyle(
+                              color: accentColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          Icon(Icons.arrow_outward_rounded, size: 11, color: accentColor),
+                        ],
+                      ),
                     ),
                   ),
                 ],
-              ),
-            ),
-            if (hasButton) ...[
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: () async {
-                  final uri = Uri.tryParse(buttonLink);
-                  if (uri != null) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
-                style: TextButton.styleFrom(
-                  backgroundColor: textPrimaryColor.withOpacity(0.15),
-                  foregroundColor: textPrimaryColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+
+                const SizedBox(width: 6),
+                // Close button
+                GestureDetector(
+                  onTap: () => _dismissAnnouncement(id),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                      size: 14,
+                    ),
                   ),
                 ),
-                child: Text(
-                  buttonLabel,
-                  style: TextStyle(
-                    color: textPrimaryColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () => _dismissAnnouncement(id),
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: closeBtnBg,
-                ),
-                child: Icon(
-                  Icons.close_rounded,
-                  color: iconColor,
-                  size: 16,
-                ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -1159,8 +1465,13 @@ class _HomeScreenState extends State<HomeScreen> {
     Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 360 || size.height < 760;
-    final user = context.watch<SessionController>().user ?? {};
-    final name = (user['full_name'] ?? user['name'] ?? 'MELE DATA User')
+    final session = context.watch<SessionController>();
+    final user = session.user ?? {};
+    final isDeveloper = session.isDeveloper;
+    final isAgent = !isDeveloper && session.isAgent;
+    final isAdmin = !isDeveloper && !isAgent && session.isAdmin;
+    debugPrint('[HeaderRoleCheck] isDev: $isDeveloper, isAgent: $isAgent, role: ${user['role']}');
+    final name = (user['full_name'] ?? user['name'] ?? '${AppConfig.appName} User')
         .toString()
         .trim();
     final role = (user['role'] ?? 'Member').toString().trim();
@@ -1248,24 +1559,22 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
 
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: RefreshIndicator(
-              onRefresh: _refresh,
-              displacement: 18,
-              edgeOffset: 10,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
-                children: [
-                  // Minimalist Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      child: Container(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // Minimalist Header (Pinned at top, stays clean during pull-to-refresh)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
                         children: [
                           Container(
                             width: 44,
@@ -1292,71 +1601,222 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Hi, ${name.split(" ").first}',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Hi, ${name.split(" ").first}',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                'MELE DATA',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        isDeveloper
+                                            ? '${AppConfig.appName} Developer'
+                                            : isAgent
+                                                ? '${AppConfig.appName} Agent'
+                                                : isAdmin
+                                                    ? '${AppConfig.appName} Admin'
+                                                    : AppConfig.appName,
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.verified_rounded,
+                                  size: 13,
+                                  color: isAgent
+                                      ? const Color(0xFFF59E0B)
+                                      : isAdmin
+                                          ? const Color(0xFF8B5CF6)
+                                          : const Color(0xFF1E64F8),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                                if (isDeveloper) ...[
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1E64F8).withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(5),
+                                      border: Border.all(color: const Color(0xFF1E64F8).withValues(alpha: 0.25)),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.code_rounded, size: 10, color: Color(0xFF1E64F8)),
+                                        SizedBox(width: 2.5),
+                                        Text(
+                                          'DEV',
+                                          style: TextStyle(
+                                            fontSize: 8.5,
+                                            fontWeight: FontWeight.w900,
+                                            color: Color(0xFF1E64F8),
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ] else if (isAgent) ...[
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(5),
+                                      border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.support_agent_rounded, size: 10, color: Color(0xFFD97706)),
+                                        SizedBox(width: 2.5),
+                                        Text(
+                                          'AGENT',
+                                          style: TextStyle(
+                                            fontSize: 8.5,
+                                            fontWeight: FontWeight.w900,
+                                            color: Color(0xFFD97706),
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ] else if (isAdmin) ...[
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(5),
+                                      border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3)),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.shield_rounded, size: 10, color: Color(0xFF7C3AED)),
+                                        SizedBox(width: 2.5),
+                                        Text(
+                                          'ADMIN',
+                                          style: TextStyle(
+                                            fontSize: 8.5,
+                                            fontWeight: FontWeight.w900,
+                                            color: Color(0xFF7C3AED),
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
-                            child: IconButton(
-                              icon: Icon(Icons.notifications_outlined, size: 22, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                              onPressed: _openNotificationsCenter,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () => _openScreen(const PromoScreen()),
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFFF1F2),
-                                border: isDark ? null : Border.all(color: const Color(0xFFFFE4E6)),
-                              ),
-                              child: Icon(Icons.card_giftcard_rounded, color: isDark ? const Color(0xFFFDA4AF) : const Color(0xFFE11D48), size: 20),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                ),
+                    const SizedBox(width: 8),
+                    Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                            ],
+                          ),
+                          child: IconButton(
+                            icon: Icon(Icons.notifications_outlined, size: 22, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                            onPressed: _openNotificationsCenter,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _openScreen(const PromoScreen()),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFFF1F2),
+                              border: isDark ? null : Border.all(color: const Color(0xFFFFE4E6)),
+                            ),
+                            child: Icon(Icons.card_giftcard_rounded, color: isDark ? const Color(0xFFFDA4AF) : const Color(0xFFE11D48), size: 20),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
 
-                  // Hero Balance Card (Amigo Lite Polish)
-                  Container(
+              // Smooth Scrollable Content with iOS Cupertino Bounce & Refresh
+              Expanded(
+                child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                  slivers: [
+                    CupertinoSliverRefreshControl(
+                      refreshTriggerPullDistance: 80.0,
+                      refreshIndicatorExtent: 52.0,
+                      onRefresh: _refresh,
+                      builder: (
+                        BuildContext context,
+                        RefreshIndicatorMode refreshState,
+                        double pulledExtent,
+                        double refreshTriggerPullDistance,
+                        double refreshIndicatorExtent,
+                      ) {
+                        final double percentageComplete = (pulledExtent / refreshTriggerPullDistance).clamp(0.0, 1.0);
+                        return Container(
+                          height: refreshIndicatorExtent,
+                          alignment: Alignment.center,
+                          child: refreshState == RefreshIndicatorMode.refresh || refreshState == RefreshIndicatorMode.armed
+                              ? CupertinoActivityIndicator(
+                                  radius: 12,
+                                  color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                                )
+                              : CupertinoActivityIndicator.partiallyRevealed(
+                                  radius: 12,
+                                  progress: percentageComplete,
+                                  color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                                ),
+                        );
+                      },
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          // In-App Admin Announcement Banner directly above the wallet section
+                          if (_announcements != null && _announcements!.isNotEmpty) ...[
+                            for (final ann in _announcements!)
+                              _buildAnnouncementBanner(ann),
+                          ],
+                          // Hero Balance Card (Amigo Lite Polish)
+                          Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
                           color: const Color(0x06000000),
@@ -1398,7 +1858,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         TweenAnimationBuilder<double>(
                           tween: Tween<double>(begin: 0, end: balance),
                           duration: const Duration(milliseconds: 1200),
@@ -1415,22 +1875,22 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Text(
                                   '₦',
-                                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0F172A)),
                                 ),
                                 const SizedBox(width: 4),
                                 if (_hideBalance)
                                   Text(
                                     '••••••',
-                                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0A0F1D), letterSpacing: -1.5),
+                                    style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0A0F1D), letterSpacing: -1.0),
                                   )
                                 else ...[
                                   Text(
                                     NumberFormat('#,##0').format(int.tryParse(whole) ?? 0),
-                                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0A0F1D), letterSpacing: -1.5),
+                                    style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF0A0F1D), letterSpacing: -1.0),
                                   ),
                                   Text(
                                     decimal,
-                                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
                                   ),
                                   if (_showBalanceDiff) ...[
                                     const SizedBox(width: 8),
@@ -1466,20 +1926,23 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        const SizedBox(height: 20),
-                        
-                        // Virtual Account Chip
+                        const SizedBox(height: 12),
+
+                        // Dedicated Virtual Bank Account Card
                         FutureBuilder<Map<String, dynamic>>(
                           future: _accountsFuture,
                           initialData: _cachedAccountsData,
                           builder: (context, snapshot) {
                             if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
                               return Container(
-                                height: 44,
-                                width: 180,
+                                height: 56,
+                                width: double.infinity,
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: isDark ? const Color(0xFF334155).withValues(alpha: 0.6) : const Color(0xFFE2E8F0),
+                                  ),
                                 ),
                               );
                             }
@@ -1488,33 +1951,143 @@ class _HomeScreenState extends State<HomeScreen> {
                               return GestureDetector(
                                 onTap: _showAccountActivationDialog,
                                 child: Container(
-                                  height: 46,
-                                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                                   decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F4F9),
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.55) : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: isDark ? const Color(0xFF334155).withValues(alpha: 0.75) : const Color(0xFFE2E8F0),
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.account_balance, size: 16, color: Color(0xFF64748B)),
-                                      const SizedBox(width: 8),
-                                      const Text('Tap to link BVN/NIN', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13)),
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Icon(Icons.account_balance_rounded, size: 18, color: Color(0xFFD97706)),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Activate Virtual Account',
+                                              style: TextStyle(
+                                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Tap to link BVN/NIN for automated funding',
+                                              style: TextStyle(
+                                                color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white54 : const Color(0xFF64748B), size: 20),
                                     ],
                                   ),
                                 ),
                               );
                             }
                             
-                            final accounts = List<Map<String, dynamic>>.from(rawAccounts.map((i) => Map<String, dynamic>.from(i as Map)));
+                            final isMeleData = BrandConfig.current.brand == AppBrand.meleData;
+                            final accounts = List<Map<String, dynamic>>.from(
+                              rawAccounts.map((i) => Map<String, dynamic>.from(i as Map))
+                            ).where((acc) {
+                              if (isMeleData) {
+                                final name = (acc['bank_name'] ?? '').toString().toLowerCase();
+                                return !name.contains('paga') && !name.contains('aspfiy');
+                              }
+                              return true;
+                            }).toList();
+
+                            if (accounts.isEmpty) {
+                              return GestureDetector(
+                                onTap: _showAccountActivationDialog,
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.55) : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: isDark ? const Color(0xFF334155).withValues(alpha: 0.75) : const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Icon(Icons.account_balance_rounded, size: 18, color: Color(0xFFD97706)),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Activate Virtual Account',
+                                              style: TextStyle(
+                                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Tap to link BVN/NIN for automated funding',
+                                              style: TextStyle(
+                                                color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white54 : const Color(0xFF64748B), size: 20),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
+                            // Priority order: 1. PalmPay, 2. Moniepoint, 3. Safehaven, 4. Paystack, 5. 9PSB
                             accounts.sort((a, b) {
                               final aName = (a['bank_name'] ?? '').toString().toLowerCase();
                               final bName = (b['bank_name'] ?? '').toString().toLowerCase();
-                              if (aName.contains('moniepoint') && !bName.contains('moniepoint')) return -1;
-                              if (!aName.contains('moniepoint') && bName.contains('moniepoint')) return 1;
-                              return 0;
+                              int bankScore(String n) {
+                                if (n.contains('palmpay')) return 1;
+                                if (n.contains('moniepoint') || n.contains('monnify')) return 2;
+                                if (n.contains('safehaven') || n.contains('safe haven')) return 3;
+                                if (n.contains('paystack') || n.contains('titan')) return 4;
+                                if (n.contains('9psb') || n.contains('9 payment')) return 5;
+                                return 6;
+                              }
+                              return bankScore(aName).compareTo(bankScore(bName));
                             });
 
-                            final activeAccount = accounts.first;
+                            final activeAccount = accounts[_activeAccountIndex % accounts.length];
                             final rawBankName = (activeAccount['bank_name'] ?? 'Bank').toString().trim();
                             final bankNameLower = rawBankName.toLowerCase();
                             final displayBankName = (bankNameLower.contains('9psb') || bankNameLower.contains('9 payment'))
@@ -1526,7 +2099,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         : (bankNameLower.contains('palmpay')
                                             ? 'PalmPay'
                                             : (bankNameLower.contains('titan') || bankNameLower.contains('paystack'))
-                                                ? 'Titan Trust Bank'
+                                                ? 'Paystack Titan'
                                                 : (bankNameLower.contains('paga') || bankNameLower.contains('aspfiy') || bankNameLower.contains('aspify'))
                                                     ? 'Paga'
                                                     : (bankNameLower.contains('wema')
@@ -1534,240 +2107,265 @@ class _HomeScreenState extends State<HomeScreen> {
                                                         : (bankNameLower.contains('sterling')
                                                             ? 'Sterling Bank'
                                                             : rawBankName)));
+
+                            final shortBankName = bankNameLower.contains('palmpay')
+                                ? 'PalmPay'
+                                : (bankNameLower.contains('moniepoint') || bankNameLower.contains('monnify'))
+                                    ? 'Moniepoint'
+                                    : (bankNameLower.contains('safehaven') || bankNameLower.contains('safe haven'))
+                                        ? 'Safe Haven'
+                                        : (bankNameLower.contains('9psb') || bankNameLower.contains('9 payment'))
+                                            ? '9PSB'
+                                            : (bankNameLower.contains('titan') || bankNameLower.contains('paystack'))
+                                                ? 'Paystack Titan'
+                                                : rawBankName.split(' ').first;
+
+                            final Color badgeBg;
+                            final Color badgeBorder;
+                            final Color badgeText;
+                            if (bankNameLower.contains('palmpay')) {
+                              badgeBg = isDark ? const Color(0xFF2E1065) : const Color(0xFFF3E8FF);
+                              badgeBorder = isDark ? const Color(0xFF6B21A8) : const Color(0xFFD8B4FE);
+                              badgeText = isDark ? const Color(0xFFD8B4FE) : const Color(0xFF7E22CE);
+                            } else if (bankNameLower.contains('moniepoint') || bankNameLower.contains('monnify')) {
+                              badgeBg = isDark ? const Color(0xFF1E3A8A) : const Color(0xFFEFF6FF);
+                              badgeBorder = isDark ? const Color(0xFF1D4ED8) : const Color(0xFFBFDBFE);
+                              badgeText = isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8);
+                            } else if (bankNameLower.contains('safehaven') || bankNameLower.contains('safe haven')) {
+                              badgeBg = isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5);
+                              badgeBorder = isDark ? const Color(0xFF047857) : const Color(0xFFA7F3D0);
+                              badgeText = isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857);
+                            } else if (bankNameLower.contains('9psb') || bankNameLower.contains('9 payment')) {
+                              badgeBg = isDark ? const Color(0xFF4C0519) : const Color(0xFFFFF1F2);
+                              badgeBorder = isDark ? const Color(0xFF9F1239) : const Color(0xFFFECDD3);
+                              badgeText = isDark ? const Color(0xFFFDA4AF) : const Color(0xFFBE123C);
+                            } else if (bankNameLower.contains('titan') || bankNameLower.contains('paystack')) {
+                              badgeBg = isDark ? const Color(0xFF082F49) : const Color(0xFFF0F9FF);
+                              badgeBorder = isDark ? const Color(0xFF0284C7) : const Color(0xFFBAE6FD);
+                              badgeText = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+                            } else {
+                              badgeBg = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+                              badgeBorder = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
+                              badgeText = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
+                            }
+
                             final accountNumber = (activeAccount['account_number'] ?? '').toString().trim();
                             final formattedNumber = _formatAccountNumber(accountNumber);
-                            final accountHolderName = (activeAccount['account_name'] ?? '').toString().trim();
 
-                            return GestureDetector(
-                              onTap: () => FundWalletSheet.show(context),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.70) : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.65) : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                  width: 1,
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Row 1: Header Badge + View All
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Top Row: Account Number & Copy Button (Left), Bank Switcher Pill (Right)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'VIRTUAL ACCOUNT NUMBER',
+                                              style: TextStyle(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 0.8,
+                                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 3),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  formattedNumber.isNotEmpty ? formattedNumber : accountNumber,
+                                                  style: TextStyle(
+                                                    fontSize: 18.5,
+                                                    fontWeight: FontWeight.w900,
+                                                    letterSpacing: 1.0,
+                                                    fontFamily: 'monospace',
+                                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                InkWell(
+                                                  onTap: () => _copyAccountNumber(accountNumber),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(4),
+                                                    child: Icon(
+                                                      Icons.copy_rounded,
+                                                      size: 15,
+                                                      color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF2563EB),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Interactive Bank Switcher Pill
+                                      GestureDetector(
+                                        onTap: () {
+                                          if (accounts.length > 1) {
+                                            setState(() {
+                                              _activeAccountIndex = (_activeAccountIndex + 1) % accounts.length;
+                                            });
+                                          } else {
+                                            FundWalletSheet.show(context, initialAccounts: accounts);
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                                            borderRadius: BorderRadius.circular(6),
+                                            color: badgeBg,
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(color: badgeBorder),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(
-                                                Icons.account_balance_rounded,
-                                                size: 13,
-                                                color: Theme.of(context).colorScheme.primary,
+                                              Container(
+                                                width: 7,
+                                                height: 7,
+                                                decoration: BoxDecoration(
+                                                  color: badgeText,
+                                                  shape: BoxShape.circle,
+                                                ),
                                               ),
-                                              const SizedBox(width: 4),
+                                              const SizedBox(width: 6),
                                               Text(
-                                                'AUTO-FUND ACCOUNT',
+                                                shortBankName,
                                                 style: TextStyle(
-                                                  fontSize: 10,
+                                                  fontSize: 12,
                                                   fontWeight: FontWeight.w800,
-                                                  letterSpacing: 0.5,
-                                                  color: Theme.of(context).colorScheme.primary,
+                                                  color: badgeText,
+                                                  letterSpacing: 0.2,
+                                                ),
+                                              ),
+                                              if (accounts.length > 1) ...[
+                                                const SizedBox(width: 4),
+                                                Icon(
+                                                  Icons.swap_horiz_rounded,
+                                                  size: 14,
+                                                  color: badgeText,
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 9),
+                                  Divider(
+                                    height: 1,
+                                    thickness: 0.8,
+                                    color: isDark ? const Color(0xFF334155).withValues(alpha: 0.5) : const Color(0xFFE2E8F0),
+                                  ),
+                                  const SizedBox(height: 7),
+
+                                  // Bottom Row: Full Bank Name & View All Action
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: RichText(
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          text: TextSpan(
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                            ),
+                                            children: [
+                                              const TextSpan(
+                                                text: 'BANK: ',
+                                                style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.4),
+                                              ),
+                                              TextSpan(
+                                                text: displayBankName,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                        const Spacer(),
-                                        Row(
+                                      ),
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () => FundWalletSheet.show(context, initialAccounts: accounts),
+                                        child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
-                                              accounts.length > 1 ? 'View all (${accounts.length})' : 'Instant credit',
+                                              accounts.length > 1 ? 'All banks (${accounts.length})' : 'Instant credit',
                                               style: TextStyle(
-                                                fontSize: 11,
+                                                fontSize: 10.5,
                                                 fontWeight: FontWeight.w700,
-                                                color: isDark ? const Color(0xFF38BDF8) : Theme.of(context).colorScheme.primary,
+                                                color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF2563EB),
                                               ),
                                             ),
                                             const SizedBox(width: 2),
                                             Icon(
-                                              Icons.chevron_right_rounded,
-                                              size: 15,
-                                              color: isDark ? const Color(0xFF38BDF8) : Theme.of(context).colorScheme.primary,
+                                              Icons.arrow_forward_rounded,
+                                              size: 12,
+                                              color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF2563EB),
                                             ),
                                           ],
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    // Row 2: Full Bank Name
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'BANK: ',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w900,
-                                            color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            displayBankName,
-                                            style: TextStyle(
-                                              fontSize: 13.5,
-                                              fontWeight: FontWeight.w800,
-                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                              height: 1.2,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    // Row 3: Account Number & Copy Button
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'ACCOUNT NUMBER:',
-                                                style: TextStyle(
-                                                  fontSize: 9.5,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                                                  letterSpacing: 0.5,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 1),
-                                              Text(
-                                                formattedNumber.isNotEmpty ? formattedNumber : accountNumber,
-                                                style: TextStyle(
-                                                  fontSize: 19,
-                                                  fontWeight: FontWeight.w900,
-                                                  letterSpacing: 1.5,
-                                                  fontFamily: 'monospace',
-                                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            onTap: () => _copyAccountNumber(accountNumber),
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: Ink(
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                              decoration: BoxDecoration(
-                                                color: isDark ? const Color(0xFF334155) : const Color(0xFFEFF6FF),
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: isDark ? const Color(0xFF475569) : const Color(0xFFBFDBFE),
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.copy_rounded,
-                                                    size: 13,
-                                                    color: Theme.of(context).colorScheme.primary,
-                                                  ),
-                                                  const SizedBox(width: 5),
-                                                  Text(
-                                                    'Copy',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.w800,
-                                                      color: Theme.of(context).colorScheme.primary,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                    // Row 4: Account Name if present
-                                    if (accountHolderName.isNotEmpty) ...[
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'NAME: ',
-                                            style: TextStyle(
-                                              fontSize: 9.5,
-                                              fontWeight: FontWeight.w800,
-                                              color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: Text(
-                                              accountHolderName,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                color: isDark ? Colors.white70 : const Color(0xFF334155),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
                                       ),
                                     ],
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             );
                           },
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 14),
                         // Quick Action Buttons Row
                         Row(
                           children: [
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => FundWalletSheet.show(context),
+                                onTap: () => FundWalletSheet.show(context, initialAccounts: _getCachedBankAccountsList()),
                                 child: Container(
-                                  height: 44,
+                                  height: 42,
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF1E64F8),
-                                    borderRadius: BorderRadius.circular(22),
+                                    borderRadius: BorderRadius.circular(21),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF1E64F8).withValues(alpha: 0.25),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
                                   ),
                                   alignment: Alignment.center,
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(Icons.add, color: Colors.white, size: 18),
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        'Balance',
+                                      Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Add Money',
                                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
                                       ),
                                     ],
@@ -1775,52 +2373,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen())),
+                                onTap: () => Navigator.push(context, FastRoute(page: const TransferScreen())),
                                 child: Container(
-                                  height: 44,
+                                  height: 42,
                                   decoration: BoxDecoration(
                                     color: isDark ? const Color(0xFF1E64F8).withValues(alpha: 0.15) : const Color(0xFFEEF4FF),
-                                    borderRadius: BorderRadius.circular(22),
+                                    borderRadius: BorderRadius.circular(21),
                                   ),
                                   alignment: Alignment.center,
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(Icons.send_rounded, size: 16, color: Color(0xFF1E64F8)),
-                                      const SizedBox(width: 4),
-                                      const Text(
+                                      Icon(Icons.send_rounded, size: 16, color: Color(0xFF1E64F8)),
+                                      SizedBox(width: 6),
+                                      Text(
                                         'Transfer',
                                         style: TextStyle(color: Color(0xFF1E64F8), fontWeight: FontWeight.w700, fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  // Feature placeholder
-                                },
-                                child: Container(
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F5F9),
-                                    borderRadius: BorderRadius.circular(22),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.payment_rounded, size: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Pay',
-                                        style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w700, fontSize: 13),
                                       ),
                                     ],
                                   ),
@@ -1833,20 +2404,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 14),
                   
                   if (_activeCampaigns.any((c) => !c.isClaimed)) ...[
                     ..._activeCampaigns.where((c) => !c.isClaimed).map((c) => _buildCampaignProgressCard(c)).toList(),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                   ],
 
                   // Top Services Row Card
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
                           color: const Color(0x04000000),
@@ -1932,13 +2503,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ElevatedButton(
                       onPressed: () async {
                         HapticFeedback.lightImpact();
-                        final referralLink = "https://meledata.ng/register?ref=$referralCode";
-                        final shareMessage = "Hey! Buy cheap data, airtime, and utility top-ups instantly on MELE DATA. Register using my link: $referralLink";
+                        final referralLink = "https://${AppConfig.supportDomain}/register?ref=$referralCode";
+                        final shareMessage = "Hey! Buy cheap data, airtime, and utility top-ups instantly on ${AppConfig.appName}. Register using my link: $referralLink";
                         
                         try {
                           await Share.share(
                             shareMessage,
-                            subject: "Join MELE DATA",
+                            subject: "Join ${AppConfig.appName}",
                           );
                         } catch (e) {
                           await Clipboard.setData(ClipboardData(text: referralLink));
@@ -1993,11 +2564,26 @@ class _HomeScreenState extends State<HomeScreen> {
               initialData: _cachedTransactionsData,
               builder: (context, snapshot) {
                 final isLoading = snapshot.connectionState == ConnectionState.waiting;
-                final raw = snapshot.data ?? const <dynamic>[];
+                final raw = snapshot.data ?? _cachedTransactionsData ?? const <dynamic>[];
                 final items = _normalizeTransactions(raw);
                 final recent = items.take(4).toList();
                 
-                if (recent.isEmpty && !isLoading) {
+                if (recent.isEmpty) {
+                  if (isLoading && _cachedTransactionsData == null) {
+                    return GlassCard(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
                   return GlassCard(
                     padding: const EdgeInsets.symmetric(vertical: 32),
                     child: Center(
@@ -2019,6 +2605,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           title: _txTitleFor(recent[i]),
                           subtitle: _txSubtitleFor(recent[i]),
                           amount: _txAmountLabel(recent[i]),
+                          isCredit: _txIsCredit(recent[i]),
                           date: _txDateLabel(recent[i]).split(' • ').first,
                           onTap: () {
                             HapticFeedback.lightImpact();
@@ -2099,7 +2686,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 40),
             Center(
               child: Text(
-                'MELE DATA v1.2.0 • SECURE & TRUSTED',
+                '${AppConfig.appName} v${AppConfig.appVersion} • SECURE & TRUSTED',
                 style: TextStyle(
                   color: muted.withValues(alpha: 0.4),
                   fontSize: 10,
@@ -2108,11 +2695,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          ],
-        ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2685,7 +3277,7 @@ class _RecentActivityEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Your recent purchases and wallet activity will appear here as soon as you start using MELE DATA.',
+            'Your recent purchases and wallet activity will appear here as soon as you start using ${AppConfig.appName}.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: muted),
           ),
@@ -3635,7 +4227,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
                           : rawLower.contains('palmpay')
                               ? 'PalmPay'
                               : (rawLower.contains('titan') || rawLower.contains('paystack'))
-                                  ? 'Titan Trust Bank'
+                                  ? 'Paystack Titan'
                                   : (rawLower.contains('paga') || rawLower.contains('aspfiy') || rawLower.contains('aspify'))
                                       ? 'Paga'
                                       : (rawLower.contains('wema')
@@ -3697,10 +4289,11 @@ class _TopUpSheetState extends State<_TopUpSheet> {
                               fontSize: 30,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 2,
+                              fontFamily: 'monospace',
                             ),
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
                         Text(
                           'ACCOUNT NAME',
                           style: TextStyle(
@@ -3710,31 +4303,25 @@ class _TopUpSheetState extends State<_TopUpSheet> {
                             fontSize: 10,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         Text(
                           accName.toString(),
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            "Select '$bank' in your banking app",
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                            'Select "$bank" in your bank app and transfer to this number.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: muted),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
                       ],
                     ),
                   ),
@@ -3750,7 +4337,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Need help? Contact support at meledata.ng',
+            'Need help? Contact support at kullomadata.com',
             style: TextStyle(fontSize: 11, color: muted),
           ),
         ],
@@ -3850,6 +4437,7 @@ class _RecentActivityTile extends StatelessWidget {
     required this.subtitle,
     required this.amount,
     required this.date,
+    required this.isCredit,
     required this.onTap,
   });
   final Map<String, dynamic> tx;
@@ -3857,23 +4445,24 @@ class _RecentActivityTile extends StatelessWidget {
   final String subtitle;
   final String amount;
   final String date;
+  final bool isCredit;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final type = tx['tx_type']?.toString() ?? '';
-    final isCredit = type == 'wallet_fund';
     final status = (tx['status'] ?? 'success').toString().toLowerCase();
 
-    final icon = switch (type) {
-      'data' => Icons.wifi_rounded,
-      'airtime' => Icons.phone_iphone_rounded,
-      'electricity' => Icons.bolt_rounded,
-      'cable' => Icons.live_tv_rounded,
-      'exam' => Icons.school_rounded,
-      'wallet_fund' => Icons.add_rounded,
-      _ => Icons.receipt_long_rounded,
-    };
+    final icon = isCredit
+        ? Icons.add_rounded
+        : switch (type) {
+            'data' => Icons.wifi_rounded,
+            'airtime' => Icons.phone_iphone_rounded,
+            'electricity' => Icons.bolt_rounded,
+            'cable' => Icons.live_tv_rounded,
+            'exam' => Icons.school_rounded,
+            _ => Icons.receipt_long_rounded,
+          };
 
     final statusColor = status == 'success'
         ? const Color(0xFF10B981)
@@ -3986,16 +4575,16 @@ class _RecentActivityTile extends StatelessWidget {
   }
 }
 
-class _MELEDATAAccountActivationDialog extends StatefulWidget {
+class _KULLOMADATAAccountActivationDialog extends StatefulWidget {
   final VoidCallback onActivated;
 
-  const _MELEDATAAccountActivationDialog({required this.onActivated});
+  const _KULLOMADATAAccountActivationDialog({required this.onActivated});
 
   @override
-  State<_MELEDATAAccountActivationDialog> createState() => _MELEDATAAccountActivationDialogState();
+  State<_KULLOMADATAAccountActivationDialog> createState() => _KULLOMADATAAccountActivationDialogState();
 }
 
-class _MELEDATAAccountActivationDialogState extends State<_MELEDATAAccountActivationDialog> {
+class _KULLOMADATAAccountActivationDialogState extends State<_KULLOMADATAAccountActivationDialog> {
   String _option = 'bvn'; // 'bvn' or 'nin'
   final _inputCtrl = TextEditingController();
   bool _loading = false;
@@ -4072,7 +4661,7 @@ class _MELEDATAAccountActivationDialogState extends State<_MELEDATAAccountActiva
                 children: [
                   Expanded(
                     child: Text(
-                      'Generate MELE DATA Account',
+                      'Generate ${AppConfig.appName} Account',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -4231,7 +4820,7 @@ class _MELEDATAAccountActivationDialogState extends State<_MELEDATAAccountActiva
               ],
               const SizedBox(height: 16),
               Text(
-                'MELE DATA will not store your ${_option.toUpperCase()} in our system for your safety.',
+                '${AppConfig.appName} will not store your ${_option.toUpperCase()} in our system for your safety.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.brightness == Brightness.dark ? Colors.white60 : Colors.black87,
                   height: 1.4,

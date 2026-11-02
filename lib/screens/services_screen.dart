@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../config.dart';
 import 'data_screen.dart';
 import 'airtime_screen.dart';
 import 'electricity_screen.dart';
 import 'cable_screen.dart';
 import 'exam_screen.dart';
 import 'referral_screen.dart';
-import 'wallet_screen.dart';
 import 'senior_men_board_screen.dart';
 import 'transfer_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/concentric_circles_bg.dart';
+import '../utils/fast_route.dart';
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});
 
@@ -100,12 +101,8 @@ class ServicesScreen extends StatelessWidget {
   }
 
   void _openScreen(BuildContext context, Widget screen) {
-    HapticFeedback.mediumImpact();
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => screen,
-      ),
-    );
+    HapticFeedback.lightImpact();
+    Navigator.of(context).push(FastRoute(page: screen));
   }
 }
 
@@ -263,8 +260,9 @@ class _SupportCard extends StatelessWidget {
   final bool isDark;
 
   Future<void> _launchSupport(BuildContext context) async {
-    final phone = '+2348141114647';
-    final url = Uri.parse('https://wa.me/${phone.replaceAll('+', '')}');
+    final phone = AppConfig.supportWhatsApp;
+    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final url = Uri.parse('https://wa.me/$cleanPhone');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,3 +1,5 @@
+import '../config.dart';
+
 import 'dart:async';
 import '../utils/fast_route.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +20,7 @@ import '../theme/axis_tokens.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/animated_balance_text.dart';
-import '../widgets/mele_data_loader.dart';
+import 'transfer_screen.dart';
 
 
 const double _walletInsightAspectRatio = 1.46;
@@ -136,10 +138,10 @@ class _WalletScreenState extends State<WalletScreen> {
     });
   }
 
-  void _reloadWallet(String token, String dashboardKey) {
+  void _reloadWallet(String token, String dashboardKey, {bool forceRefresh = false}) {
     final service = WalletService(token: token);
-    _walletFuture = service.getWallet();
-    _accountsFuture = service.getBankAccounts();
+    _walletFuture = service.getWallet(forceRefresh: forceRefresh);
+    _accountsFuture = service.getBankAccounts(forceRefresh: forceRefresh);
     _transactionsFuture = _loadRecentTransactions(token);
     _walletFuture!.then((data) {
       if (!mounted || dashboardKey != _activeDashboardKey) return;
@@ -191,7 +193,7 @@ class _WalletScreenState extends State<WalletScreen> {
           context.read<SessionController>().user,
         ) ??
         token;
-    setState(() => _reloadWallet(token, dashboardKey));
+    setState(() => _reloadWallet(token, dashboardKey, forceRefresh: true));
     try {
       await Future.wait([
         _walletFuture!,
@@ -236,6 +238,18 @@ class _WalletScreenState extends State<WalletScreen> {
     return null;
   }
 
+  String _getShortBankName(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('palmpay')) return 'PalmPay';
+    if (lower.contains('safehaven') || lower.contains('safe haven')) return 'Safe Haven';
+    if (lower.contains('9psb') || lower.contains('9 payment')) return '9PSB';
+    if (lower.contains('moniepoint') || lower.contains('monnify')) return 'Moniepoint';
+    if (lower.contains('titan') || lower.contains('paystack')) return 'Paystack Titan';
+    if (lower.contains('wema')) return 'Wema';
+    if (lower.contains('sterling')) return 'Sterling';
+    return raw.split(' ').first;
+  }
+
 
 
   double _extractBalance(Map<String, dynamic>? data) {
@@ -249,7 +263,70 @@ class _WalletScreenState extends State<WalletScreen> {
     return 0;
   }
 
-  bool _isCredit(Map<String, dynamic> tx) => _typeOf(tx) == 'wallet_fund';
+  bool _isCredit(Map<String, dynamic> tx) {
+    final type = _typeOf(tx);
+    final failure = (tx['failure_reason'] ?? '').toString().trim().toLowerCase();
+    final ref = (tx['reference'] ?? '').toString().trim().toUpperCase();
+
+    String ledger = '';
+    final meta = tx['meta'];
+    if (meta is Map) {
+      ledger = (meta['ledger_description'] ?? '').toString().trim().toLowerCase();
+    }
+
+    if (failure.contains('debit') || ledger.contains('debit')) {
+      return false;
+    }
+
+    const creditTypes = {
+      'wallet_fund',
+      'wallet_funding',
+      'fund',
+      'funding',
+      'topup',
+      'top_up',
+      'admin_credit',
+      'agent_reward',
+      'deposit',
+      'credit',
+      'refund',
+      'cashback',
+      'bonus',
+      'referral_bonus',
+      'transfer_in',
+      'receive',
+    };
+    if (creditTypes.contains(type)) {
+      return true;
+    }
+
+    if (failure.contains('credit') ||
+        failure.contains('fund') ||
+        failure.contains('deposit') ||
+        failure.contains('reward') ||
+        failure.contains('refund') ||
+        failure.contains('bonus') ||
+        ledger.contains('credit') ||
+        ledger.contains('fund') ||
+        ledger.contains('deposit') ||
+        ledger.contains('reward') ||
+        ledger.contains('refund') ||
+        ledger.contains('bonus')) {
+      return true;
+    }
+
+    if (ref.startsWith('FUND_') ||
+        ref.startsWith('DEP_') ||
+        ref.startsWith('TOP_') ||
+        ref.startsWith('CREDIT_') ||
+        ref.startsWith('MONNIFY_') ||
+        ref.startsWith('PAYSTACK_') ||
+        ref.startsWith('FLW_')) {
+      return true;
+    }
+
+    return false;
+  }
 
   String _typeOf(Map<String, dynamic> tx) {
     return (tx['tx_type'] ?? 'transaction').toString().trim().toLowerCase();
@@ -260,9 +337,19 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   String _titleFor(Map<String, dynamic> tx) {
+    if (_isCredit(tx)) {
+      final type = _typeOf(tx);
+      if (type == 'agent_reward') return 'Agent Reward';
+      if (type == 'admin_credit') return 'Admin Credit';
+      final failure = (tx['failure_reason'] ?? '').toString().trim().toLowerCase();
+      if (failure.contains('admin credit')) return 'Admin Credit';
+      if (failure.contains('reward')) return 'Agent Reward';
+      if (failure.contains('refund')) return 'Refund Credit';
+      if (failure.contains('bonus')) return 'Bonus Credit';
+      return 'Wallet Funding';
+    }
     return switch (_typeOf(tx)) {
       'data' => 'Data Purchase',
-      'wallet_fund' => 'Wallet Funding',
       'airtime' => 'Airtime Purchase',
       'cable' => 'Cable Subscription',
       'electricity' => 'Electricity Payment',
@@ -464,7 +551,7 @@ class _WalletScreenState extends State<WalletScreen> {
       await SharePlus.instance.share(
         ShareParams(
           text: text,
-          subject: 'MELE DATA funding account details',
+          subject: '${AppConfig.appName} funding account details',
         ),
       );
     } catch (_) {
@@ -482,7 +569,7 @@ class _WalletScreenState extends State<WalletScreen> {
     required String accountName,
   }) {
     return [
-      'Fund my MELE DATA wallet:',
+      'Fund my ${AppConfig.appName} wallet:',
       '',
       'Bank: $bankName',
       'Account Number: $accountNumber',
@@ -498,7 +585,7 @@ class _WalletScreenState extends State<WalletScreen> {
     required String accountName,
   }) {
     return [
-      'Fund my MELE DATA wallet',
+      'Fund my ${AppConfig.appName} wallet',
       'Bank: $bankName',
       'Account Number: $accountNumber',
       'Account Name: $accountName',
@@ -510,7 +597,7 @@ class _WalletScreenState extends State<WalletScreen> {
     final size = MediaQuery.sizeOf(context);
     final compact = size.width < 360 || size.height < 760;
     final user = context.watch<SessionController>().user ?? {};
-    final name = (user['full_name'] ?? user['name'] ?? 'MELE DATA User')
+    final name = (user['full_name'] ?? user['name'] ?? '${AppConfig.appName} User')
         .toString()
         .trim();
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -795,17 +882,30 @@ class _WalletScreenState extends State<WalletScreen> {
                 }
 
                 final rawAccounts = (accountsData['accounts'] as List?) ?? const [];
+                final isMeleData = BrandConfig.current.brand == AppBrand.meleData;
                 final accounts = List<Map<String, dynamic>>.from(
                   rawAccounts.map((item) => Map<String, dynamic>.from(item as Map))
-                );
+                ).where((acc) {
+                  if (isMeleData) {
+                    final name = (acc['bank_name'] ?? '').toString().toLowerCase();
+                    return !name.contains('paga') && !name.contains('aspfiy');
+                  }
+                  return true;
+                }).toList();
 
-                // Sort: prioritize Moniepoint first
+                // Sort: 1. PalmPay, 2. Moniepoint, 3. Safehaven, 4. Paystack, 5. 9PSB
                 accounts.sort((a, b) {
                   final aName = (a['bank_name'] ?? '').toString().toLowerCase();
                   final bName = (b['bank_name'] ?? '').toString().toLowerCase();
-                  if (aName.contains('moniepoint') && !bName.contains('moniepoint')) return -1;
-                  if (!aName.contains('moniepoint') && bName.contains('moniepoint')) return 1;
-                  return 0;
+                  int bankScore(String n) {
+                    if (n.contains('palmpay')) return 1;
+                    if (n.contains('moniepoint') || n.contains('monnify')) return 2;
+                    if (n.contains('safehaven') || n.contains('safe haven')) return 3;
+                    if (n.contains('paystack') || n.contains('titan')) return 4;
+                    if (n.contains('9psb') || n.contains('9 payment')) return 5;
+                    return 6;
+                  }
+                  return bankScore(aName).compareTo(bankScore(bName));
                 });
 
                 if (accounts.isEmpty) {
@@ -830,7 +930,7 @@ class _WalletScreenState extends State<WalletScreen> {
                             : rawLower.contains('palmpay')
                                 ? 'PalmPay'
                                 : (rawLower.contains('titan') || rawLower.contains('paystack'))
-                                    ? 'Titan Trust Bank'
+                                    ? 'Paystack Titan'
                                     : (rawLower.contains('paga') || rawLower.contains('aspfiy') || rawLower.contains('aspify'))
                                         ? 'Paga'
                                         : rawLower.contains('wema')
@@ -845,7 +945,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 // Format accountHolderName nicely
                 String rawName = (account['account_name'] ?? name).toString().trim();
                 final prefixPattern = RegExp(
-                  r'^(?:MMTECHGLOBE|MELE DATA)(?:\s*[-\/:]\s*|\s+)?',
+                  r'^(?:MMTECHGLOBE|${AppConfig.appName})(?:\s*[-\/:]\s*|\s+)?',
                   caseSensitive: false,
                 );
                 String cleanName = rawName.replaceFirst(prefixPattern, '').trim();
@@ -867,8 +967,67 @@ class _WalletScreenState extends State<WalletScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (accounts.length > 1) ...[
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: List.generate(accounts.length, (i) {
+                            final isSelected = i == activeIndex;
+                            final acc = accounts[i];
+                            final bName = _getShortBankName((acc['bank_name'] ?? '').toString());
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8, bottom: 12),
+                              child: InkWell(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(() => _activeAccountIndex = i);
+                                },
+                                borderRadius: BorderRadius.circular(20),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? const Color(0xFF2563EB)
+                                        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? const Color(0xFF2563EB)
+                                          : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.account_balance,
+                                        size: 13,
+                                        color: isSelected ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF475569)),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        bName,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                          color: isSelected ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ],
                     _BankCard(
                       bankName: bankName.isEmpty ? 'Paystack-Titan' : bankName,
+                      rawBankName: rawBank,
                       accountNumber: accountNumber,
                       accountName: accountName.isEmpty ? name : accountName,
                       isPlaceholder: isPlaceholder,
@@ -883,35 +1042,6 @@ class _WalletScreenState extends State<WalletScreen> {
                                 accountName: accountName.isEmpty ? name : accountName,
                               ),
                     ),
-                    if (accounts.length > 1) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left_rounded),
-                            iconSize: 22,
-                            onPressed: activeIndex > 0
-                                ? () => setState(() => _activeAccountIndex--)
-                                : null,
-                          ),
-                          Text(
-                            '${activeIndex + 1} of ${accounts.length}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.2,
-                                ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right_rounded),
-                            iconSize: 22,
-                            onPressed: activeIndex < accounts.length - 1
-                                ? () => setState(() => _activeAccountIndex++)
-                                : null,
-                          ),
-                        ],
-                      ),
-                    ],
                     if (!hasMonie) ...[
                       const SizedBox(height: 16),
                       _WalletAccountActivationCard(
@@ -922,7 +1052,62 @@ class _WalletScreenState extends State<WalletScreen> {
                 );
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+            if (BrandConfig.current.brand == AppBrand.meleData)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _openScreen(const TransferScreen()),
+                      icon: const Icon(Icons.account_balance_rounded, size: 18),
+                      label: const Text(
+                        'Withdraw to Bank',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openScreen(const TransferScreen()),
+                      icon: const Icon(Icons.send_rounded, size: 18),
+                      label: const Text(
+                        'Send to User',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              ElevatedButton.icon(
+                onPressed: () => _openScreen(const TransferScreen()),
+                icon: const Icon(Icons.send_rounded, size: 18),
+                label: const Text(
+                  'Send to User (P2P Transfer)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
@@ -1468,6 +1653,7 @@ class _SkeletonBox extends StatelessWidget {
 class _BankCard extends StatelessWidget {
   const _BankCard({
     required this.bankName,
+    required this.rawBankName,
     required this.accountNumber,
     required this.accountName,
     required this.onCopyAccount,
@@ -1476,148 +1662,66 @@ class _BankCard extends StatelessWidget {
   });
 
   final String bankName;
+  final String rawBankName;
   final String accountNumber;
   final String accountName;
   final VoidCallback onCopyAccount;
   final VoidCallback? onShareAccount;
   final bool isPlaceholder;
 
+  String _formatAccountNumberDisplay(String value) {
+    final clean = value.replaceAll(RegExp(r'\s+'), '').trim();
+    if (clean.length == 10) {
+      return '${clean.substring(0, 3)}  ${clean.substring(3, 6)}  ${clean.substring(6)}';
+    }
+    return clean;
+  }
+
+  String _getBankAppSearchHint(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('safehaven') || lower.contains('safe haven')) {
+      return 'In your bank app, select "Safe Haven MFB"';
+    }
+    if (lower.contains('9psb') || lower.contains('9 payment')) {
+      return 'In your bank app, select "9PSB" or "9 Payment Service Bank"';
+    }
+    if (lower.contains('moniepoint') || lower.contains('monnify')) {
+      return 'In your bank app, select "Moniepoint MFB"';
+    }
+    if (lower.contains('palmpay')) {
+      return 'In your bank app, select "PalmPay"';
+    }
+    if (lower.contains('titan') || lower.contains('paystack')) {
+      return 'In your bank app, select "Paystack-Titan" or "Titan Trust"';
+    }
+    return 'In your bank app, select "$raw"';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final compact = MediaQuery.sizeOf(context).height < 760;
-    final displayNumber = _formatAccountNumber(accountNumber);
+    final displayNumber = _formatAccountNumberDisplay(accountNumber);
+    final searchHint = _getBankAppSearchHint(rawBankName.isNotEmpty ? rawBankName : bankName);
 
-    final lowerBank = bankName.toLowerCase();
-    final isMoniepoint = lowerBank.contains('moniepoint') || lowerBank.contains('monnify');
-    final isWema = lowerBank.contains('wema');
-    final isSterling = lowerBank.contains('sterling');
-    final isPaystack = lowerBank.contains('paystack') || lowerBank.contains('titan');
-    final isPalmpay = lowerBank.contains('palmpay');
-    final is9PSB = lowerBank.contains('9psb') || lowerBank.contains('9 payment');
-    final isSafehaven = lowerBank.contains('safehaven') || lowerBank.contains('safe haven');
-    final isBranded = isMoniepoint || isWema || isSterling || isPaystack || isPalmpay || is9PSB || isSafehaven;
-    final useWhiteText = isBranded || isDark;
-
-    final cardGradient = isMoniepoint
-        ? const LinearGradient(
-            colors: [Color(0xFF070F24), Color(0xFF0F1E4A), Color(0xFF142966)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          )
-        : isWema
-            ? const LinearGradient(
-                colors: [Color(0xFF1F0825), Color(0xFF3B0C46), Color(0xFF5D1268)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : isSterling
-                ? const LinearGradient(
-                    colors: [Color(0xFF1F090B), Color(0xFF4C0E11), Color(0xFF8B1E22)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : isPaystack
-                    ? const LinearGradient(
-                        colors: [Color(0xFF031A18), Color(0xFF0A3C37), Color(0xFF105F56)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : isPalmpay
-                        ? const LinearGradient(
-                            colors: [Color(0xFF0A0F30), Color(0xFF1F124A), Color(0xFF361875)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : isSafehaven
-                            ? const LinearGradient(
-                                colors: [Color(0xFF04201B), Color(0xFF0A3D34), Color(0xFF115C4E)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                        : is9PSB
-                            ? const LinearGradient(
-                                colors: [Color(0xFF1E1F07), Color(0xFF35380E), Color(0xFF4E5416)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                        : isDark
-                            ? const LinearGradient(
-                                colors: [Color(0xFF101A2A), Color(0xFF162338)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : const LinearGradient(
-                                colors: [Color(0xFFF7FAFF), Color(0xFFEEF4FF)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              );
-
-    final cardBorderColor = isMoniepoint
-        ? Colors.blue.withValues(alpha: 0.3)
-        : isWema
-            ? Colors.purple.withValues(alpha: 0.3)
-            : isSterling
-                ? Colors.red.withValues(alpha: 0.3)
-                : isPaystack
-                    ? Colors.teal.withValues(alpha: 0.3)
-                    : isPalmpay
-                        ? Colors.deepPurple.withValues(alpha: 0.3)
-                        : isSafehaven
-                            ? Colors.teal.withValues(alpha: 0.3)
-                            : is9PSB
-                                ? Colors.amber.withValues(alpha: 0.3)
-                                : Theme.of(context).colorScheme.outline.withValues(alpha: isDark ? 0.10 : 0.08);
-
-    final shadowColor = isMoniepoint
-        ? Colors.blue
-        : isWema
-            ? Colors.purple
-            : isSterling
-                ? Colors.red
-                : isPaystack
-                    ? Colors.teal
-                    : isPalmpay
-                        ? Colors.deepPurple
-                        : isSafehaven
-                            ? Colors.teal
-                            : is9PSB
-                                ? Colors.amber
-                                : Theme.of(context).colorScheme.primary;
-
-    final accentColor = isMoniepoint
-        ? Colors.blue.shade300
-        : isWema
-            ? Colors.purple.shade300
-            : isSterling
-                ? Colors.red.shade300
-                : isPaystack
-                    ? Colors.teal.shade300
-                    : isPalmpay
-                        ? Colors.purple.shade300
-                        : isSafehaven
-                            ? Colors.teal.shade300
-                            : is9PSB
-                                ? Colors.amber.shade300
-                                : Theme.of(context).colorScheme.primary;
+    // Human-crafted, premium fintech theme (clean dark obsidian or crisp light card)
+    final cardBgColor = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final cardBorderColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+    final primaryTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final secondaryTextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return Container(
-      padding: EdgeInsets.all(compact ? 12 : 16),
+      padding: EdgeInsets.all(compact ? 16 : 20),
       decoration: BoxDecoration(
-        gradient: cardGradient,
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: cardBorderColor,
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: shadowColor.withValues(alpha: isDark ? 0.24 : 0.16),
-            blurRadius: 32,
-            spreadRadius: 2,
-            offset: const Offset(0, 12),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
+            color: Colors.black.withOpacity(isDark ? 0.35 : 0.05),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1626,36 +1730,36 @@ class _BankCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Top Header: Bank Icon + Full Bank Name + Active Tag
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  gradient: AxisPalette.gradient,
-                  borderRadius: BorderRadius.circular(11),
+                  color: const Color(0xFF2563EB).withOpacity(isDark ? 0.20 : 0.10),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
                   Icons.account_balance_rounded,
-                  color: Colors.white,
-                  size: 18,
+                  color: Color(0xFF2563EB),
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'BANK NAME',
+                      'DEPOSIT BANK',
                       style: TextStyle(
-                        color: useWhiteText
-                            ? Colors.white.withValues(alpha: 0.5)
-                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.0,
+                        color: secondaryTextColor,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1664,11 +1768,11 @@ class _BankCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.visible,
                       style: TextStyle(
-                        color: useWhiteText ? Colors.white : Colors.black,
-                        fontWeight: FontWeight.w900,
+                        color: primaryTextColor,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: -0.2,
-                        fontSize: compact ? 16 : 18,
-                        height: 1.15,
+                        fontSize: compact ? 15 : 16.5,
+                        height: 1.2,
                       ),
                     ),
                   ],
@@ -1676,190 +1780,240 @@ class _BankCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: isPlaceholder
                       ? const Color(0xFFFEF3C7)
                       : const Color(0xFFD1FAE5),
-                  borderRadius: BorderRadius.circular(99),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  isPlaceholder ? 'PENDING' : 'ACTIVE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: isPlaceholder
-                        ? const Color(0xFFD97706)
-                        : const Color(0xFF059669),
-                    letterSpacing: 0.5,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isPlaceholder ? const Color(0xFFD97706) : const Color(0xFF059669),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      isPlaceholder ? 'PENDING' : 'ACTIVE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: isPlaceholder ? const Color(0xFFD97706) : const Color(0xFF059669),
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          SizedBox(height: compact ? 10 : 16),
+
+          const SizedBox(height: 14),
+
+          // Search Hint Pill for local bank apps
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lightbulb_outline_rounded, size: 15, color: Color(0xFFD97706)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    searchHint,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: primaryTextColor.withOpacity(0.85),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+          Divider(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+            height: 1,
+            thickness: 1,
+          ),
+          const SizedBox(height: 16),
+
           if (isPlaceholder) ...[
             Center(
               child: Text(
-                'PENDING',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: useWhiteText ? Colors.white.withValues(alpha: 0.35) : Colors.black26,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 6.0,
-                      height: 1.1,
-                      fontSize: compact ? 26 : 30,
-                    ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              accountName,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: useWhiteText ? Colors.white70 : Colors.black87,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    letterSpacing: 0.1,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Text(
-                'Activation in progress. Your second virtual account will appear here automatically.',
-                textAlign: TextAlign.center,
+                'PENDING ACTIVATION',
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: useWhiteText ? Colors.white70 : Colors.black87,
-                  height: 1.45,
+                  color: secondaryTextColor,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.0,
+                  fontSize: 14,
                 ),
               ),
             ),
           ] else ...[
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            // Account Number Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'ACCOUNT NUMBER',
+                  style: TextStyle(
+                    color: secondaryTextColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                Text(
+                  'Tap number to copy',
+                  style: TextStyle(
+                    color: const Color(0xFF2563EB),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            InkWell(
               onTap: onCopyAccount,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          displayNumber.isEmpty ? '—' : displayNumber,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: useWhiteText ? Colors.white : Colors.black87,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: compact ? 2.8 : 4.4,
-                                fontFeatures: const [FontFeature.tabularFigures()],
-                                height: 1.1,
-                                fontSize: compact ? 28 : null,
-                              ),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF020617) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayNumber.isEmpty ? '—' : displayNumber,
+                        style: TextStyle(
+                          color: primaryTextColor,
+                          fontWeight: FontWeight.w900,
+                          fontSize: compact ? 22 : 24,
+                          letterSpacing: 2.0,
+                          fontFamily: 'monospace',
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: compact ? 6 : 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: useWhiteText ? 0.14 : 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: accentColor.withValues(alpha: useWhiteText ? 0.12 : 0.08),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2563EB),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.copy_rounded, color: Colors.white, size: 14),
+                          SizedBox(width: 5),
+                          Text(
+                            'Copy',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: IconButton(
-                      onPressed: onCopyAccount,
-                      icon: const Icon(Icons.copy_rounded, size: 17),
-                      tooltip: 'Copy account number',
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.all(compact ? 8 : 10),
-                      constraints: BoxConstraints.tightFor(
-                        width: compact ? 34 : 40,
-                        height: compact ? 34 : 40,
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Account Name Section
+            Text(
+              'ACCOUNT NAME',
+              style: TextStyle(
+                color: secondaryTextColor,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              accountName,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: primaryTextColor,
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+                letterSpacing: 0.1,
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Bottom Instant Credit Note
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.12 : 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.bolt_rounded, size: 16, color: Color(0xFF059669)),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Instant Automated Credit (0 - 30 seconds)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF059669),
                       ),
-                      color: accentColor,
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: compact ? 6 : 12),
-            Text(
-              accountName,
-              textAlign: TextAlign.center,
-              maxLines: compact ? 1 : 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: useWhiteText ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    letterSpacing: 0.1,
-                  ),
-            ),
+
             if (onShareAccount != null) ...[
-              SizedBox(height: compact ? 6 : 8),
+              const SizedBox(height: 10),
               Center(
                 child: TextButton.icon(
                   onPressed: onShareAccount,
                   icon: const Icon(Icons.share_rounded, size: 16),
-                  label: Text(compact ? 'Share' : 'Share details'),
+                  label: const Text('Share account details'),
                   style: TextButton.styleFrom(
-                    foregroundColor: accentColor,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: compact ? 12 : 14,
-                      vertical: compact ? 6 : 8,
-                    ),
+                    foregroundColor: const Color(0xFF2563EB),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ),
               ),
             ],
-            SizedBox(height: compact ? 6 : 10),
-            Text(
-              'Transfer to this account to fund your wallet.',
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: useWhiteText
-                        ? Colors.white.withValues(alpha: 0.58)
-                        : Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.58),
-                    height: 1.25,
-                  ),
-            ),
           ],
         ],
       ),
     );
-  }
-
-  String _formatAccountNumber(String value) {
-    final digits = value.replaceAll(RegExp(r'\s+'), '');
-    if (digits.isEmpty) return '';
-    if (digits.length == 10) {
-      return '${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}';
-    }
-    final buffer = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && i % 4 == 0) buffer.write(' ');
-      buffer.write(digits[i]);
-    }
-    return buffer.toString();
   }
 }
 
@@ -2229,7 +2383,7 @@ class _WalletAccountActivationCardState extends State<_WalletAccountActivationCa
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'MELE DATA does NOT store or keep your BVN or NIN. This identity verification is securely routed directly to our central CBN-licensed payment partner (Monnify) to automatically generate your personalized funding accounts.',
+                    '${AppConfig.appName} does NOT store or keep your BVN or NIN. This identity verification is securely routed directly to our central CBN-licensed payment partner (Monnify) to automatically generate your personalized funding accounts.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       fontSize: 11,
