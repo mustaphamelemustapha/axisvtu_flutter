@@ -44,6 +44,16 @@ class WalletService {
     }
   }
 
+  Future<Map<String, dynamic>> linkKyc({
+    String? bvn,
+    String? nin,
+  }) async {
+    final body = <String, dynamic>{};
+    if (bvn != null && bvn.trim().isNotEmpty) body['bvn'] = bvn.trim();
+    if (nin != null && nin.trim().isNotEmpty) body['nin'] = nin.trim();
+    return _client.post('/wallet/link-kyc', body);
+  }
+
   Future<Map<String, dynamic>> verifyTransferRecipient(String identifier) async {
     return _client.post('/wallet/transfer/verify', {
       'identifier': identifier,

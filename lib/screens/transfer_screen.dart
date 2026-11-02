@@ -9,6 +9,7 @@ import '../config.dart';
 import '../config/brand_config.dart';
 import '../services/wallet_service.dart';
 import '../services/purchase_auth_service.dart';
+import '../services/dashboard_snapshot_cache.dart';
 import '../state/session.dart';
 import '../utils/balance_util.dart';
 import '../widgets/bvn_nin_activation_dialog.dart';
@@ -55,6 +56,7 @@ class _TransferScreenState extends State<TransferScreen> {
   Timer? _bankDebounce;
 
   bool _submitting = false;
+  bool _hasVerifiedVirtualAccounts = false;
 
   WalletService get _walletService =>
       WalletService(token: context.read<SessionController>().token ?? '');
@@ -70,7 +72,45 @@ class _TransferScreenState extends State<TransferScreen> {
 
     if (isMeleData) {
       _loadBanks();
+      _checkKycAndAccounts();
     }
+  }
+
+  void _checkKycAndAccounts() {
+    try {
+      final session = context.read<SessionController>();
+      final identity = DashboardSnapshotCache.identityFromUser(session.user);
+      if (identity != null) {
+        final snap = DashboardSnapshotCache.loadSync(identity);
+        final accs = (snap?['accounts']?['accounts'] as List?) ?? [];
+        if (_accountsProveKyc(accs)) {
+          setState(() => _hasVerifiedVirtualAccounts = true);
+          session.updateUserField('kyc_verified', true);
+          return;
+        }
+      }
+
+      _walletService.getBankAccounts().then((res) {
+        final accs = (res['accounts'] as List?) ?? [];
+        if (_accountsProveKyc(accs) && mounted) {
+          setState(() => _hasVerifiedVirtualAccounts = true);
+          session.updateUserField('kyc_verified', true);
+        }
+      }).catchError((_) {});
+    } catch (_) {}
+  }
+
+  bool _accountsProveKyc(List accs) {
+    for (final a in accs) {
+      final name = (a['bank_name'] ?? '').toString().toLowerCase();
+      if (name.contains('moniepoint') ||
+          name.contains('palmpay') ||
+          name.contains('monnify') ||
+          name.contains('safehaven')) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @override
@@ -87,14 +127,45 @@ class _TransferScreenState extends State<TransferScreen> {
     super.dispose();
   }
 
+  static const List<Map<String, dynamic>> _defaultBanks = [
+    {'name': 'Access Bank', 'code': '044', 'slug': 'access-bank'},
+    {'name': 'Guaranty Trust Bank (GTBank)', 'code': '058', 'slug': 'guaranty-trust-bank'},
+    {'name': 'Zenith Bank', 'code': '057', 'slug': 'zenith-bank'},
+    {'name': 'United Bank for Africa (UBA)', 'code': '033', 'slug': 'united-bank-for-africa'},
+    {'name': 'First Bank of Nigeria', 'code': '011', 'slug': 'first-bank-of-nigeria'},
+    {'name': 'OPay (Paycom)', 'code': '999992', 'slug': 'paycom'},
+    {'name': 'PalmPay', 'code': '999991', 'slug': 'palmpay'},
+    {'name': 'Moniepoint MFB', 'code': '50515', 'slug': 'moniepoint-mfb-ng'},
+    {'name': 'Kuda Bank', 'code': '50211', 'slug': 'kuda-bank'},
+    {'name': 'Fidelity Bank', 'code': '070', 'slug': 'fidelity-bank'},
+    {'name': 'Stanbic IBTC Bank', 'code': '221', 'slug': 'stanbic-ibtc-bank'},
+    {'name': 'Sterling Bank', 'code': '232', 'slug': 'sterling-bank'},
+    {'name': 'Union Bank of Nigeria', 'code': '032', 'slug': 'union-bank-of-nigeria'},
+    {'name': 'Wema Bank (ALAT)', 'code': '035', 'slug': 'wema-bank'},
+    {'name': 'First City Monument Bank (FCMB)', 'code': '214', 'slug': 'first-city-monument-bank'},
+    {'name': 'Polaris Bank', 'code': '076', 'slug': 'polaris-bank'},
+    {'name': 'Keystone Bank', 'code': '082', 'slug': 'keystone-bank'},
+    {'name': 'Jaiz Bank', 'code': '301', 'slug': 'jaiz-bank'},
+    {'name': 'TAJ Bank', 'code': '302', 'slug': 'taj-bank'},
+    {'name': 'VFD Microfinance Bank', 'code': '566', 'slug': 'vfd'},
+    {'name': 'FairMoney Microfinance Bank', 'code': '51318', 'slug': 'fairmoney-mfb'},
+    {'name': 'Rubies MFB', 'code': '125', 'slug': 'rubies-mfb'},
+    {'name': 'Carbon', 'code': '565', 'slug': 'carbon'},
+    {'name': 'Titan Trust Bank', 'code': '102', 'slug': 'titan-bank'},
+    {'name': 'Providus Bank', 'code': '101', 'slug': 'providus-bank'},
+  ];
+
   // ---------------------------------------------------------------------------
   // BANK WITHDRAWAL LOGIC
   // ---------------------------------------------------------------------------
   Future<void> _loadBanks() async {
-    setState(() => _loadingBanks = true);
+    setState(() {
+      _banks = List.from(_defaultBanks);
+      _loadingBanks = true;
+    });
     try {
       final list = await _walletService.getBanks();
-      if (mounted) {
+      if (mounted && list.isNotEmpty) {
         setState(() {
           _banks = list;
           _loadingBanks = false;
@@ -520,7 +591,8 @@ class _TransferScreenState extends State<TransferScreen> {
         user['has_bvn'] == true ||
         user['has_nin'] == true ||
         (user['bvn_hash'] != null && user['bvn_hash'].toString().isNotEmpty) ||
-        (user['nin_hash'] != null && user['nin_hash'].toString().isNotEmpty);
+        (user['nin_hash'] != null && user['nin_hash'].toString().isNotEmpty) ||
+        _hasVerifiedVirtualAccounts;
 
     final primaryThemeColor = theme.colorScheme.primary;
 
@@ -815,8 +887,11 @@ class _TransferScreenState extends State<TransferScreen> {
                     BvnNinActivationDialog.show(
                       context,
                       onActivated: () {
+                        setState(() {
+                          _hasVerifiedVirtualAccounts = true;
+                        });
+                        session.updateUserField('kyc_verified', true);
                         session.syncProfileIfNeeded();
-                        setState(() {});
                       },
                     );
                   },

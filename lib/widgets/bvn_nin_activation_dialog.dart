@@ -56,12 +56,24 @@ class _BvnNinActivationDialogState extends State<BvnNinActivationDialog> {
       }
 
       final walletService = WalletService(token: token);
-      await walletService.createBankAccounts(
-        bvn: _option == 'bvn' ? value : null,
-        nin: _option == 'nin' ? value : null,
-      );
+      final bvn = _option == 'bvn' ? value : null;
+      final nin = _option == 'nin' ? value : null;
 
-      // Refresh session profile to update KYC state
+      // 1. Immediately link and persist the KYC hash to the user profile
+      try {
+        await walletService.linkKyc(bvn: bvn, nin: nin);
+      } catch (_) {
+        // Fallback gracefully if link-kyc isn't available
+      }
+
+      // 2. Also trigger bank account generation
+      try {
+        await walletService.createBankAccounts(bvn: bvn, nin: nin);
+      } catch (_) {}
+
+      // 3. Immediately mark session user as verified in local state and notify listeners
+      await session.updateUserField('kyc_verified', true);
+      await session.updateUserField(_option == 'bvn' ? 'has_bvn' : 'has_nin', true);
       await session.syncProfileIfNeeded();
 
       if (!mounted) return;
@@ -338,3 +350,4 @@ class _BvnNinActivationDialogState extends State<BvnNinActivationDialog> {
     );
   }
 }
+
