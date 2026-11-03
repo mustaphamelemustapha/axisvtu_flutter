@@ -158,7 +158,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'A 4-digit PIN is required to authorize data purchases and wallet withdrawals.',
+                  'A 4-digit PIN is required to authorize data purchases and wallet transfers.',
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF475569),

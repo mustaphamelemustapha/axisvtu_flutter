@@ -1053,60 +1053,21 @@ class _WalletScreenState extends State<WalletScreen> {
               },
             ),
             const SizedBox(height: 14),
-            if (BrandConfig.current.brand == AppBrand.meleData)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _openScreen(const TransferScreen()),
-                      icon: const Icon(Icons.account_balance_rounded, size: 18),
-                      label: const Text(
-                        'Withdraw to Bank',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _openScreen(const TransferScreen()),
-                      icon: const Icon(Icons.send_rounded, size: 18),
-                      label: const Text(
-                        'Send to User',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            else
-              ElevatedButton.icon(
-                onPressed: () => _openScreen(const TransferScreen()),
-                icon: const Icon(Icons.send_rounded, size: 18),
-                label: const Text(
-                  'Send to User (P2P Transfer)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
+            ElevatedButton.icon(
+              onPressed: () => _openScreen(const TransferScreen()),
+              icon: const Icon(Icons.send_rounded, size: 18),
+              label: const Text(
+                'Send to User (P2P Transfer)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
             const SizedBox(height: 14),
             Row(
               children: [
