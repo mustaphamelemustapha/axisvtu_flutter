@@ -19,6 +19,7 @@ import '../widgets/glass_card.dart';
 import '../widgets/insufficient_funds_sheet.dart';
 import '../widgets/purchase_loading_overlay.dart';
 import '../widgets/epic_receipt_modal.dart';
+import '../widgets/bank_standard_receipt_modal.dart';
 
 class TransferScreen extends StatefulWidget {
   const TransferScreen({super.key});
@@ -306,6 +307,8 @@ class _TransferScreenState extends State<TransferScreen> {
           SummaryItem(label: 'Beneficiary', value: beneficiary, icon: Icons.person_rounded),
           SummaryItem(label: 'Destination Bank', value: bankName, icon: Icons.account_balance_rounded),
           SummaryItem(label: 'Account Number', value: accNum, icon: Icons.tag_rounded),
+          if (_narrationController.text.trim().isNotEmpty)
+            SummaryItem(label: 'Description', value: _narrationController.text.trim(), icon: Icons.notes_rounded),
           SummaryItem(label: 'Transfer Fee', value: currency.format(fee), icon: Icons.receipt_long_rounded),
           SummaryItem(label: 'Total Debit', value: currency.format(totalDebit), icon: Icons.wallet_rounded),
         ],
@@ -365,6 +368,14 @@ class _TransferScreenState extends State<TransferScreen> {
       final String refStr = res['reference']?.toString() ?? 'TRF_SUCCESS';
       final String msgStr = res['message']?.toString() ?? 'Funds are en route to your bank account.';
 
+      final userName = context.read<SessionController>().user?['full_name']?.toString() ?? 'MELE DATA Customer';
+      final String? sessionId = res['session_id']?.toString();
+      final String? provRef = res['provider_reference']?.toString();
+      DateTime? txTime;
+      if (res['created_at'] != null) {
+        txTime = DateTime.tryParse(res['created_at'].toString())?.toLocal();
+      }
+
       // Clear input fields safely
       _accountNumberController.clear();
       _bankAmountController.clear();
@@ -374,49 +385,44 @@ class _TransferScreenState extends State<TransferScreen> {
         _selectedBank = null;
       });
 
-      // Show receipt modal with safely captured variables
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => EpicReceiptModal(
-          isSuccess: true,
-          title: 'Withdrawal Initiated',
-          amount: currency.format(amount),
-          primaryColor: const Color(0xFF10B981),
-          details: {
-            'Beneficiary': beneficiary,
-            'Bank': bankName,
-            'Account Number': accNum,
-            'Reference': refStr,
-            'Transfer Fee': currency.format(feeNum),
-            'Total Debited': currency.format(totalDebitedNum),
-            'Message': msgStr,
-          },
-          onSave: () {},
-        ),
+      // Show Bank-Standard Receipt Modal
+      BankStandardReceiptModal.show(
+        context,
+        isSuccess: true,
+        amount: currency.format(amount),
+        fee: currency.format(feeNum),
+        totalDebited: currency.format(totalDebitedNum),
+        beneficiaryName: beneficiary,
+        destinationBank: bankName,
+        accountNumber: accNum,
+        senderName: userName,
+        narration: narration.isNotEmpty ? narration : 'Transfer to $beneficiary',
+        reference: refStr,
+        providerReference: provRef,
+        sessionId: sessionId,
+        timestamp: txTime ?? DateTime.now(),
+        message: msgStr,
       );
     } catch (e) {
       if (!mounted) return;
       PurchaseLoadingOverlay.hide();
 
       final currency = NumberFormat.currency(symbol: '₦', decimalDigits: 2);
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => EpicReceiptModal(
-          isSuccess: false,
-          title: 'Withdrawal Failed',
-          amount: currency.format(amount),
-          primaryColor: Theme.of(context).colorScheme.error,
-          details: {
-            'Destination': '$bankName - $accNum',
-            'Beneficiary': beneficiary,
-            'Reason': e.toString().replaceAll('Exception: ', '').replaceAll('ApiException: ', ''),
-          },
-          onSave: () {},
-        ),
+      final double feeNum = amount <= 5000.0 ? 25.0 : 50.0;
+      final double totalDebitedNum = amount + feeNum;
+
+      BankStandardReceiptModal.show(
+        context,
+        isSuccess: false,
+        amount: currency.format(amount),
+        fee: currency.format(feeNum),
+        totalDebited: currency.format(totalDebitedNum),
+        beneficiaryName: beneficiary,
+        destinationBank: bankName,
+        accountNumber: accNum,
+        reference: 'FAIL_${DateTime.now().millisecondsSinceEpoch}',
+        timestamp: DateTime.now(),
+        message: e.toString().replaceAll('Exception: ', '').replaceAll('ApiException: ', ''),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -1002,7 +1008,7 @@ class _TransferScreenState extends State<TransferScreen> {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5),
             decoration: InputDecoration(
               counterText: '',
-              hintText: '10-digit NUBAN number',
+              hintText: 'Account Number',
               prefixIcon: Icon(Icons.pin_rounded, color: primary),
               filled: true,
               fillColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
@@ -1029,51 +1035,52 @@ class _TransferScreenState extends State<TransferScreen> {
             },
           ),
 
-          // Verified Beneficiary Banner
+          // Verified Beneficiary Banner (OPay / Moniepoint Style)
           if (_resolvedAccountName != null) ...[
             const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.35)),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    width: 32,
+                    height: 32,
                     decoration: const BoxDecoration(
                       color: Color(0xFF10B981),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check, color: Colors.white, size: 16),
+                    child: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'VERIFIED ACCOUNT NAME',
+                          'ACCOUNT HOLDER',
                           style: TextStyle(
-                            fontSize: 9.5,
+                            fontSize: 10,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: 0.6,
+                            letterSpacing: 0.8,
                             color: Color(0xFF10B981),
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           _resolvedAccountName ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
-            ).animate().fade().scale(),
+            ).animate().fade().scale(begin: const Offset(0.97, 0.97)),
           ],
 
           if (_bankResolveError != null) ...[
@@ -1084,7 +1091,7 @@ class _TransferScreenState extends State<TransferScreen> {
             ).animate().fade(),
           ],
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1094,7 +1101,7 @@ class _TransferScreenState extends State<TransferScreen> {
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
-                'Min ₦100 • Max ₦100k',
+                'Min ₦100 • Max ₦100,000',
                 style: TextStyle(
                   fontSize: 11,
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
@@ -1108,10 +1115,11 @@ class _TransferScreenState extends State<TransferScreen> {
           TextFormField(
             controller: _bankAmountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
             decoration: InputDecoration(
               prefixText: '₦ ',
-              prefixStyle: TextStyle(color: primary, fontSize: 22, fontWeight: FontWeight.bold),
+              prefixStyle: TextStyle(color: primary, fontSize: 24, fontWeight: FontWeight.w900),
+              hintText: '0.00',
               filled: true,
               fillColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
               border: OutlineInputBorder(
@@ -1129,39 +1137,33 @@ class _TransferScreenState extends State<TransferScreen> {
             },
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 20),
 
-          // Quick Amount Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final preset in [1000, 2000, 5000, 10000, 20000, 50000])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6.0),
-                    child: ActionChip(
-                      label: Text('+₦${NumberFormat('#,##0').format(preset)}'),
-                      onPressed: () {
-                        _bankAmountController.text = preset.toString();
-                        setState(() {});
-                      },
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      backgroundColor: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.04),
-                    ),
-                  ),
-                ActionChip(
-                  label: const Text('Max', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: () {
-                    final bal = getUserBalance(context);
-                    final maxPossible = (bal - 50.0).clamp(0.0, 100000.0);
-                    _bankAmountController.text = maxPossible.toInt().toString();
-                    setState(() {});
-                  },
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  backgroundColor: primary.withValues(alpha: 0.12),
-                  labelStyle: TextStyle(color: primary),
-                ),
-              ],
+          Text(
+            'Description (Optional)',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          TextFormField(
+            controller: _narrationController,
+            maxLength: 50,
+            textCapitalization: TextCapitalization.sentences,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            decoration: InputDecoration(
+              counterText: '',
+              hintText: 'What is this transfer for? (Optional)',
+              hintStyle: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+              prefixIcon: Icon(Icons.notes_rounded, color: primary),
+              filled: true,
+              fillColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
 
@@ -1378,7 +1380,7 @@ class _TransferScreenState extends State<TransferScreen> {
 }
 
 // -----------------------------------------------------------------------------
-// SEARCHABLE BANK SELECTOR MODAL BOTTOM SHEET
+// SEARCHABLE BANK SELECTOR MODAL BOTTOM SHEET (OPay / Moniepoint style)
 // -----------------------------------------------------------------------------
 class _BankSelectorModal extends StatefulWidget {
   const _BankSelectorModal({
@@ -1399,16 +1401,49 @@ class _BankSelectorModalState extends State<_BankSelectorModal> {
   final _searchCtrl = TextEditingController();
   String _filter = '';
 
+  static const List<Map<String, String>> _popularBanks = [
+    {'name': 'OPay (Paycom)', 'code': '999992', 'abbr': 'OP', 'color': '0xFF00B875'},
+    {'name': 'PalmPay', 'code': '999991', 'abbr': 'PL', 'color': '0xFF4F46E5'},
+    {'name': 'Moniepoint MFB', 'code': '50515', 'abbr': 'MP', 'color': '0xFF0284C7'},
+    {'name': 'Kuda Bank', 'code': '50211', 'abbr': 'KU', 'color': '0xFF7C3AED'},
+    {'name': 'Guaranty Trust Bank', 'code': '058', 'abbr': 'GT', 'color': '0xFFEA580C'},
+    {'name': 'Zenith Bank', 'code': '057', 'abbr': 'ZN', 'color': '0xFFDC2626'},
+    {'name': 'Access Bank', 'code': '044', 'abbr': 'AC', 'color': '0xFFF59E0B'},
+    {'name': 'United Bank for Africa', 'code': '033', 'abbr': 'UB', 'color': '0xFFB91C1C'},
+  ];
+
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
   }
 
+  Color _getBankColor(String name) {
+    final colors = [
+      const Color(0xFF0284C7),
+      const Color(0xFF00B875),
+      const Color(0xFF4F46E5),
+      const Color(0xFFEA580C),
+      const Color(0xFFDC2626),
+      const Color(0xFF7C3AED),
+      const Color(0xFF0D9488),
+    ];
+    return colors[name.hashCode.abs() % colors.length];
+  }
+
+  String _getInitials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name.substring(0, name.length.clamp(0, 2)).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
 
     final filtered = widget.banks.where((b) {
       if (b is! Map) return false;
@@ -1419,101 +1454,272 @@ class _BankSelectorModalState extends State<_BankSelectorModal> {
     }).toList();
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      height: MediaQuery.of(context).size.height * 0.82,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 30,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Drag Handle
+          // Drag handle
           Center(
             child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 44,
+              height: 4.5,
               decoration: BoxDecoration(
                 color: theme.dividerColor.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Select Destination Bank',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 17,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select Bank',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 19,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Choose destination bank or fintech',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 20),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 22),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
           ),
-
-          const SizedBox(height: 12),
 
           // Search Field
-          TextField(
-            controller: _searchCtrl,
-            decoration: InputDecoration(
-              hintText: 'Search bank name or code...',
-              prefixIcon: const Icon(Icons.search, size: 20),
-              filled: true,
-              fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: TextField(
+              controller: _searchCtrl,
+              autofocus: false,
+              decoration: InputDecoration(
+                hintText: 'Search bank name or code...',
+                hintStyle: TextStyle(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+                prefixIcon: Icon(Icons.search_rounded, size: 22, color: primary),
+                suffixIcon: _filter.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _filter = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              onChanged: (val) => setState(() => _filter = val.trim()),
             ),
-            onChanged: (val) => setState(() => _filter = val.trim()),
           ),
 
-          const SizedBox(height: 14),
+          // Popular Banks Horizontal Carousel (when search is empty)
+          if (_filter.isEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
+              child: Text(
+                'POPULAR BANKS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 90,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: _popularBanks.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (context, idx) {
+                  final pop = _popularBanks[idx];
+                  final popColor = Color(int.parse(pop['color']!));
+                  final isSelected = widget.selectedBank?['code']?.toString() == pop['code'];
 
-          // Bank List
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      final found = widget.banks.firstWhere(
+                        (b) => b is Map && b['code']?.toString() == pop['code'],
+                        orElse: () => {'name': pop['name'], 'code': pop['code']},
+                      );
+                      widget.onSelect(Map<String, dynamic>.from(found as Map));
+                      Navigator.pop(context);
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: popColor.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? popColor : popColor.withValues(alpha: 0.35),
+                              width: isSelected ? 2.5 : 1.2,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              pop['abbr']!,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                                color: popColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: 64,
+                          child: Text(
+                            pop['name']!.split(' ')[0],
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                              color: isSelected ? primary : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const Divider(height: 18),
+          ],
+
+          // All Banks List
           Expanded(
             child: filtered.isEmpty
                 ? Center(
-                    child: Text(
-                      'No matching banks found.',
-                      style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off_rounded, size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No matching banks found',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : ListView.builder(
                     itemCount: filtered.length,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemBuilder: (context, index) {
                       final bank = filtered[index] as Map<String, dynamic>;
-                      final isSelected = widget.selectedBank?['code']?.toString() == bank['code']?.toString();
+                      final bName = bank['name']?.toString() ?? '';
+                      final bCode = bank['code']?.toString() ?? '';
+                      final isSelected = widget.selectedBank?['code']?.toString() == bCode;
+                      final bColor = _getBankColor(bName);
+                      final initials = _getInitials(bName);
+
                       return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                         leading: Container(
-                          width: 36,
-                          height: 36,
+                          width: 42,
+                          height: 42,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
+                            color: bColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: bColor.withValues(alpha: 0.25)),
                           ),
-                          child: Icon(Icons.account_balance, color: theme.colorScheme.primary, size: 18),
+                          child: Center(
+                            child: Text(
+                              initials,
+                              style: TextStyle(
+                                color: bColor,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
                         ),
                         title: Text(
-                          bank['name']?.toString() ?? '',
+                          bName,
                           style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                            fontSize: 14.5,
+                            color: isSelected ? primary : theme.colorScheme.onSurface,
                           ),
                         ),
-                        trailing: isSelected
-                            ? Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary)
+                        subtitle: bCode.isNotEmpty
+                            ? Text(
+                                'Bank Code: $bCode',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                ),
+                              )
                             : null,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        trailing: isSelected
+                            ? Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.check, color: Colors.white, size: 14),
+                              )
+                            : Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                              ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         onTap: () {
+                          HapticFeedback.selectionClick();
                           widget.onSelect(bank);
                           Navigator.pop(context);
                         },
