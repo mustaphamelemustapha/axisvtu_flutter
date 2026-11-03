@@ -189,7 +189,10 @@ class _TransferScreenState extends State<TransferScreen> {
     }
 
     _bankDebounce = Timer(const Duration(milliseconds: 450), () {
-      _resolveBankAccount(text, _selectedBank!['code']?.toString() ?? '');
+      final code = _selectedBank?['code']?.toString() ?? '';
+      if (code.isNotEmpty) {
+        _resolveBankAccount(text, code);
+      }
     });
   }
 
@@ -285,8 +288,9 @@ class _TransferScreenState extends State<TransferScreen> {
     }
 
     final currency = NumberFormat.currency(symbol: '₦', decimalDigits: 2);
-    final bankName = _selectedBank!['name']?.toString() ?? 'Bank';
+    final bankName = _selectedBank?['name']?.toString() ?? 'Bank';
     final accNum = _accountNumberController.text.trim();
+    final beneficiary = _resolvedAccountName ?? 'Account Holder';
 
     showModalBottomSheet(
       context: context,
@@ -299,7 +303,7 @@ class _TransferScreenState extends State<TransferScreen> {
         primaryColor: const Color(0xFF0B4FD2),
         headerIcon: Icons.account_balance_rounded,
         items: [
-          SummaryItem(label: 'Beneficiary', value: _resolvedAccountName!, icon: Icons.person_rounded),
+          SummaryItem(label: 'Beneficiary', value: beneficiary, icon: Icons.person_rounded),
           SummaryItem(label: 'Destination Bank', value: bankName, icon: Icons.account_balance_rounded),
           SummaryItem(label: 'Account Number', value: accNum, icon: Icons.tag_rounded),
           SummaryItem(label: 'Transfer Fee', value: currency.format(fee), icon: Icons.receipt_long_rounded),
@@ -333,18 +337,19 @@ class _TransferScreenState extends State<TransferScreen> {
     setState(() => _submitting = true);
     PurchaseLoadingOverlay.show(context, title: 'Processing bank withdrawal');
 
-    final amount = double.tryParse(_bankAmountController.text.trim()) ?? 0.0;
-    final accNum = _accountNumberController.text.trim();
-    final bankCode = _selectedBank!['code']?.toString() ?? '';
-    final bankName = _selectedBank!['name']?.toString() ?? '';
-    final narration = _narrationController.text.trim();
+    final double amount = double.tryParse(_bankAmountController.text.trim()) ?? 0.0;
+    final String accNum = _accountNumberController.text.trim();
+    final String bankCode = _selectedBank?['code']?.toString() ?? '';
+    final String bankName = _selectedBank?['name']?.toString() ?? 'Bank';
+    final String beneficiary = _resolvedAccountName ?? 'Account Holder';
+    final String narration = _narrationController.text.trim();
 
     try {
       final res = await _walletService.withdrawToBank(
         accountNumber: accNum,
         bankCode: bankCode,
         bankName: bankName,
-        accountName: _resolvedAccountName!,
+        accountName: beneficiary,
         amount: amount,
         pin: pin,
         narration: narration.isNotEmpty ? narration : null,
@@ -355,6 +360,21 @@ class _TransferScreenState extends State<TransferScreen> {
       context.read<SessionController>().refreshBalance();
 
       final currency = NumberFormat.currency(symbol: '₦', decimalDigits: 2);
+      final double feeNum = double.tryParse(res['fee']?.toString() ?? '') ?? (amount <= 5000.0 ? 25.0 : 50.0);
+      final double totalDebitedNum = double.tryParse(res['total_debited']?.toString() ?? '') ?? (amount + feeNum);
+      final String refStr = res['reference']?.toString() ?? 'TRF_SUCCESS';
+      final String msgStr = res['message']?.toString() ?? 'Funds are en route to your bank account.';
+
+      // Clear input fields safely
+      _accountNumberController.clear();
+      _bankAmountController.clear();
+      _narrationController.clear();
+      setState(() {
+        _resolvedAccountName = null;
+        _selectedBank = null;
+      });
+
+      // Show receipt modal with safely captured variables
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -365,25 +385,17 @@ class _TransferScreenState extends State<TransferScreen> {
           amount: currency.format(amount),
           primaryColor: const Color(0xFF10B981),
           details: {
-            'Beneficiary': _resolvedAccountName!,
+            'Beneficiary': beneficiary,
             'Bank': bankName,
             'Account Number': accNum,
-            'Reference': res['reference'] ?? 'TRF_SUCCESS',
-            'Transfer Fee': currency.format(res['fee'] ?? 25.0),
-            'Total Debited': currency.format(res['total_debited'] ?? (amount + 25.0)),
-            'Message': res['message'] ?? 'Funds are en route to your bank account.',
+            'Reference': refStr,
+            'Transfer Fee': currency.format(feeNum),
+            'Total Debited': currency.format(totalDebitedNum),
+            'Message': msgStr,
           },
           onSave: () {},
         ),
       );
-
-      _accountNumberController.clear();
-      _bankAmountController.clear();
-      _narrationController.clear();
-      setState(() {
-        _resolvedAccountName = null;
-        _selectedBank = null;
-      });
     } catch (e) {
       if (!mounted) return;
       PurchaseLoadingOverlay.hide();
@@ -400,8 +412,8 @@ class _TransferScreenState extends State<TransferScreen> {
           primaryColor: Theme.of(context).colorScheme.error,
           details: {
             'Destination': '$bankName - $accNum',
-            'Beneficiary': _resolvedAccountName ?? '—',
-            'Reason': e.toString().replaceAll('Exception: ', ''),
+            'Beneficiary': beneficiary,
+            'Reason': e.toString().replaceAll('Exception: ', '').replaceAll('ApiException: ', ''),
           },
           onSave: () {},
         ),
@@ -956,9 +968,8 @@ class _TransferScreenState extends State<TransferScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _selectedBank != null
-                          ? _selectedBank!['name']?.toString() ?? ''
-                          : (_loadingBanks ? 'Loading banks...' : 'Choose destination bank'),
+                      _selectedBank?['name']?.toString() ??
+                          (_loadingBanks ? 'Loading banks...' : 'Choose destination bank'),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: _selectedBank != null ? FontWeight.bold : FontWeight.normal,
@@ -1054,7 +1065,7 @@ class _TransferScreenState extends State<TransferScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _resolvedAccountName!,
+                          _resolvedAccountName ?? '',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                       ],
